@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Canvas Builder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="canvas"></div>
+    <div id="zoom-indicator"></div>
+    <div id="help-text">
+        <kbd>Ctrl/Cmd</kbd> + <kbd>Scroll</kbd> Zoom<br>
+        <kbd>Ctrl/Cmd</kbd> + <kbd>0</kbd> Reset Zoom<br>
+        <kbd>Space</kbd> + <kbd>Drag</kbd> Pan<br>
+        <kbd>Ctrl/Cmd</kbd> + <kbd>N</kbd> New Frame<br>
+        <kbd>Ctrl/Cmd</kbd> + <kbd>Click</kbd> Extract Element<br>
+        <kbd>F</kbd> Frame • <kbd>R</kbd> Element-Frame • <kbd>T</kbd> Text<br>
+        <kbd>L/D</kbd> Line • <kbd>O</kbd> Circle • <kbd>B</kbd> Button • <kbd>P</kbd> Input
+    </div>
+
+    <!-- JavaScript modules loaded in correct dependency order -->
+    <script src="js/canvas.js"></script>
+    <script src="js/zoom.js"></script>
+    <script src="js/pan.js"></script>
+    <script src="js/resize.js"></script>
+    <script src="js/drag.js"></script>
+    <script src="js/extraction.js"></script>
+    <script src="js/frame.js"></script>
+    <script src="js/element-creation.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

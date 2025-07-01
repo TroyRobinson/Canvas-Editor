@@ -1,0 +1,342 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+    font-family: system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+}
+
+body.space-held {
+    cursor: grab;
+}
+
+body.panning {
+    cursor: grabbing;
+}
+
+#canvas {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background-image: 
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    transform-origin: 0 0;
+    transition: none;
+}
+
+/* Performance optimization: will-change hints browser to optimize transform */
+#canvas.zooming {
+    will-change: transform;
+}
+
+/* Optimize moving elements */
+.dragging,
+.resizing {
+    will-change: transform;
+}
+
+/* Screen-frames: Full HTML frames with title bars */
+.frame {
+    position: absolute;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    min-width: 200px;
+    min-height: 150px;
+    overflow: visible;
+    cursor: move;
+}
+
+/* Element-frames: Special divs that act as containers */
+.element-frame {
+    position: absolute;
+    background: #f5f5f5;
+    border: 2px dashed #999;
+    border-radius: 6px;
+    min-width: 150px;
+    min-height: 100px;
+    overflow: visible;
+    cursor: move;
+    padding: 8px;
+}
+
+.frame-title {
+    background: #252525;
+    padding: 8px 12px;
+    cursor: default;
+    user-select: none;
+    border-radius: 4px 4px 0 0;
+    font-size: 14px;
+    border-bottom: 1px solid #333;
+}
+
+.frame-content {
+    padding: 16px;
+    height: calc(100% - 41px);
+    overflow: visible;
+    position: relative;
+    cursor: move;
+}
+
+.free-floating {
+    position: absolute !important;
+    cursor: move;
+    z-index: 100;
+    transition: none !important;
+}
+
+.free-floating:is(p, h1, h2, h3, h4, h5, h6, span) {
+    width: fit-content !important;
+}
+
+.free-floating:is(p, h1, h2, h3, h4, h5, h6, span) .resize-handle {
+    display: none;
+}
+
+/* Resize handles */
+.resize-handle {
+    position: absolute;
+    background: #3b82f6;
+    border: 1px solid #1d4ed8;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+/* Corner handles - 6x6px */
+.resize-handle.nw,
+.resize-handle.ne,
+.resize-handle.sw,
+.resize-handle.se {
+    width: 6px;
+    height: 6px;
+}
+
+/* Edge handles - 20px wide/tall */
+.resize-handle.n,
+.resize-handle.s {
+    width: 20px;
+    height: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.resize-handle.e,
+.resize-handle.w {
+    width: 6px;
+    height: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.frame:hover .resize-handle,
+.element-frame:hover .resize-handle,
+.free-floating:hover .resize-handle,
+.resizing .resize-handle {
+    opacity: 1;
+}
+
+/* Positioning for handles */
+.resize-handle.nw { top: -3px; left: -3px; cursor: nw-resize; }
+.resize-handle.ne { top: -3px; right: -3px; cursor: ne-resize; }
+.resize-handle.sw { bottom: -3px; left: -3px; cursor: sw-resize; }
+.resize-handle.se { bottom: -3px; right: -3px; cursor: se-resize; }
+.resize-handle.n { top: -3px; cursor: n-resize; }
+.resize-handle.s { bottom: -3px; cursor: s-resize; }
+.resize-handle.e { right: -3px; cursor: e-resize; }
+.resize-handle.w { left: -3px; cursor: w-resize; }
+
+.resizing {
+    opacity: 0.9;
+    z-index: 10000 !important;
+}
+
+.dragging {
+    opacity: 0.8;
+    z-index: 10000 !important;
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Remove will-change after interaction ends to free memory */
+.frame:not(.dragging):not(.resizing),
+.element-frame:not(.dragging):not(.resizing),
+.free-floating:not(.dragging):not(.resizing) {
+    will-change: auto;
+}
+
+.extraction-ghost {
+    position: fixed;
+    pointer-events: none;
+    opacity: 0.6;
+    z-index: 10001;
+}
+
+/* Default frame content styles */
+.frame-content * {
+    cursor: default;
+}
+
+.frame-content .free-floating {
+    cursor: move;
+}
+
+.frame-content button {
+    background: #3a3a3a;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.frame-content button:hover {
+    background: #4a4a4a;
+}
+
+.frame-content h3 {
+    margin-bottom: 12px;
+    color: #f0f0f0;
+}
+
+.frame-content p {
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+/* Zoom indicator */
+#zoom-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #e0e0e0;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 10000;
+}
+
+#zoom-indicator.visible {
+    opacity: 1;
+}
+
+/* Help text */
+#help-text {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #808080;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: monospace;
+    line-height: 1.5;
+    z-index: 100;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+#help-text:hover {
+    opacity: 1;
+}
+
+#help-text kbd {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin: 0 2px;
+    font-size: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* New element types */
+.text-element {
+    background: transparent;
+    color: #e0e0e0;
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 4px;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+}
+
+.line-element {
+    background: #e0e0e0;
+    border: none;
+    border-radius: 0;
+}
+
+.circle-element {
+    background: #4a4a4a;
+    border: 2px solid #666;
+    border-radius: 50%;
+}
+
+.button-element {
+    background: #3a3a3a;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.button-element:hover {
+    background: #4a4a4a;
+}
+
+/* Input wrapper for resize handle support */
+.input-wrapper {
+    background: #2a2a2a;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px 10px;
+    overflow: hidden;
+}
+
+.input-wrapper:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.input-element {
+    background: transparent;
+    color: #e0e0e0;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+}
+
+.input-element:focus {
+    outline: none;
+}
+
+/* Element being placed */
+.placing-element {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10002;
+    opacity: 0.8;
+}
