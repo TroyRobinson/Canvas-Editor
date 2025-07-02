@@ -166,6 +166,16 @@ body.panning {
     outline-offset: 2px;
 }
 
+/* Ensure nested element-frames maintain proper interaction */
+.element-frame {
+    pointer-events: auto;
+}
+
+/* Prevent parent drag when child is being dragged */
+.element-frame.dragging .element-frame {
+    pointer-events: none;
+}
+
 /* Remove will-change after interaction ends to free memory */
 .frame:not(.dragging):not(.resizing),
 .element-frame:not(.dragging):not(.resizing),

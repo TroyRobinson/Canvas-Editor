@@ -192,28 +192,32 @@ function handlePlacementMouseUp(e) {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isPlacementDragging) {
-        // Simple click - just place the element
-        placeElement(e.clientX, e.clientY);
-    } else {
-        // Was dragging - element is already placed and being resized
-        // Clean up resize state
-        if (resizeTarget) {
-            resizeTarget.classList.remove('resizing');
-            resizing = false;
-            resizeTarget = null;
-            resizeHandle = null;
+    try {
+        if (!isPlacementDragging) {
+            // Simple click - just place the element
+            placeElement(e.clientX, e.clientY);
+        } else {
+            // Was dragging - element is already placed and being resized
+            // Clean up resize state
+            if (resizeTarget) {
+                resizeTarget.classList.remove('resizing');
+                resizing = false;
+                resizeTarget = null;
+                resizeHandle = null;
+            }
+            
+            console.log(`Element placed and resized`);
         }
-        
-        console.log(`Element placed and resized`);
-        
-        // Reset placement state
+    } catch (error) {
+        console.error('Error during placement mouse-up:', error);
+    } finally {
+        // Always reset placement state
         placingElement = null;
         placementMode = false;
         isPlacementDragging = false;
         placementStartPos = { x: 0, y: 0 };
         
-        // Remove event listeners
+        // Always remove event listeners
         document.removeEventListener('mousemove', handlePlacementMouseMove);
         document.removeEventListener('mousedown', handlePlacementMouseDown);
         document.removeEventListener('mouseup', handlePlacementMouseUp);

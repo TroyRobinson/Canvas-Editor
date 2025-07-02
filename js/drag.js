@@ -29,7 +29,21 @@ function setupElementDragging(element) {
         if (e.target.classList.contains('resize-handle')) return; // Don't drag if clicking resize handle
         if (window.isPanning) return; // Don't drag if panning
         
+        // Check if we're clicking on a nested element-frame or its child
+        // If so, don't start dragging this element
+        const clickedElement = e.target;
+        const isNestedElementFrame = clickedElement.classList.contains('element-frame') && 
+                                   clickedElement !== element;
+        const isChildOfNestedElementFrame = clickedElement.closest('.element-frame') && 
+                                          clickedElement.closest('.element-frame') !== element;
+        
+        if (isNestedElementFrame || isChildOfNestedElementFrame) {
+            return; // Let the nested element handle the drag
+        }
+        
         e.stopPropagation();
+        e.stopImmediatePropagation(); // Prevent any other handlers from firing
+        
         currentDragging = element;
         const rect = element.getBoundingClientRect();
         
@@ -48,7 +62,7 @@ function setupElementDragging(element) {
         }
         
         e.preventDefault();
-    });
+    }, true); // Use capture phase to handle events before they bubble
 }
 
 // Global mouse move handler
@@ -90,24 +104,34 @@ document.addEventListener('mousemove', (e) => {
 document.addEventListener('mouseup', (e) => {
     if (!currentDragging) return;
     
-    if (currentDragging.classList.contains('free-floating')) {
-        // Check if element should be moved to a different container
-        const elementRect = currentDragging.getBoundingClientRect();
-        const elementCenter = {
-            x: elementRect.left + elementRect.width / 2,
-            y: elementRect.top + elementRect.height / 2
-        };
-        
-        // Find which container the element is over
-        let newParent = findContainerAtPoint(elementCenter.x, elementCenter.y, currentDragging);
-        
-        if (newParent && newParent !== currentDragging.parentElement) {
-            moveElementToContainer(currentDragging, newParent, e.clientX, e.clientY);
+    // Always ensure we clean up the dragging state, regardless of any errors
+    try {
+        if (currentDragging.classList.contains('free-floating')) {
+            // Check if element should be moved to a different container
+            const elementRect = currentDragging.getBoundingClientRect();
+            const elementCenter = {
+                x: elementRect.left + elementRect.width / 2,
+                y: elementRect.top + elementRect.height / 2
+            };
+            
+            // Find which container the element is over
+            let newParent = findContainerAtPoint(elementCenter.x, elementCenter.y, currentDragging);
+            
+            if (newParent && newParent !== currentDragging.parentElement) {
+                moveElementToContainer(currentDragging, newParent, e.clientX, e.clientY);
+            }
         }
+    } catch (error) {
+        console.error('Error during mouse-up container check:', error);
+    } finally {
+        // Always clean up dragging state to ensure element detaches from mouse
+        if (currentDragging) {
+            currentDragging.classList.remove('dragging');
+            currentDragging = null;
+        }
+        // Reset drag offset
+        dragOffset = { x: 0, y: 0 };
     }
-    
-    currentDragging.classList.remove('dragging');
-    currentDragging = null;
 });
 
 function findContainerAtPoint(x, y, excludeElement) {

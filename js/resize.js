@@ -148,11 +148,17 @@ document.addEventListener('mousemove', (e) => {
 
 document.addEventListener('mouseup', (e) => {
     if (resizing) {
-        resizeTarget.classList.remove('resizing');
-        resizing = false;
-        resizeTarget = null;
-        resizeHandle = null;
-        isDragToResize = false; // Reset drag-to-resize flag
+        try {
+            resizeTarget.classList.remove('resizing');
+        } catch (error) {
+            console.error('Error during resize cleanup:', error);
+        } finally {
+            // Always reset resize state
+            resizing = false;
+            resizeTarget = null;
+            resizeHandle = null;
+            isDragToResize = false; // Reset drag-to-resize flag
+        }
     }
 });
 

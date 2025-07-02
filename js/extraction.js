@@ -7,12 +7,26 @@ function setupElementExtraction(frameContent) {
         if (!e.metaKey && !e.ctrlKey) return; // Only extract with cmd/ctrl
         if (window.isPanning) return; // Don't extract while panning
         
-        const target = e.target;
-        if (target === frameContent) return; // Don't extract the frame content itself
+        let target = e.target;
+        
+        // Find the closest extractable element (could be the target itself or a parent)
+        // This allows extracting element-frames by clicking on their children
+        while (target && target !== frameContent) {
+            if (target.classList.contains('free-floating') || 
+                target.classList.contains('element-frame') ||
+                target.tagName === 'P' || target.tagName === 'H3' || 
+                target.tagName === 'BUTTON' || target.tagName === 'DIV') {
+                break;
+            }
+            target = target.parentElement;
+        }
+        
+        if (!target || target === frameContent) return; // No valid target found
         if (target.classList.contains('free-floating')) return; // Already extracted
         
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation(); // Prevent parent handlers
         
         // Start extraction
         extracting = true;
@@ -30,7 +44,7 @@ function setupElementExtraction(frameContent) {
         
         // Immediately convert to absolute positioning
         makeElementFreeFloating(target, e.clientX, e.clientY);
-    });
+    }, true); // Use capture phase
 }
 
 function makeElementFreeFloating(element, mouseX, mouseY) {
@@ -83,8 +97,13 @@ document.addEventListener('mousemove', (e) => {
 // Clean up extraction on mouse up
 const originalMouseUp = document.onmouseup;
 document.addEventListener('mouseup', (e) => {
+    // Clean up extraction state
     if (extractGhost) {
-        document.body.removeChild(extractGhost);
+        try {
+            document.body.removeChild(extractGhost);
+        } catch (error) {
+            console.error('Error removing extraction ghost:', error);
+        }
         extractGhost = null;
     }
     extracting = false;
