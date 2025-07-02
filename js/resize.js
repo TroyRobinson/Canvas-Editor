@@ -6,6 +6,9 @@ let resizeStartSize = { width: 0, height: 0 };
 let resizeStartOffset = { left: 0, top: 0 };
 let isDragToResize = false; // Flag for drag-to-resize mode
 
+// Expose resizing state globally for other modules
+window.isResizing = () => resizing;
+
 function addResizeHandles(element) {
     const positions = ['nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w'];
     positions.forEach(pos => {

@@ -4,6 +4,10 @@ let elementCounter = 0;
 let placementStartPos = { x: 0, y: 0 };
 let isPlacementDragging = false;
 
+// Expose placement state globally for other modules
+window.isInPlacementMode = () => placementMode;
+window.isPlacementDragging = () => isPlacementDragging;
+
 // Element factories
 function createTextElement() {
     elementCounter++;
@@ -128,6 +132,9 @@ function startElementPlacement(elementType) {
     if (placingElement) {
         placingElement.classList.add('placing-element');
         document.body.appendChild(placingElement);
+        
+        // Prevent any drag interactions on the placing element
+        placingElement.style.pointerEvents = 'none';
         
         // Position at mouse location
         document.addEventListener('mousemove', handlePlacementMouseMove);
@@ -303,6 +310,7 @@ function placeElement(mouseX, mouseY) {
     placingElement.style.position = 'absolute';
     placingElement.style.left = newLeft + 'px';
     placingElement.style.top = newTop + 'px';
+    placingElement.style.pointerEvents = ''; // Restore pointer events
     
     // Move from body to container
     document.body.removeChild(placingElement);

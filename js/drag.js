@@ -8,6 +8,11 @@ function setupFrameDragging(frame, titleBar) {
         if (e.target.classList.contains('resize-handle')) return; // Don't drag if clicking resize handle
         if (window.isPanning) return; // Don't drag if panning
         
+        // Don't drag frame during placement or resize operations
+        if (window.isInPlacementMode && window.isInPlacementMode()) return;
+        if (window.isPlacementDragging && window.isPlacementDragging()) return;
+        if (window.isResizing && window.isResizing()) return;
+        
         currentDragging = frame;
         const rect = frame.getBoundingClientRect();
         
@@ -28,6 +33,11 @@ function setupElementDragging(element) {
         if (!element.classList.contains('free-floating')) return;
         if (e.target.classList.contains('resize-handle')) return; // Don't drag if clicking resize handle
         if (window.isPanning) return; // Don't drag if panning
+        
+        // Don't drag during placement or resize operations
+        if (window.isInPlacementMode && window.isInPlacementMode()) return;
+        if (window.isPlacementDragging && window.isPlacementDragging()) return;
+        if (window.isResizing && window.isResizing()) return;
         
         // Check if we're clicking on a nested element-frame or its child
         // If so, don't start dragging this element
