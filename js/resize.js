@@ -6,22 +6,15 @@ let resizeStartSize = { width: 0, height: 0 };
 let resizeStartOffset = { left: 0, top: 0 };
 let isDragToResize = false; // Flag for drag-to-resize mode
 
-// Expose resizing state globally for other modules
+// Expose resizing state and functions globally for other modules
 window.isResizing = () => resizing;
+window.startResize = startResize;
 
 function addResizeHandles(element) {
-    const positions = ['nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w'];
-    positions.forEach(pos => {
-        const handle = document.createElement('div');
-        handle.className = `resize-handle ${pos}`;
-        element.appendChild(handle);
-        
-        handle.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            startResize(e, element, pos);
-        });
-    });
+    // Use the selection module's anchor function
+    if (window.addSelectionAnchors) {
+        window.addSelectionAnchors(element);
+    }
 }
 
 function startResize(e, element, handlePos) {
@@ -44,6 +37,12 @@ function startResize(e, element, handlePos) {
     };
     
     element.classList.add('resizing');
+    
+    // Select the element when resizing starts
+    if (window.selectElement) {
+        window.selectElement(element);
+    }
+    
     bringToFront(element);
 }
 

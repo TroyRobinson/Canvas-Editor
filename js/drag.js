@@ -22,6 +22,12 @@ function setupFrameDragging(frame, titleBar) {
         dragOffset.y = (e.clientY - rect.top) / zoom;
         
         frame.classList.add('dragging');
+        
+        // Select the frame when dragging starts
+        if (window.selectElement) {
+            window.selectElement(frame);
+        }
+        
         bringToFront(frame);
         e.preventDefault();
     });
@@ -63,6 +69,12 @@ function setupElementDragging(element) {
         dragOffset.y = (e.clientY - rect.top) / zoom;
         
         element.classList.add('dragging');
+        
+        // Select the element when dragging starts
+        if (window.selectElement) {
+            window.selectElement(element);
+        }
+        
         bringToFront(element);
         
         // Also bring parent frame to front if element is in a frame

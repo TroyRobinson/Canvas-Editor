@@ -97,62 +97,79 @@ body.panning {
     width: fit-content !important;
 }
 
-.free-floating:is(p, h1, h2, h3, h4, h5, h6, span) .resize-handle {
-    display: none;
-}
 
 /* Resize handles */
 .resize-handle {
     position: absolute;
-    background: #3b82f6;
-    border: 1px solid #1d4ed8;
+    background: #6366f1;
+    border: 1px solid #4338ca;
     z-index: 1;
     opacity: 0;
     transition: opacity 0.2s;
 }
 
-/* Corner handles - 6x6px */
+/* Corner handles - larger for easier clicking */
 .resize-handle.nw,
 .resize-handle.ne,
 .resize-handle.sw,
 .resize-handle.se {
-    width: 6px;
-    height: 6px;
+    width: 12px;
+    height: 12px;
+    z-index: 2;
 }
 
-/* Edge handles - 20px wide/tall */
+/* Edge handles - fill entire sides */
 .resize-handle.n,
 .resize-handle.s {
-    width: 20px;
+    width: 100%;
     height: 6px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
 }
 
 .resize-handle.e,
 .resize-handle.w {
     width: 6px;
-    height: 20px;
-    top: 50%;
-    transform: translateY(-50%);
+    height: 100%;
+    top: 0;
 }
 
-.frame:hover .resize-handle,
-.element-frame:hover .resize-handle,
-.free-floating:hover .resize-handle,
-.resizing .resize-handle {
+.frame.selected .resize-handle,
+.element-frame.selected .resize-handle,
+.free-floating.selected .resize-handle,
+.resizing .resize-handle,
+.dragging .resize-handle {
     opacity: 1;
 }
 
+/* Hide resize handles on children when parent frame/element-frame is selected */
+.frame.selected .frame .resize-handle,
+.frame.selected .element-frame .resize-handle,
+.frame.selected .free-floating .resize-handle,
+.element-frame.selected .frame .resize-handle,
+.element-frame.selected .element-frame .resize-handle,
+.element-frame.selected .free-floating .resize-handle {
+    opacity: 0 !important;
+}
+
 /* Positioning for handles */
-.resize-handle.nw { top: -3px; left: -3px; cursor: nw-resize; }
-.resize-handle.ne { top: -3px; right: -3px; cursor: ne-resize; }
-.resize-handle.sw { bottom: -3px; left: -3px; cursor: sw-resize; }
-.resize-handle.se { bottom: -3px; right: -3px; cursor: se-resize; }
-.resize-handle.n { top: -3px; cursor: n-resize; }
-.resize-handle.s { bottom: -3px; cursor: s-resize; }
-.resize-handle.e { right: -3px; cursor: e-resize; }
-.resize-handle.w { left: -3px; cursor: w-resize; }
+.resize-handle.nw { top: -6px; left: -6px; }
+.resize-handle.ne { top: -6px; right: -6px; }
+.resize-handle.sw { bottom: -6px; left: -6px; }
+.resize-handle.se { bottom: -6px; right: -6px; }
+.resize-handle.n { top: -3px; }
+.resize-handle.s { bottom: -3px; }
+.resize-handle.e { right: -3px; }
+.resize-handle.w { left: -3px; }
+
+/* Cursor states only when element is selected */
+.selected .resize-handle.nw { cursor: nw-resize; }
+.selected .resize-handle.ne { cursor: ne-resize; }
+.selected .resize-handle.sw { cursor: sw-resize; }
+.selected .resize-handle.se { cursor: se-resize; }
+.selected .resize-handle.n { cursor: n-resize; }
+.selected .resize-handle.s { cursor: s-resize; }
+.selected .resize-handle.e { cursor: e-resize; }
+.selected .resize-handle.w { cursor: w-resize; }
 
 .resizing {
     opacity: 0.9;
@@ -162,8 +179,6 @@ body.panning {
 .dragging {
     opacity: 0.8;
     z-index: 10000 !important;
-    outline: 2px solid #3b82f6;
-    outline-offset: 2px;
 }
 
 /* Ensure nested element-frames maintain proper interaction */
