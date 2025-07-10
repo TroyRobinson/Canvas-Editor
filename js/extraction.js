@@ -82,6 +82,11 @@ function makeElementFreeFloating(element, mouseX, mouseY) {
     dragOffset.y = (mouseY - rect.top) / zoom;
     element.classList.add('dragging');
     
+    // Select the element so it remains selected after drag ends
+    if (window.selectElement) {
+        window.selectElement(element);
+    }
+    
     console.log(`Element extracted and is now free-floating`);
 }
 
