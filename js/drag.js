@@ -45,16 +45,23 @@ function setupElementDragging(element) {
         if (window.isPlacementDragging && window.isPlacementDragging()) return;
         if (window.isResizing && window.isResizing()) return;
         
-        // Check if we're clicking on a nested element-frame or its child
-        // If so, don't start dragging this element
+        // If this is an element-frame, only handle drag if clicking directly on the element-frame background
+        // Don't handle drag for child elements - let them handle their own drag
+        if (element.classList.contains('element-frame')) {
+            // If the click target is a child element with free-floating class, don't handle the drag
+            if (e.target !== element && e.target.classList.contains('free-floating')) {
+                return;
+            }
+        }
+        
+        // Check if we're clicking on a nested element-frame (but not its contents)
+        // Only prevent drag if clicking directly on an element-frame that's not this element
         const clickedElement = e.target;
         const isNestedElementFrame = clickedElement.classList.contains('element-frame') && 
                                    clickedElement !== element;
-        const isChildOfNestedElementFrame = clickedElement.closest('.element-frame') && 
-                                          clickedElement.closest('.element-frame') !== element;
         
-        if (isNestedElementFrame || isChildOfNestedElementFrame) {
-            return; // Let the nested element handle the drag
+        if (isNestedElementFrame) {
+            return; // Let the nested element-frame handle the drag
         }
         
         e.stopPropagation();

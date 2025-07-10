@@ -124,12 +124,12 @@ document.addEventListener('mousemove', (e) => {
             break;
     }
     
-    // Apply minimum sizes only for frames and element-frames, not for other elements
-    if (resizeTarget.classList.contains('frame') || resizeTarget.classList.contains('element-frame')) {
+    // Apply minimum sizes only for frames, not for element-frames or other elements
+    if (resizeTarget.classList.contains('frame')) {
         newWidth = Math.max(50, newWidth);
         newHeight = Math.max(50, newHeight);
     } else {
-        // For other elements, allow any size including very small
+        // For element-frames and other elements, allow any size including very small
         newWidth = Math.max(1, newWidth);
         newHeight = Math.max(1, newHeight);
     }
