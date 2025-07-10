@@ -92,7 +92,8 @@ body.panning {
 }
 
 .free-floating:is(p, h1, h2, h3, h4, h5, h6, span) {
-    width: fit-content !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 

@@ -63,10 +63,8 @@ function makeElementFreeFloating(element, mouseX, mouseY) {
     element.style.left = (relativeLeft / zoom) + 'px';
     element.style.top = (relativeTop / zoom) + 'px';
     
-    // For non-text elements, preserve the width
-    if (element.tagName !== 'P' && element.tagName !== 'H3' && element.tagName !== 'SPAN' && element.tagName !== 'H1' && element.tagName !== 'H2' && element.tagName !== 'H4' && element.tagName !== 'H5' && element.tagName !== 'H6') {
-        element.style.width = (elementRect.width / zoom) + 'px';
-    }
+    // Preserve width and height for all elements including text elements
+    element.style.width = (elementRect.width / zoom) + 'px';
     element.style.height = (elementRect.height / zoom) + 'px';
     
     // Add resize handles to the new free-floating element
