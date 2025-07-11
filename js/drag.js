@@ -3,6 +3,12 @@ let dragOffset = { x: 0, y: 0 };
 let isMultiDragging = false;
 let multiDragOffsets = new Map(); // Store relative positions of all selected elements
 
+// Alt/Option key duplication state
+let isAltPressed = false;
+let isDuplicateDrag = false;
+let duplicatedElements = new Map(); // Maps original elements to their duplicates
+let originalSelectedElements = [];
+
 function setupFrameDragging(frame, titleBar) {
     frame.addEventListener('mousedown', (e) => {
         if (e.metaKey || e.ctrlKey) return; // Don't drag frame if cmd/ctrl is held
@@ -23,32 +29,58 @@ function setupFrameDragging(frame, titleBar) {
             return;
         }
         
-        currentDragging = frame;
-        const rect = frame.getBoundingClientRect();
+        // Handle alt+drag for duplication
+        if (isAltPressed || e.altKey) {
+            // Make sure frame is selected before duplicating
+            if (window.selectElement && window.getSelectedElements) {
+                const selectedElements = window.getSelectedElements();
+                const isAlreadySelected = selectedElements.includes(frame);
+                if (!isAlreadySelected) {
+                    window.selectElement(frame);
+                }
+            }
+            
+            // Create duplicates of all selected elements
+            createDuplicates();
+            
+            // Find the duplicate of this frame to drag
+            const duplicate = duplicatedElements.get(frame);
+            if (duplicate) {
+                currentDragging = duplicate;
+            } else {
+                currentDragging = frame; // Fallback
+            }
+        } else {
+            currentDragging = frame;
+        }
+        const rect = currentDragging.getBoundingClientRect();
         
         // Account for zoom when calculating drag offset
         const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
         dragOffset.x = (e.clientX - rect.left) / zoom;
         dragOffset.y = (e.clientY - rect.top) / zoom;
         
-        frame.classList.add('dragging');
+        currentDragging.classList.add('dragging');
         
         // Select the frame when dragging starts (preserve multi-selection if frame is already selected)
-        if (window.selectElement && window.getSelectedElements) {
+        if (window.selectElement && window.getSelectedElements && !isDuplicateDrag) {
             const selectedElements = window.getSelectedElements();
             const isAlreadySelected = selectedElements.includes(frame);
             if (!isAlreadySelected) {
                 window.selectElement(frame);
             }
-            // Check if we're starting a multi-selection drag
+        }
+        
+        // Check if we're starting a multi-selection drag
+        if (window.getSelectedElements) {
             const updatedSelectedElements = window.getSelectedElements();
-            if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(frame)) {
+            if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(currentDragging)) {
                 isMultiDragging = true;
-                setupMultiDragOffsets(frame, updatedSelectedElements);
+                setupMultiDragOffsets(currentDragging, updatedSelectedElements);
             }
         }
         
-        bringToFront(frame);
+        bringToFront(currentDragging);
         e.preventDefault();
     });
 }
@@ -95,41 +127,217 @@ function setupElementDragging(element) {
         e.stopPropagation();
         e.stopImmediatePropagation(); // Prevent any other handlers from firing
         
-        currentDragging = element;
-        const rect = element.getBoundingClientRect();
+        // Handle alt+drag for duplication
+        if (isAltPressed || e.altKey) {
+            // Make sure element is selected before duplicating
+            if (window.selectElement && window.getSelectedElements) {
+                const selectedElements = window.getSelectedElements();
+                const isAlreadySelected = selectedElements.includes(element);
+                if (!isAlreadySelected) {
+                    window.selectElement(element);
+                }
+            }
+            
+            // Create duplicates of all selected elements
+            createDuplicates();
+            
+            // Find the duplicate of this element to drag
+            const duplicate = duplicatedElements.get(element);
+            if (duplicate) {
+                currentDragging = duplicate;
+            } else {
+                currentDragging = element; // Fallback
+            }
+        } else {
+            currentDragging = element;
+        }
+        const rect = currentDragging.getBoundingClientRect();
         
         // Account for zoom when calculating drag offset
         const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
         dragOffset.x = (e.clientX - rect.left) / zoom;
         dragOffset.y = (e.clientY - rect.top) / zoom;
         
-        element.classList.add('dragging');
+        currentDragging.classList.add('dragging');
         
         // Select the element when dragging starts (preserve multi-selection if element is already selected)
-        if (window.selectElement && window.getSelectedElements) {
+        if (window.selectElement && window.getSelectedElements && !isDuplicateDrag) {
             const selectedElements = window.getSelectedElements();
             const isAlreadySelected = selectedElements.includes(element);
             if (!isAlreadySelected) {
                 window.selectElement(element);
             }
-            // Check if we're starting a multi-selection drag
+        }
+        
+        // Check if we're starting a multi-selection drag
+        if (window.getSelectedElements) {
             const updatedSelectedElements = window.getSelectedElements();
-            if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(element)) {
+            if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(currentDragging)) {
                 isMultiDragging = true;
-                setupMultiDragOffsets(element, updatedSelectedElements);
+                setupMultiDragOffsets(currentDragging, updatedSelectedElements);
             }
         }
         
-        bringToFront(element);
+        bringToFront(currentDragging);
         
         // Also bring parent frame to front if element is in a frame
-        const parentFrame = element.closest('.frame');
+        const parentFrame = currentDragging.closest('.frame');
         if (parentFrame) {
             bringToFront(parentFrame);
         }
         
         e.preventDefault();
     }, true); // Use capture phase to handle events before they bubble
+}
+
+// Alt/Option key tracking for duplication
+document.addEventListener('keydown', (e) => {
+    if (e.altKey && !isAltPressed) {
+        isAltPressed = true;
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    if (!e.altKey && isAltPressed) {
+        isAltPressed = false;
+        
+        // If we're in the middle of a duplicate drag and alt is released, delete duplicates
+        if (isDuplicateDrag && currentDragging) {
+            deleteDuplicates();
+            // Reset to dragging originals
+            restoreOriginalDrag();
+        }
+    }
+});
+
+// Also handle window blur to reset alt state
+window.addEventListener('blur', () => {
+    if (isAltPressed && isDuplicateDrag && currentDragging) {
+        deleteDuplicates();
+        restoreOriginalDrag();
+    }
+    isAltPressed = false;
+});
+
+// Duplication functions
+function duplicateElement(element) {
+    const duplicate = element.cloneNode(true);
+    
+    // Remove selection state from duplicate
+    duplicate.classList.remove('selected', 'dragging');
+    
+    // Generate unique IDs for duplicate and its children
+    if (duplicate.id) {
+        duplicate.id = duplicate.id + '_duplicate_' + Date.now();
+    }
+    
+    // Update IDs of child elements
+    const childrenWithIds = duplicate.querySelectorAll('[id]');
+    childrenWithIds.forEach(child => {
+        if (child.id) {
+            child.id = child.id + '_duplicate_' + Date.now();
+        }
+    });
+    
+    // Position duplicate slightly offset from original
+    const currentLeft = parseFloat(element.style.left) || 0;
+    const currentTop = parseFloat(element.style.top) || 0;
+    duplicate.style.left = (currentLeft + 10) + 'px';
+    duplicate.style.top = (currentTop + 10) + 'px';
+    
+    // Insert duplicate after original
+    element.parentElement.appendChild(duplicate);
+    
+    // Set up interactivity for the duplicate
+    if (duplicate.classList.contains('frame')) {
+        const titleBar = duplicate.querySelector('.frame-title');
+        if (titleBar) {
+            setupFrameDragging(duplicate, titleBar);
+        }
+        // Make selectable
+        if (window.makeSelectable) {
+            window.makeSelectable(duplicate);
+        }
+        // Set up resize
+        if (window.addSelectionAnchors) {
+            window.addSelectionAnchors(duplicate);
+        }
+    } else if (duplicate.classList.contains('free-floating')) {
+        setupElementDragging(duplicate);
+        // Make selectable
+        if (window.makeSelectable) {
+            window.makeSelectable(duplicate);
+        }
+        // Set up resize
+        if (window.addSelectionAnchors) {
+            window.addSelectionAnchors(duplicate);
+        }
+    }
+    
+    return duplicate;
+}
+
+function createDuplicates() {
+    const selectedElements = window.getSelectedElements ? window.getSelectedElements() : [];
+    
+    // Store original selection
+    originalSelectedElements = [...selectedElements];
+    
+    // Clear current selection
+    if (window.clearSelection) {
+        window.clearSelection();
+    }
+    
+    // Create duplicates and track mapping
+    duplicatedElements.clear();
+    selectedElements.forEach(element => {
+        const duplicate = duplicateElement(element);
+        duplicatedElements.set(element, duplicate);
+        
+        // Select the duplicate instead
+        if (window.selectElement) {
+            window.selectElement(duplicate, true);
+        }
+    });
+    
+    isDuplicateDrag = true;
+}
+
+function deleteDuplicates() {
+    duplicatedElements.forEach((duplicate, original) => {
+        if (duplicate.parentElement) {
+            duplicate.parentElement.removeChild(duplicate);
+        }
+    });
+    duplicatedElements.clear();
+}
+
+function restoreOriginalDrag() {
+    // Clear selection of duplicates
+    if (window.clearSelection) {
+        window.clearSelection();
+    }
+    
+    // Restore original selection
+    originalSelectedElements.forEach(element => {
+        if (window.selectElement) {
+            window.selectElement(element, true);
+        }
+    });
+    
+    // Update currentDragging to the original element if it was a duplicate
+    if (currentDragging && isDuplicateDrag) {
+        for (let [original, duplicate] of duplicatedElements) {
+            if (duplicate === currentDragging) {
+                currentDragging = original;
+                currentDragging.classList.add('dragging');
+                break;
+            }
+        }
+    }
+    
+    isDuplicateDrag = false;
+    originalSelectedElements = [];
 }
 
 // Global mouse move handler
@@ -219,6 +427,22 @@ document.addEventListener('mouseup', (e) => {
         dragOffset = { x: 0, y: 0 };
         isMultiDragging = false;
         multiDragOffsets.clear();
+        
+        // Handle duplicate drag completion
+        if (isDuplicateDrag) {
+            if (isAltPressed) {
+                // Alt key still held - keep duplicates, clear duplication state
+                isDuplicateDrag = false;
+                duplicatedElements.clear();
+                originalSelectedElements = [];
+            } else {
+                // Alt key released - duplicates were already deleted in keyup handler
+                // Just clean up state
+                isDuplicateDrag = false;
+                duplicatedElements.clear();
+                originalSelectedElements = [];
+            }
+        }
     }
 });
 
