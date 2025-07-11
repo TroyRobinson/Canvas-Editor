@@ -223,6 +223,16 @@ body.shift-selecting {
     user-select: none;
 }
 
+/* Marquee selection rectangle */
+.selection-marquee {
+    position: fixed;
+    border: 1px dashed #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+    pointer-events: none;
+    z-index: 10000;
+    display: none;
+}
+
 .extraction-ghost {
     position: fixed;
     pointer-events: none;

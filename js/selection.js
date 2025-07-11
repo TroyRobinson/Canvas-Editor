@@ -83,7 +83,13 @@ function addSelectionAnchors(element) {
 document.addEventListener('mousedown', (e) => {
     // Clear selection if clicking on empty space (canvas background)
     if (e.target === document.getElementById('canvas') || e.target === document.body) {
-        clearSelection();
+        // Don't clear selection if we're about to start marquee selection
+        // Small delay to let marquee selection initialize first
+        setTimeout(() => {
+            if (!window.isMarqueeSelecting || !window.isMarqueeSelecting()) {
+                clearSelection();
+            }
+        }, 10);
     }
 });
 
