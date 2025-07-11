@@ -41,7 +41,8 @@ function setupFrameDragging(frame, titleBar) {
             }
             
             // Create duplicates of all selected elements
-            createDuplicates();
+            const shouldExtractStaticElements = e.metaKey || e.ctrlKey;
+            createDuplicates(shouldExtractStaticElements);
             
             // Find the duplicate of this frame to drag
             const duplicate = duplicatedElements.get(frame);
@@ -139,7 +140,8 @@ function setupElementDragging(element) {
             }
             
             // Create duplicates of all selected elements
-            createDuplicates();
+            const shouldExtractStaticElements = e.metaKey || e.ctrlKey;
+            createDuplicates(shouldExtractStaticElements);
             
             // Find the duplicate of this element to drag
             const duplicate = duplicatedElements.get(element);
@@ -217,7 +219,7 @@ window.addEventListener('blur', () => {
 });
 
 // Duplication functions
-function duplicateElement(element) {
+function duplicateElement(element, shouldExtract = false) {
     const duplicate = element.cloneNode(true);
     
     // Remove selection state from duplicate
@@ -236,46 +238,100 @@ function duplicateElement(element) {
         }
     });
     
-    // Position duplicate slightly offset from original
-    const currentLeft = parseFloat(element.style.left) || 0;
-    const currentTop = parseFloat(element.style.top) || 0;
-    duplicate.style.left = (currentLeft + 10) + 'px';
-    duplicate.style.top = (currentTop + 10) + 'px';
+    // Check if this is a static element that needs to be extracted
+    const isStaticElement = !element.classList.contains('free-floating') && 
+                           !element.classList.contains('frame') && 
+                           !element.classList.contains('element-frame');
     
-    // Insert duplicate after original
-    element.parentElement.appendChild(duplicate);
-    
-    // Set up interactivity for the duplicate
-    if (duplicate.classList.contains('frame')) {
-        const titleBar = duplicate.querySelector('.frame-title');
-        if (titleBar) {
-            setupFrameDragging(duplicate, titleBar);
-        }
-        // Make selectable
-        if (window.makeSelectable) {
-            window.makeSelectable(duplicate);
-        }
-        // Set up resize
-        if (window.addSelectionAnchors) {
-            window.addSelectionAnchors(duplicate);
-        }
-    } else if (duplicate.classList.contains('free-floating')) {
+    if (isStaticElement && shouldExtract) {
+        // Make duplicate free-floating like extraction.js does
+        const elementRect = element.getBoundingClientRect();
+        const parentRect = element.parentElement.getBoundingClientRect();
+        const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+        
+        // Calculate position relative to parent
+        const relativeLeft = elementRect.left - parentRect.left;
+        const relativeTop = elementRect.top - parentRect.top;
+        
+        // Add free-floating class and set position
+        duplicate.classList.add('free-floating');
+        duplicate.style.left = (relativeLeft / zoom + 10) + 'px'; // Small offset
+        duplicate.style.top = (relativeTop / zoom + 10) + 'px';
+        
+        // Preserve width and height
+        duplicate.style.width = (elementRect.width / zoom) + 'px';
+        duplicate.style.height = (elementRect.height / zoom) + 'px';
+        
+        // Insert duplicate after original
+        element.parentElement.appendChild(duplicate);
+        
+        // Set up dragging and resize for this new free-floating element
         setupElementDragging(duplicate);
-        // Make selectable
+        if (window.addSelectionAnchors) {
+            window.addSelectionAnchors(duplicate);
+        }
         if (window.makeSelectable) {
             window.makeSelectable(duplicate);
         }
-        // Set up resize
-        if (window.addSelectionAnchors) {
-            window.addSelectionAnchors(duplicate);
+    } else {
+        // Position duplicate slightly offset from original
+        const currentLeft = parseFloat(element.style.left) || 0;
+        const currentTop = parseFloat(element.style.top) || 0;
+        duplicate.style.left = (currentLeft + 10) + 'px';
+        duplicate.style.top = (currentTop + 10) + 'px';
+        
+        // Insert duplicate after original
+        element.parentElement.appendChild(duplicate);
+        
+        // Set up interactivity for the duplicate
+        if (duplicate.classList.contains('frame')) {
+            const titleBar = duplicate.querySelector('.frame-title');
+            if (titleBar) {
+                setupFrameDragging(duplicate, titleBar);
+            }
+            // Make selectable
+            if (window.makeSelectable) {
+                window.makeSelectable(duplicate);
+            }
+            // Set up resize
+            if (window.addSelectionAnchors) {
+                window.addSelectionAnchors(duplicate);
+            }
+        } else if (duplicate.classList.contains('free-floating')) {
+            setupElementDragging(duplicate);
+            // Make selectable
+            if (window.makeSelectable) {
+                window.makeSelectable(duplicate);
+            }
+            // Set up resize
+            if (window.addSelectionAnchors) {
+                window.addSelectionAnchors(duplicate);
+            }
         }
     }
     
     return duplicate;
 }
 
-function createDuplicates() {
+function createDuplicates(shouldExtractStaticElements = false) {
     const selectedElements = window.getSelectedElements ? window.getSelectedElements() : [];
+    
+    // Filter elements based on whether they should be duplicated
+    const elementsToProcess = selectedElements.filter(element => {
+        const isFreeDraggable = element.classList.contains('free-floating') || 
+                               element.classList.contains('frame') || 
+                               element.classList.contains('element-frame');
+        
+        if (isFreeDraggable) {
+            return true; // Always duplicate draggable elements
+        } else {
+            return shouldExtractStaticElements; // Only duplicate static elements if cmd+alt
+        }
+    });
+    
+    if (elementsToProcess.length === 0) {
+        return; // Nothing to duplicate
+    }
     
     // Store original selection
     originalSelectedElements = [...selectedElements];
@@ -287,8 +343,8 @@ function createDuplicates() {
     
     // Create duplicates and track mapping
     duplicatedElements.clear();
-    selectedElements.forEach(element => {
-        const duplicate = duplicateElement(element);
+    elementsToProcess.forEach(element => {
+        const duplicate = duplicateElement(element, shouldExtractStaticElements);
         duplicatedElements.set(element, duplicate);
         
         // Select the duplicate instead

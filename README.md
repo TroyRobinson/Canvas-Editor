@@ -88,10 +88,12 @@ Comprehensive CSS styling defining:
 - Automatic container switching when elements are dragged between containers
 - Multi-selection group dragging with relative positioning maintained
 - **Option/Alt+drag duplication**: Creates duplicates that follow mouse, with abort capability
+- **Cmd+Option+Alt+drag extraction**: Duplicates static elements as free-floating elements
 - Zoom-aware coordinate calculations
 - **Key relationships**: 
   - Uses zoom.js for coordinate transformation
   - Integrates with selection.js for multi-selection support
+  - Leverages extraction.js logic for making static elements free-floating
   - Clones elements and re-establishes their drag/resize/selection capabilities
   - Prevents conflicts with pan.js and resize.js operations
 
@@ -171,10 +173,11 @@ Comprehensive CSS styling defining:
 
 ### Drag Duplication Workflow
 1. Select element(s) using any selection method
-2. Hold Option/Alt key and start dragging
-3. Duplicates are created and immediately dragged
-4. **Keep duplicates**: Release mouse while holding Option/Alt
-5. **Cancel operation**: Release Option/Alt before mouse-up (aborts drag, deletes duplicates)
+2. **Option/Alt + drag**: Duplicates free-floating elements (frames, element-frames, extracted elements)
+3. **Cmd/Ctrl + Option/Alt + drag**: Duplicates static elements AND makes them free-floating (extraction+duplication)
+4. Duplicates are created and immediately dragged
+5. **Keep duplicates**: Release mouse while holding modifier keys
+6. **Cancel operation**: Release Option/Alt before mouse-up (aborts drag, deletes duplicates)
 
 ### Deletion Workflow
 1. Select any element(s) using single-click, shift+click, or marquee selection
