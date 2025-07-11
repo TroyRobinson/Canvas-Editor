@@ -16,5 +16,32 @@ window.addEventListener('load', () => {
             e.preventDefault();
             window.canvasZoom.resetZoom();
         }
+        
+        // Delete selected elements with Backspace
+        if (e.key === 'Backspace') {
+            // Protect situations where user is typing in input fields
+            if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') {
+                return; // Allow normal backspace behavior in text fields
+            }
+            
+            // Get selected elements
+            const selectedElements = window.getSelectedElements ? window.getSelectedElements() : [];
+            
+            if (selectedElements.length > 0) {
+                e.preventDefault(); // Prevent browser back navigation
+                
+                // Remove each selected element from DOM
+                selectedElements.forEach(element => {
+                    if (element && element.parentNode) {
+                        element.parentNode.removeChild(element);
+                    }
+                });
+                
+                // Clear selection
+                if (window.clearSelection) {
+                    window.clearSelection();
+                }
+            }
+        }
     });
 });
