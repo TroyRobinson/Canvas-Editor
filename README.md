@@ -86,7 +86,7 @@ Comprehensive CSS styling defining:
 - Frame dragging with title bar interaction
 - Free-floating element dragging with container detection
 - Automatic container switching when elements are dragged between containers
-- Multi-selection preservation during drag operations
+- Multi-selection group dragging with relative positioning maintained
 - Zoom-aware coordinate calculations
 - **Key relationships**: 
   - Uses zoom.js for coordinate transformation
