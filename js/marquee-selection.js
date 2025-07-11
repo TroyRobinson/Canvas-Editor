@@ -4,6 +4,7 @@ let marqueeStartPos = { x: 0, y: 0 };
 let marqueeElement = null;
 let isDragging = false;
 let dragThreshold = 5; // pixels
+let previewSelectedElements = new Set();
 
 // Create marquee element
 function createMarqueeElement() {
@@ -33,6 +34,43 @@ function startMarqueeSelection(e) {
     marqueeElement.style.display = 'block';
 }
 
+// Clear preview selections
+function clearPreviewSelections() {
+    previewSelectedElements.forEach(element => {
+        element.classList.remove('preview-selected');
+    });
+    previewSelectedElements.clear();
+}
+
+// Update preview selections based on current marquee
+function updatePreviewSelections(marqueeRect) {
+    // Clear previous preview
+    clearPreviewSelections();
+    
+    // Get all selectable elements
+    const elements = getAllSelectableElements();
+    
+    // Check each element for intersection/containment
+    elements.forEach(element => {
+        const elementRect = element.getBoundingClientRect();
+        let shouldPreview = false;
+        const hasChildren = hasSelectableChildren(element);
+        
+        if (hasChildren) {
+            // Container with children - must be completely contained
+            shouldPreview = rectContainsElement(marqueeRect, elementRect);
+        } else {
+            // Standalone element - just needs to intersect
+            shouldPreview = rectsIntersect(marqueeRect, elementRect);
+        }
+        
+        if (shouldPreview) {
+            element.classList.add('preview-selected');
+            previewSelectedElements.add(element);
+        }
+    });
+}
+
 // Update marquee during drag
 function updateMarqueeSelection(e) {
     if (!isMarqueeSelecting) return;
@@ -51,6 +89,15 @@ function updateMarqueeSelection(e) {
     marqueeElement.style.top = top + 'px';
     marqueeElement.style.width = width + 'px';
     marqueeElement.style.height = height + 'px';
+    
+    // Update preview selections in real-time
+    const marqueeRect = {
+        left: left,
+        top: top,
+        right: left + width,
+        bottom: top + height
+    };
+    updatePreviewSelections(marqueeRect);
 }
 
 // Check if element has selectable children
@@ -126,28 +173,16 @@ function endMarqueeSelection(e, addToSelection = false) {
             window.clearSelection();
         }
         
-        // Get all selectable elements
-        const elements = getAllSelectableElements();
-        
-        // Check each element
-        elements.forEach(element => {
-            const elementRect = element.getBoundingClientRect();
-            let shouldSelect = false;
-            const hasChildren = hasSelectableChildren(element);
-            
-            if (hasChildren) {
-                // Container with children - must be completely contained
-                shouldSelect = rectContainsElement(marqueeRect, elementRect);
-            } else {
-                // Standalone element - just needs to intersect
-                shouldSelect = rectsIntersect(marqueeRect, elementRect);
-            }
-            
-            if (shouldSelect && window.selectElement) {
+        // Select all elements that are currently previewed
+        previewSelectedElements.forEach(element => {
+            if (window.selectElement) {
                 window.selectElement(element, true); // Always add to selection
             }
         });
     }
+    
+    // Clear preview selections
+    clearPreviewSelections();
     
     // Hide marquee
     marqueeElement.style.display = 'none';
@@ -219,6 +254,7 @@ function initializeMarqueeSelection() {
     // Cancel on escape
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && isMarqueeSelecting) {
+            clearPreviewSelections();
             marqueeElement.style.display = 'none';
             isMarqueeSelecting = false;
         }
