@@ -1,3 +1,67 @@
+// Group selected elements into an element-frame
+function groupSelectedElements() {
+    // Get selected elements
+    const selectedElements = window.getSelectedElements ? window.getSelectedElements() : [];
+    
+    // Need at least 2 elements to group
+    if (selectedElements.length < 2) {
+        return;
+    }
+    
+    // Calculate bounding box of all selected elements
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    
+    selectedElements.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const canvasRect = document.getElementById('canvas').getBoundingClientRect();
+        
+        // Convert to canvas coordinates
+        const elementLeft = rect.left - canvasRect.left;
+        const elementTop = rect.top - canvasRect.top;
+        const elementRight = elementLeft + rect.width;
+        const elementBottom = elementTop + rect.height;
+        
+        minX = Math.min(minX, elementLeft);
+        minY = Math.min(minY, elementTop);
+        maxX = Math.max(maxX, elementRight);
+        maxY = Math.max(maxY, elementBottom);
+    });
+    
+    // Create element-frame at the bounding box position
+    const groupWidth = maxX - minX;
+    const groupHeight = maxY - minY;
+    const elementFrame = createElementFrame(minX, minY, groupWidth, groupHeight);
+    
+    // Move selected elements into the element-frame
+    selectedElements.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const canvasRect = document.getElementById('canvas').getBoundingClientRect();
+        const frameRect = elementFrame.getBoundingClientRect();
+        
+        // Calculate new relative position within the element-frame
+        const newLeft = (rect.left - canvasRect.left) - (frameRect.left - canvasRect.left);
+        const newTop = (rect.top - canvasRect.top) - (frameRect.top - canvasRect.top);
+        
+        // Update element position
+        element.style.left = newLeft + 'px';
+        element.style.top = newTop + 'px';
+        
+        // Move element to the element-frame
+        elementFrame.appendChild(element);
+    });
+    
+    // Clear current selection and select the new element-frame
+    if (window.clearSelection) {
+        window.clearSelection();
+    }
+    if (window.selectElement) {
+        window.selectElement(elementFrame);
+    }
+}
+
 // Initialize the canvas with some frames
 window.addEventListener('load', () => {
     initializeCanvas();
@@ -42,6 +106,17 @@ window.addEventListener('load', () => {
                     window.clearSelection();
                 }
             }
+        }
+        
+        // Group selected elements with Cmd/Ctrl + G
+        if (e.key === 'g' && (e.metaKey || e.ctrlKey)) {
+            // Protect situations where user is typing in input fields
+            if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') {
+                return; // Allow normal typing behavior in text fields
+            }
+            
+            e.preventDefault();
+            groupSelectedElements();
         }
     });
 });
