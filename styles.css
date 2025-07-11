@@ -215,6 +215,14 @@ body.panning {
     z-index: 1;
 }
 
+/* Prevent text selection during shift+click multi-selection */
+body.shift-selecting {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
 .extraction-ghost {
     position: fixed;
     pointer-events: none;

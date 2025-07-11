@@ -69,6 +69,12 @@ function addSelectionAnchors(element) {
         
         // Check if shift key is pressed for multi-selection
         const addToSelection = e.shiftKey;
+        
+        // Prevent text selection when shift-clicking
+        if (addToSelection) {
+            e.preventDefault();
+        }
+        
         selectElement(element, addToSelection);
     });
 }
@@ -95,6 +101,12 @@ function makeSelectable(element) {
         
         // Check if shift key is pressed for multi-selection
         const addToSelection = e.shiftKey;
+        
+        // Prevent text selection when shift-clicking
+        if (addToSelection) {
+            e.preventDefault();
+        }
+        
         selectElement(element, addToSelection);
     });
 }
@@ -184,6 +196,24 @@ const observer = new MutationObserver((mutations) => {
 observer.observe(document.body, {
     childList: true,
     subtree: true
+});
+
+// Track shift key state to prevent text selection
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Shift') {
+        document.body.classList.add('shift-selecting');
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    if (e.key === 'Shift') {
+        document.body.classList.remove('shift-selecting');
+    }
+});
+
+// Also remove the class when window loses focus
+window.addEventListener('blur', () => {
+    document.body.classList.remove('shift-selecting');
 });
 
 // Initialize on DOM ready
