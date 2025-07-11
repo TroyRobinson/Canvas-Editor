@@ -2,6 +2,8 @@
 let isMarqueeSelecting = false;
 let marqueeStartPos = { x: 0, y: 0 };
 let marqueeElement = null;
+let isDragging = false;
+let dragThreshold = 5; // pixels
 
 // Create marquee element
 function createMarqueeElement() {
@@ -157,23 +159,43 @@ function initializeMarqueeSelection() {
     const canvas = document.getElementById('canvas');
     if (!canvas) return;
     
-    // Handle mousedown on canvas
-    canvas.addEventListener('mousedown', (e) => {
-        // Only start marquee on direct canvas click
-        if (e.target !== canvas) return;
-        
-        // Don't start marquee if panning or other operations
-        if (window.isPanning) return;
-        if (window.isInPlacementMode && window.isInPlacementMode()) return;
-        if (window.isResizing && window.isResizing()) return;
-        
-        // Start marquee selection
-        startMarqueeSelection(e);
-        e.preventDefault();
+    // Handle mousedown on canvas and body for selection clearing
+    document.addEventListener('mousedown', (e) => {
+        // Handle canvas clicks for marquee selection
+        if (e.target === canvas) {
+            // Don't start marquee if panning or other operations
+            if (window.isPanning) return;
+            if (window.isInPlacementMode && window.isInPlacementMode()) return;
+            if (window.isResizing && window.isResizing()) return;
+            
+            // Store start position but don't start marquee yet
+            marqueeStartPos = { x: e.clientX, y: e.clientY };
+            isDragging = false;
+        }
+        // Handle clicks on body for selection clearing
+        else if (e.target === document.body) {
+            // Clear selections on empty space click
+            if (!e.shiftKey && window.clearSelection) {
+                window.clearSelection();
+            }
+        }
     });
     
     // Handle mousemove
     document.addEventListener('mousemove', (e) => {
+        // Check if we should start marquee selection
+        if (marqueeStartPos.x !== 0 && marqueeStartPos.y !== 0 && !isMarqueeSelecting) {
+            const deltaX = e.clientX - marqueeStartPos.x;
+            const deltaY = e.clientY - marqueeStartPos.y;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            if (distance > dragThreshold) {
+                // Start marquee selection
+                startMarqueeSelection({ clientX: marqueeStartPos.x, clientY: marqueeStartPos.y });
+                isDragging = true;
+            }
+        }
+        
         updateMarqueeSelection(e);
     });
     
@@ -182,7 +204,16 @@ function initializeMarqueeSelection() {
         if (isMarqueeSelecting) {
             const addToSelection = e.shiftKey;
             endMarqueeSelection(e, addToSelection);
+        } else if (marqueeStartPos.x !== 0 && marqueeStartPos.y !== 0 && !isDragging) {
+            // Simple click on canvas without drag - clear selections if not adding
+            if (!e.shiftKey && window.clearSelection) {
+                window.clearSelection();
+            }
         }
+        
+        // Reset marquee state
+        marqueeStartPos = { x: 0, y: 0 };
+        isDragging = false;
     });
     
     // Cancel on escape

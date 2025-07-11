@@ -79,19 +79,8 @@ function addSelectionAnchors(element) {
     });
 }
 
-// Global click handler to clear selection when clicking on empty space
-document.addEventListener('mousedown', (e) => {
-    // Clear selection if clicking on empty space (canvas background)
-    if (e.target === document.getElementById('canvas') || e.target === document.body) {
-        // Don't clear selection if we're about to start marquee selection
-        // Small delay to let marquee selection initialize first
-        setTimeout(() => {
-            if (!window.isMarqueeSelecting || !window.isMarqueeSelecting()) {
-                clearSelection();
-            }
-        }, 10);
-    }
-});
+// Canvas click handling is now managed by marquee-selection.js
+// to properly coordinate between marquee selection and selection clearing
 
 // Make any element selectable (without resize handles)
 function makeSelectable(element) {
