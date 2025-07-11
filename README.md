@@ -132,8 +132,9 @@ Comprehensive CSS styling defining:
 #### `js/app.js`
 **Purpose**: Application initialization and global keyboard shortcuts
 - Window load event handling
-- Global keyboard shortcuts (Ctrl+N for new frames, Ctrl+0 for zoom reset, Backspace for deletion)
+- Global keyboard shortcuts (Ctrl+N for new frames, Ctrl+0 for zoom reset, Backspace for deletion, **Ctrl+G for grouping**)
 - Element deletion functionality with input field protection
+- **Grouping functionality**: Wraps multiple selected elements in element-frame containers
 - Coordinates the initialization of the entire application
 - **Key relationships**: Orchestrates the other modules and provides entry point
 
@@ -170,6 +171,7 @@ Comprehensive CSS styling defining:
 1. Shift+click elements to add to selection
 2. Marquee select by dragging rectangle on empty canvas
 3. All selected elements move together during drag operations
+4. **Cmd/Ctrl + G**: Group selected elements into element-frame container
 
 ### Drag Duplication Workflow
 1. Select element(s) using any selection method
