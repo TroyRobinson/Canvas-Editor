@@ -1,5 +1,7 @@
 let currentDragging = null;
 let dragOffset = { x: 0, y: 0 };
+let isMultiDragging = false;
+let multiDragOffsets = new Map(); // Store relative positions of all selected elements
 
 function setupFrameDragging(frame, titleBar) {
     frame.addEventListener('mousedown', (e) => {
@@ -37,6 +39,12 @@ function setupFrameDragging(frame, titleBar) {
             const isAlreadySelected = selectedElements.includes(frame);
             if (!isAlreadySelected) {
                 window.selectElement(frame);
+            }
+            // Check if we're starting a multi-selection drag
+            const updatedSelectedElements = window.getSelectedElements();
+            if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(frame)) {
+                isMultiDragging = true;
+                setupMultiDragOffsets(frame, updatedSelectedElements);
             }
         }
         
@@ -104,6 +112,12 @@ function setupElementDragging(element) {
             if (!isAlreadySelected) {
                 window.selectElement(element);
             }
+            // Check if we're starting a multi-selection drag
+            const updatedSelectedElements = window.getSelectedElements();
+            if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(element)) {
+                isMultiDragging = true;
+                setupMultiDragOffsets(element, updatedSelectedElements);
+            }
         }
         
         bringToFront(element);
@@ -122,6 +136,14 @@ function setupElementDragging(element) {
 document.addEventListener('mousemove', (e) => {
     if (!currentDragging || window.isPanning) return;
     
+    if (isMultiDragging) {
+        moveMultiSelection(e);
+    } else {
+        moveSingleElement(e);
+    }
+});
+
+function moveSingleElement(e) {
     // Get canvas coordinates accounting for zoom and pan
     const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
     const canvasRect = canvas.getBoundingClientRect();
@@ -151,7 +173,7 @@ document.addEventListener('mousemove', (e) => {
         currentDragging.style.left = (mouseCanvasCoords.x - dragOffset.x - parentCanvasCoords.x) + 'px';
         currentDragging.style.top = (mouseCanvasCoords.y - dragOffset.y - parentCanvasCoords.y) + 'px';
     }
-});
+}
 
 // Global mouse up handler
 document.addEventListener('mouseup', (e) => {
@@ -159,7 +181,10 @@ document.addEventListener('mouseup', (e) => {
     
     // Always ensure we clean up the dragging state, regardless of any errors
     try {
-        if (currentDragging.classList.contains('free-floating')) {
+        if (isMultiDragging) {
+            // Handle container changes for all selected elements
+            handleMultiSelectionContainerChanges(e);
+        } else if (currentDragging.classList.contains('free-floating')) {
             // Check if element should be moved to a different container
             const elementRect = currentDragging.getBoundingClientRect();
             const elementCenter = {
@@ -182,8 +207,18 @@ document.addEventListener('mouseup', (e) => {
             currentDragging.classList.remove('dragging');
             currentDragging = null;
         }
-        // Reset drag offset
+        
+        // Clean up dragging class from all multi-selected elements
+        if (isMultiDragging) {
+            multiDragOffsets.forEach((offset, element) => {
+                element.classList.remove('dragging');
+            });
+        }
+        
+        // Reset drag state
         dragOffset = { x: 0, y: 0 };
+        isMultiDragging = false;
+        multiDragOffsets.clear();
     }
 });
 
@@ -244,4 +279,128 @@ function moveElementToContainer(element, newParent, mouseX, mouseY) {
     element.style.top = newTop + 'px';
     
     console.log(`Element moved to ${newParent.id || newParent.className || 'container'}`);
+}
+
+function setupMultiDragOffsets(primaryElement, selectedElements) {
+    multiDragOffsets.clear();
+    
+    // Get the primary element's position
+    const primaryRect = primaryElement.getBoundingClientRect();
+    const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+    
+    // Store relative offsets for all selected elements
+    selectedElements.forEach(element => {
+        if (element === primaryElement) return; // Skip the primary element
+        
+        const elementRect = element.getBoundingClientRect();
+        
+        // Calculate offset relative to primary element in canvas space
+        const offsetX = (elementRect.left - primaryRect.left) / zoom;
+        const offsetY = (elementRect.top - primaryRect.top) / zoom;
+        
+        multiDragOffsets.set(element, { x: offsetX, y: offsetY });
+        
+        // Add dragging class to all selected elements
+        element.classList.add('dragging');
+    });
+}
+
+function moveMultiSelection(e) {
+    // Move the primary element first
+    moveSingleElement(e);
+    
+    // Then move all other selected elements maintaining their relative positions
+    multiDragOffsets.forEach((offset, element) => {
+        if (element.classList.contains('frame')) {
+            moveFrameWithOffset(element, offset, e);
+        } else if (element.classList.contains('free-floating')) {
+            moveElementWithOffset(element, offset, e);
+        }
+    });
+}
+
+function moveFrameWithOffset(frame, offset, e) {
+    const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+    const canvasCoords = window.canvasZoom ? window.canvasZoom.screenToCanvas(e.clientX, e.clientY) : { x: e.clientX, y: e.clientY };
+    
+    // Apply the primary element's drag offset plus this element's relative offset
+    const newLeft = canvasCoords.x - dragOffset.x + offset.x;
+    const newTop = canvasCoords.y - dragOffset.y + offset.y;
+    
+    // Keep frame within canvas bounds
+    const frameWidth = parseFloat(frame.style.width) || frame.offsetWidth;
+    const frameHeight = parseFloat(frame.style.height) || frame.offsetHeight;
+    
+    frame.style.left = Math.max(0, Math.min(newLeft, window.innerWidth / zoom - frameWidth)) + 'px';
+    frame.style.top = Math.max(0, Math.min(newTop, window.innerHeight / zoom - frameHeight)) + 'px';
+}
+
+function moveElementWithOffset(element, offset, e) {
+    const parentRect = element.parentElement.getBoundingClientRect();
+    
+    // Convert positions to canvas space
+    const mouseCanvasCoords = window.canvasZoom ? window.canvasZoom.screenToCanvas(e.clientX, e.clientY) : { x: e.clientX, y: e.clientY };
+    const parentCanvasCoords = window.canvasZoom ? window.canvasZoom.screenToCanvas(parentRect.left, parentRect.top) : { x: parentRect.left, y: parentRect.top };
+    
+    // Apply the primary element's drag offset plus this element's relative offset
+    const newLeft = mouseCanvasCoords.x - dragOffset.x + offset.x - parentCanvasCoords.x;
+    const newTop = mouseCanvasCoords.y - dragOffset.y + offset.y - parentCanvasCoords.y;
+    
+    element.style.left = newLeft + 'px';
+    element.style.top = newTop + 'px';
+}
+
+function handleMultiSelectionContainerChanges(e) {
+    // Check container changes for the primary dragged element first
+    if (currentDragging.classList.contains('free-floating')) {
+        const elementRect = currentDragging.getBoundingClientRect();
+        const elementCenter = {
+            x: elementRect.left + elementRect.width / 2,
+            y: elementRect.top + elementRect.height / 2
+        };
+        
+        let newParent = findContainerAtPoint(elementCenter.x, elementCenter.y, currentDragging);
+        
+        if (newParent && newParent !== currentDragging.parentElement) {
+            moveElementToContainer(currentDragging, newParent, e.clientX, e.clientY);
+        }
+    }
+    
+    // Check container changes for all other selected elements
+    multiDragOffsets.forEach((offset, element) => {
+        if (element.classList.contains('free-floating')) {
+            const elementRect = element.getBoundingClientRect();
+            const elementCenter = {
+                x: elementRect.left + elementRect.width / 2,
+                y: elementRect.top + elementRect.height / 2
+            };
+            
+            let newParent = findContainerAtPoint(elementCenter.x, elementCenter.y, element);
+            
+            if (newParent && newParent !== element.parentElement) {
+                // Calculate the element's position relative to the new parent
+                const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+                const newParentRect = newParent.getBoundingClientRect();
+                const parentCanvasCoords = window.canvasZoom ? 
+                    window.canvasZoom.screenToCanvas(newParentRect.left, newParentRect.top) : 
+                    { x: newParentRect.left, y: newParentRect.top };
+                
+                const elementCanvasCoords = window.canvasZoom ? 
+                    window.canvasZoom.screenToCanvas(elementRect.left, elementRect.top) : 
+                    { x: elementRect.left, y: elementRect.top };
+                
+                let newLeft = elementCanvasCoords.x - parentCanvasCoords.x;
+                let newTop = elementCanvasCoords.y - parentCanvasCoords.y;
+                
+                // Move element to new parent
+                newParent.appendChild(element);
+                
+                // Update position
+                element.style.left = newLeft + 'px';
+                element.style.top = newTop + 'px';
+                
+                console.log(`Multi-selected element moved to ${newParent.id || newParent.className || 'container'}`);
+            }
+        }
+    });
 }
