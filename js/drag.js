@@ -201,11 +201,9 @@ document.addEventListener('keyup', (e) => {
     if (!e.altKey && isAltPressed) {
         isAltPressed = false;
         
-        // If we're in the middle of a duplicate drag and alt is released, delete duplicates
+        // If we're in the middle of a duplicate drag and alt is released, abort the operation
         if (isDuplicateDrag && currentDragging) {
-            deleteDuplicates();
-            // Reset to dragging originals
-            restoreOriginalDrag();
+            abortDuplicateDrag();
         }
     }
 });
@@ -213,8 +211,7 @@ document.addEventListener('keyup', (e) => {
 // Also handle window blur to reset alt state
 window.addEventListener('blur', () => {
     if (isAltPressed && isDuplicateDrag && currentDragging) {
-        deleteDuplicates();
-        restoreOriginalDrag();
+        abortDuplicateDrag();
     }
     isAltPressed = false;
 });
@@ -312,30 +309,32 @@ function deleteDuplicates() {
     duplicatedElements.clear();
 }
 
-function restoreOriginalDrag() {
-    // Clear selection of duplicates
+function abortDuplicateDrag() {
+    // Stop the drag operation entirely
+    if (currentDragging) {
+        currentDragging.classList.remove('dragging');
+    }
+    
+    // Remove dragging class from all multi-selected elements
+    if (isMultiDragging) {
+        multiDragOffsets.forEach((offset, element) => {
+            element.classList.remove('dragging');
+        });
+    }
+    
+    // Delete all duplicates
+    deleteDuplicates();
+    
+    // Clear all selections
     if (window.clearSelection) {
         window.clearSelection();
     }
     
-    // Restore original selection
-    originalSelectedElements.forEach(element => {
-        if (window.selectElement) {
-            window.selectElement(element, true);
-        }
-    });
-    
-    // Update currentDragging to the original element if it was a duplicate
-    if (currentDragging && isDuplicateDrag) {
-        for (let [original, duplicate] of duplicatedElements) {
-            if (duplicate === currentDragging) {
-                currentDragging = original;
-                currentDragging.classList.add('dragging');
-                break;
-            }
-        }
-    }
-    
+    // Reset all drag state
+    currentDragging = null;
+    dragOffset = { x: 0, y: 0 };
+    isMultiDragging = false;
+    multiDragOffsets.clear();
     isDuplicateDrag = false;
     originalSelectedElements = [];
 }
