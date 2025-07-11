@@ -13,6 +13,14 @@ function setupFrameDragging(frame, titleBar) {
         if (window.isPlacementDragging && window.isPlacementDragging()) return;
         if (window.isResizing && window.isResizing()) return;
         
+        // Handle shift+click for multi-selection before starting drag
+        if (e.shiftKey && window.selectElement) {
+            e.stopPropagation();
+            e.preventDefault();
+            window.selectElement(frame, true);
+            return;
+        }
+        
         currentDragging = frame;
         const rect = frame.getBoundingClientRect();
         
@@ -23,9 +31,13 @@ function setupFrameDragging(frame, titleBar) {
         
         frame.classList.add('dragging');
         
-        // Select the frame when dragging starts
-        if (window.selectElement) {
-            window.selectElement(frame);
+        // Select the frame when dragging starts (preserve multi-selection if frame is already selected)
+        if (window.selectElement && window.getSelectedElements) {
+            const selectedElements = window.getSelectedElements();
+            const isAlreadySelected = selectedElements.includes(frame);
+            if (!isAlreadySelected) {
+                window.selectElement(frame);
+            }
         }
         
         bringToFront(frame);
@@ -64,6 +76,14 @@ function setupElementDragging(element) {
             return; // Let the nested element-frame handle the drag
         }
         
+        // Handle shift+click for multi-selection before starting drag
+        if (e.shiftKey && window.selectElement) {
+            e.stopPropagation();
+            e.preventDefault();
+            window.selectElement(element, true);
+            return;
+        }
+        
         e.stopPropagation();
         e.stopImmediatePropagation(); // Prevent any other handlers from firing
         
@@ -77,9 +97,13 @@ function setupElementDragging(element) {
         
         element.classList.add('dragging');
         
-        // Select the element when dragging starts
-        if (window.selectElement) {
-            window.selectElement(element);
+        // Select the element when dragging starts (preserve multi-selection if element is already selected)
+        if (window.selectElement && window.getSelectedElements) {
+            const selectedElements = window.getSelectedElements();
+            const isAlreadySelected = selectedElements.includes(element);
+            if (!isAlreadySelected) {
+                window.selectElement(element);
+            }
         }
         
         bringToFront(element);

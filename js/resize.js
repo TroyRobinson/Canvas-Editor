@@ -38,9 +38,13 @@ function startResize(e, element, handlePos) {
     
     element.classList.add('resizing');
     
-    // Select the element when resizing starts
-    if (window.selectElement) {
-        window.selectElement(element);
+    // Select the element when resizing starts (preserve multi-selection if element is already selected)
+    if (window.selectElement && window.getSelectedElements) {
+        const selectedElements = window.getSelectedElements();
+        const isAlreadySelected = selectedElements.includes(element);
+        if (!isAlreadySelected) {
+            window.selectElement(element);
+        }
     }
     
     bringToFront(element);

@@ -45,6 +45,11 @@ function createFrame(x, y, title) {
     // Setup element extraction for this frame
     setupElementExtraction(content);
     
+    // Make frame content elements selectable
+    if (window.makeContainerElementsSelectable) {
+        window.makeContainerElementsSelectable(content);
+    }
+    
     return frame;
 }
 

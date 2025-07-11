@@ -362,6 +362,11 @@ function placeElement(mouseX, mouseY) {
     
     console.log(`${placingElement.id} placed in ${container.id || container.className || 'canvas'}`);
     
+    // Make non-free-floating elements selectable
+    if (!placingElement.classList.contains('free-floating') && window.makeSelectable) {
+        window.makeSelectable(placingElement);
+    }
+    
     const placedElement = placingElement;
     
     // Reset placement state before calling cancelElementPlacement

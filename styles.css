@@ -140,14 +140,24 @@ body.panning {
     opacity: 1;
 }
 
-/* Hide resize handles on children when parent frame/element-frame is selected */
-.frame.selected .frame .resize-handle,
-.frame.selected .element-frame .resize-handle,
-.frame.selected .free-floating .resize-handle,
-.element-frame.selected .frame .resize-handle,
-.element-frame.selected .element-frame .resize-handle,
-.element-frame.selected .free-floating .resize-handle {
+/* Hide resize handles on non-selected children when parent frame/element-frame is selected */
+.frame.selected .frame:not(.selected) .resize-handle,
+.frame.selected .element-frame:not(.selected) .resize-handle,
+.frame.selected .free-floating:not(.selected) .resize-handle,
+.element-frame.selected .frame:not(.selected) .resize-handle,
+.element-frame.selected .element-frame:not(.selected) .resize-handle,
+.element-frame.selected .free-floating:not(.selected) .resize-handle {
     opacity: 0 !important;
+}
+
+/* Ensure selected children show their resize handles even when parent is selected */
+.frame.selected .frame.selected .resize-handle,
+.frame.selected .element-frame.selected .resize-handle,
+.frame.selected .free-floating.selected .resize-handle,
+.element-frame.selected .frame.selected .resize-handle,
+.element-frame.selected .element-frame.selected .resize-handle,
+.element-frame.selected .free-floating.selected .resize-handle {
+    opacity: 1 !important;
 }
 
 /* Positioning for handles */
@@ -195,6 +205,14 @@ body.panning {
 .element-frame:not(.dragging):not(.resizing),
 .free-floating:not(.dragging):not(.resizing) {
     will-change: auto;
+}
+
+/* Selection outline for non-free-floating elements */
+.selected:not(.frame):not(.element-frame):not(.free-floating) {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+    position: relative;
+    z-index: 1;
 }
 
 .extraction-ghost {
