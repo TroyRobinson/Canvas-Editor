@@ -32,6 +32,11 @@ function setupFrameDragging(frame, titleBar) {
         if (e.target.classList.contains('resize-handle')) return; // Don't drag if clicking resize handle
         if (window.isPanning) return; // Don't drag if panning
         
+        // Don't drag if clicking on any element that's being edited
+        if (window.textEditing && window.textEditing.isEditing(e.target)) {
+            return;
+        }
+        
         // Don't drag frame during placement or resize operations
         if (window.isInPlacementMode && window.isInPlacementMode()) return;
         if (window.isPlacementDragging && window.isPlacementDragging()) return;
@@ -116,6 +121,11 @@ function setupElementDragging(element) {
         if (!element.classList.contains('free-floating')) return;
         if (e.target.classList.contains('resize-handle')) return; // Don't drag if clicking resize handle
         if (window.isPanning) return; // Don't drag if panning
+        
+        // Don't drag if this element is being edited
+        if (window.textEditing && window.textEditing.isEditing(element)) {
+            return;
+        }
         
         // Don't drag during placement or resize operations
         if (window.isInPlacementMode && window.isInPlacementMode()) return;

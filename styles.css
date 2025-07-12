@@ -354,6 +354,32 @@ body.shift-selecting {
     font-family: inherit;
 }
 
+/* Text element in editing mode */
+.text-element.editing {
+    background: rgba(255, 255, 255, 0.05);
+    outline: 2px solid rgba(100, 150, 255, 0.5);
+    outline-offset: -1px;
+    cursor: text;
+}
+
+.text-element.editing::selection {
+    background-color: rgba(100, 150, 255, 0.3);
+    color: #ffffff;
+}
+
+/* Any element in editing mode (for static text elements like h3, p, etc.) */
+.editing {
+    background: rgba(255, 255, 255, 0.05) !important;
+    outline: 2px solid rgba(100, 150, 255, 0.5) !important;
+    outline-offset: -1px !important;
+    cursor: text !important;
+}
+
+.editing::selection {
+    background-color: rgba(100, 150, 255, 0.3) !important;
+    color: #ffffff !important;
+}
+
 .line-element {
     background: #e0e0e0;
     border: none;

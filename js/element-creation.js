@@ -13,7 +13,7 @@ function createTextElement() {
     elementCounter++;
     const element = document.createElement('div');
     element.className = 'text-element free-floating';
-    element.contentEditable = true;
+    element.contentEditable = false;
     element.textContent = 'Text';
     element.style.width = '100px';
     element.style.height = '30px';
