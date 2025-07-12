@@ -9,6 +9,20 @@ let isDuplicateDrag = false;
 let duplicatedElements = new Map(); // Maps original elements to their duplicates
 let originalSelectedElements = [];
 
+// Position tracking for undo
+let dragStartPositions = new Map(); // Maps elements to their initial positions
+
+function captureStartPositions(elements) {
+    dragStartPositions.clear();
+    elements.forEach(element => {
+        dragStartPositions.set(element, {
+            left: element.style.left,
+            top: element.style.top,
+            containerId: element.parentElement?.id || 'canvas'
+        });
+    });
+}
+
 function setupFrameDragging(frame, titleBar) {
     frame.addEventListener('mousedown', (e) => {
         if (e.metaKey || e.ctrlKey) return; // Don't drag frame if cmd/ctrl is held
@@ -78,7 +92,15 @@ function setupFrameDragging(frame, titleBar) {
             if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(currentDragging)) {
                 isMultiDragging = true;
                 setupMultiDragOffsets(currentDragging, updatedSelectedElements);
+                // Capture start positions for all selected elements
+                captureStartPositions(updatedSelectedElements);
+            } else {
+                // Single element drag - capture just this element
+                captureStartPositions([currentDragging]);
             }
+        } else {
+            // Fallback for single element
+            captureStartPositions([currentDragging]);
         }
         
         bringToFront(currentDragging);
@@ -177,7 +199,15 @@ function setupElementDragging(element) {
             if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(currentDragging)) {
                 isMultiDragging = true;
                 setupMultiDragOffsets(currentDragging, updatedSelectedElements);
+                // Capture start positions for all selected elements
+                captureStartPositions(updatedSelectedElements);
+            } else {
+                // Single element drag - capture just this element
+                captureStartPositions([currentDragging]);
             }
+        } else {
+            // Fallback for single element
+            captureStartPositions([currentDragging]);
         }
         
         bringToFront(currentDragging);
@@ -444,7 +474,25 @@ document.addEventListener('mouseup', (e) => {
     
     // Always ensure we clean up the dragging state, regardless of any errors
     try {
+        // Record movement for undo before handling container changes
+        const movedElements = [];
+        
         if (isMultiDragging) {
+            // Record positions for all dragged elements
+            dragStartPositions.forEach((startPos, element) => {
+                if (startPos.left !== element.style.left || 
+                    startPos.top !== element.style.top ||
+                    startPos.containerId !== (element.parentElement?.id || 'canvas')) {
+                    movedElements.push({
+                        elementId: element.id,
+                        oldPosition: { left: startPos.left, top: startPos.top },
+                        newPosition: { left: element.style.left, top: element.style.top },
+                        oldContainerId: startPos.containerId,
+                        newContainerId: element.parentElement?.id || 'canvas'
+                    });
+                }
+            });
+            
             // Handle container changes for all selected elements
             handleMultiSelectionContainerChanges(e);
         } else if (currentDragging.classList.contains('free-floating')) {
@@ -461,6 +509,38 @@ document.addEventListener('mouseup', (e) => {
             if (newParent && newParent !== currentDragging.parentElement) {
                 moveElementToContainer(currentDragging, newParent, e.clientX, e.clientY);
             }
+            
+            // Record single element movement
+            const startPos = dragStartPositions.get(currentDragging);
+            if (startPos && (startPos.left !== currentDragging.style.left || 
+                startPos.top !== currentDragging.style.top ||
+                startPos.containerId !== (currentDragging.parentElement?.id || 'canvas'))) {
+                movedElements.push({
+                    elementId: currentDragging.id,
+                    oldPosition: { left: startPos.left, top: startPos.top },
+                    newPosition: { left: currentDragging.style.left, top: currentDragging.style.top },
+                    oldContainerId: startPos.containerId,
+                    newContainerId: currentDragging.parentElement?.id || 'canvas'
+                });
+            }
+        } else {
+            // Frame or other element movement
+            const startPos = dragStartPositions.get(currentDragging);
+            if (startPos && (startPos.left !== currentDragging.style.left || 
+                startPos.top !== currentDragging.style.top)) {
+                movedElements.push({
+                    elementId: currentDragging.id,
+                    oldPosition: { left: startPos.left, top: startPos.top },
+                    newPosition: { left: currentDragging.style.left, top: currentDragging.style.top },
+                    oldContainerId: startPos.containerId,
+                    newContainerId: currentDragging.parentElement?.id || 'canvas'
+                });
+            }
+        }
+        
+        // Record the movement if anything changed (and not duplicate drag)
+        if (movedElements.length > 0 && !isDuplicateDrag && window.recordMove) {
+            window.recordMove(movedElements);
         }
     } catch (error) {
         console.error('Error during mouse-up container check:', error);
@@ -482,6 +562,7 @@ document.addEventListener('mouseup', (e) => {
         dragOffset = { x: 0, y: 0 };
         isMultiDragging = false;
         multiDragOffsets.clear();
+        dragStartPositions.clear();
         
         // Handle duplicate drag completion
         if (isDuplicateDrag) {

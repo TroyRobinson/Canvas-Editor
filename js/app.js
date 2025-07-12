@@ -35,11 +35,22 @@ function groupSelectedElements() {
     const groupHeight = maxY - minY;
     const elementFrame = createElementFrame(minX, minY, groupWidth, groupHeight);
     
+    // Prepare data for undo
+    const groupData = [];
+    
     // Move selected elements into the element-frame
     selectedElements.forEach(element => {
         const rect = element.getBoundingClientRect();
         const canvasRect = document.getElementById('canvas').getBoundingClientRect();
         const frameRect = elementFrame.getBoundingClientRect();
+        
+        // Capture original state for undo
+        groupData.push({
+            elementId: element.id,
+            originalContainerId: element.parentElement?.id || 'canvas',
+            originalPosition: { left: element.style.left, top: element.style.top },
+            groupPosition: { left: '', top: '' } // Will be set below
+        });
         
         // Calculate new relative position within the element-frame
         const newLeft = (rect.left - canvasRect.left) - (frameRect.left - canvasRect.left);
@@ -48,6 +59,12 @@ function groupSelectedElements() {
         // Update element position
         element.style.left = newLeft + 'px';
         element.style.top = newTop + 'px';
+        
+        // Update group position in undo data
+        groupData[groupData.length - 1].groupPosition = { 
+            left: newLeft + 'px', 
+            top: newTop + 'px' 
+        };
         
         // Move element to the element-frame
         elementFrame.appendChild(element);
@@ -59,6 +76,12 @@ function groupSelectedElements() {
     }
     if (window.selectElement) {
         window.selectElement(elementFrame);
+    }
+    
+    // Record grouping for undo
+    if (window.recordGroup && window.undoManager) {
+        const groupState = window.undoManager.captureElementState(elementFrame);
+        window.recordGroup(elementFrame.id, groupState, 'canvas', groupData);
     }
 }
 
@@ -94,6 +117,11 @@ window.addEventListener('load', () => {
             if (selectedElements.length > 0) {
                 e.preventDefault(); // Prevent browser back navigation
                 
+                // Record deletion for undo
+                if (window.recordDelete) {
+                    window.recordDelete(selectedElements);
+                }
+                
                 // Remove each selected element from DOM
                 selectedElements.forEach(element => {
                     if (element && element.parentNode) {
@@ -117,6 +145,32 @@ window.addEventListener('load', () => {
             
             e.preventDefault();
             groupSelectedElements();
+        }
+        
+        // Undo with Cmd/Ctrl + Z
+        if (e.key === 'z' && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+            // Protect situations where user is typing in input fields
+            if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') {
+                return; // Allow normal undo behavior in text fields
+            }
+            
+            e.preventDefault();
+            if (window.undoManager) {
+                window.undoManager.undo();
+            }
+        }
+        
+        // Redo with Shift + Cmd/Ctrl + Z
+        if (e.key === 'z' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+            // Protect situations where user is typing in input fields
+            if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') {
+                return; // Allow normal redo behavior in text fields
+            }
+            
+            e.preventDefault();
+            if (window.undoManager) {
+                window.undoManager.redo();
+            }
         }
     });
 });

@@ -76,3 +76,38 @@ function createElementFrame(x, y, width = 150, height = 100, parent = canvas) {
     
     return elementFrame;
 }
+
+// Setup functions for undo system
+window.setupFrame = function(frame) {
+    const titleBar = frame.querySelector('.frame-title');
+    const content = frame.querySelector('.frame-content');
+    
+    if (titleBar) {
+        setupFrameDragging(frame, titleBar);
+    }
+    
+    if (content) {
+        setupElementExtraction(content);
+        if (window.makeContainerElementsSelectable) {
+            window.makeContainerElementsSelectable(content);
+        }
+    }
+    
+    addResizeHandles(frame);
+};
+
+window.setupElementFrame = function(elementFrame) {
+    addResizeHandles(elementFrame);
+    setupElementDragging(elementFrame);
+    setupElementExtraction(elementFrame);
+};
+
+window.setupFreeFloatingElement = function(element) {
+    addResizeHandles(element);
+    setupElementDragging(element);
+    
+    // Make selectable
+    if (window.makeSelectable) {
+        window.makeSelectable(element);
+    }
+};

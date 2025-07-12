@@ -51,6 +51,16 @@ function makeElementFreeFloating(element, mouseX, mouseY) {
     const parentRect = element.parentElement.getBoundingClientRect();
     const elementRect = element.getBoundingClientRect();
     
+    // Capture original state for undo
+    const originalState = {
+        position: element.style.position || '',
+        left: element.style.left || '',
+        top: element.style.top || '',
+        width: element.style.width || '',
+        height: element.style.height || ''
+    };
+    const originalContainerId = element.parentElement?.id || 'canvas';
+    
     // Calculate position relative to parent
     const relativeLeft = elementRect.left - parentRect.left;
     const relativeTop = elementRect.top - parentRect.top;
@@ -83,6 +93,18 @@ function makeElementFreeFloating(element, mouseX, mouseY) {
     // Select the element so it remains selected after drag ends
     if (window.selectElement) {
         window.selectElement(element);
+    }
+    
+    // Record extraction for undo
+    if (window.recordExtract) {
+        const extractedState = {
+            position: 'absolute',
+            left: element.style.left,
+            top: element.style.top,
+            width: element.style.width,
+            height: element.style.height
+        };
+        window.recordExtract(element.id, originalState, extractedState, originalContainerId);
     }
     
     console.log(`Element extracted and is now free-floating`);

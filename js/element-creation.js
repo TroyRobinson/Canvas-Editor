@@ -369,6 +369,12 @@ function placeElement(mouseX, mouseY) {
     
     const placedElement = placingElement;
     
+    // Record the creation for undo
+    if (window.recordCreate && window.undoManager) {
+        const elementState = window.undoManager.captureElementState(placedElement);
+        window.recordCreate(placedElement.id, elementState, container.id || 'canvas', false);
+    }
+    
     // Reset placement state before calling cancelElementPlacement
     placingElement = null;
     placementMode = false;

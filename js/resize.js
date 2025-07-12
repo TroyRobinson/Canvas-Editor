@@ -6,6 +6,9 @@ let resizeStartSize = { width: 0, height: 0 };
 let resizeStartOffset = { left: 0, top: 0 };
 let isDragToResize = false; // Flag for drag-to-resize mode
 
+// For undo tracking
+let resizeStartContainerId = null;
+
 // Expose resizing state and functions globally for other modules
 window.isResizing = () => resizing;
 window.startResize = startResize;
@@ -37,6 +40,9 @@ function startResize(e, element, handlePos) {
     };
     
     element.classList.add('resizing');
+    
+    // Capture container ID for undo tracking
+    resizeStartContainerId = element.parentElement?.id || 'canvas';
     
     // Select the element when resizing starts (preserve multi-selection if element is already selected)
     if (window.selectElement && window.getSelectedElements) {
@@ -155,6 +161,29 @@ document.addEventListener('mousemove', (e) => {
 document.addEventListener('mouseup', (e) => {
     if (resizing) {
         try {
+            // Record resize for undo before cleanup
+            if (window.recordResize && resizeTarget) {
+                const newContainerId = resizeTarget.parentElement?.id || 'canvas';
+                
+                // Only record if something actually changed
+                if (resizeStartSize.width !== parseFloat(resizeTarget.style.width) ||
+                    resizeStartSize.height !== parseFloat(resizeTarget.style.height) ||
+                    resizeStartOffset.left !== parseFloat(resizeTarget.style.left) ||
+                    resizeStartOffset.top !== parseFloat(resizeTarget.style.top) ||
+                    resizeStartContainerId !== newContainerId) {
+                    
+                    window.recordResize(
+                        resizeTarget.id,
+                        { width: resizeStartSize.width + 'px', height: resizeStartSize.height + 'px' },
+                        { width: resizeTarget.style.width, height: resizeTarget.style.height },
+                        { left: resizeStartOffset.left + 'px', top: resizeStartOffset.top + 'px' },
+                        { left: resizeTarget.style.left, top: resizeTarget.style.top },
+                        resizeStartContainerId,
+                        newContainerId
+                    );
+                }
+            }
+            
             resizeTarget.classList.remove('resizing');
         } catch (error) {
             console.error('Error during resize cleanup:', error);
@@ -164,6 +193,7 @@ document.addEventListener('mouseup', (e) => {
             resizeTarget = null;
             resizeHandle = null;
             isDragToResize = false; // Reset drag-to-resize flag
+            resizeStartContainerId = null;
         }
     }
 });
