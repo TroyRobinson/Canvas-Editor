@@ -48,7 +48,10 @@ Comprehensive CSS styling defining:
 - Mouse drag panning with visual feedback
 - Integration with zoom system for accurate positioning
 - Global `window.isPanning` state for preventing conflicts
-- **Key relationships**: Coordinates with drag and selection modules to prevent interference
+- **Text editing awareness**: Disables space key interception when text is being edited
+- **Key relationships**: 
+  - Coordinates with drag and selection modules to prevent interference
+  - Checks `window.textEditing` state to allow normal space key typing during edit mode
 
 ### Element Management
 
@@ -58,11 +61,13 @@ Comprehensive CSS styling defining:
 - Interactive placement mode with mouse following
 - Drag-to-resize during initial placement
 - Keyboard shortcuts (F, R, T, L/D, O, B, P) for quick element creation
+- **Text elements**: Created with `contentEditable=false` by default (edit mode activated via double-click)
 - **Key relationships**: 
   - Uses zoom.js for coordinate calculations
   - Calls frame.js for frame creation
   - Integrates with resize.js for drag-to-resize functionality
   - Uses drag.js container detection for proper parent assignment
+  - Text elements rely on text-editing.js for inline editing functionality
 
 #### `js/frame.js`
 **Purpose**: Frame and element-frame creation and management
@@ -92,6 +97,7 @@ Comprehensive CSS styling defining:
 - **Option/Alt+drag duplication**: Creates duplicates that follow mouse, with abort capability
 - **Cmd+Option+Alt+drag extraction**: Duplicates static elements as free-floating elements
 - Zoom-aware coordinate calculations
+- **Text editing check**: Prevents dragging when elements are in edit mode
 - **Undo/Redo support**: Records all movements with complete state capture
 - **Key relationships**: 
   - Uses zoom.js for coordinate transformation
@@ -99,6 +105,7 @@ Comprehensive CSS styling defining:
   - Leverages extraction.js logic for making static elements free-floating
   - Records movements to undo.js with position and container tracking
   - Prevents conflicts with pan.js and resize.js operations
+  - Checks `window.textEditing.isEditing()` to prevent drag during text edit
 
 #### `js/resize.js`
 **Purpose**: Element resizing with 8-direction handles
@@ -120,6 +127,19 @@ Comprehensive CSS styling defining:
 - Visual selection indicators
 - Automatic selection setup for new elements via MutationObserver
 - **Key relationships**: Core system used by drag.js, resize.js, and marquee-selection.js
+
+#### `js/text-editing.js`
+**Purpose**: Inline text editing for all text elements
+- **Double-click to edit**: Activates edit mode for any text element (h1-h6, p, div.text-element, etc.)
+- **Smart element detection**: Identifies editable text elements while excluding containers and interactive elements
+- **Mode management**: Toggles contentEditable dynamically, preventing conflicts with drag operations
+- **Visual feedback**: Adds blue outline and light background during edit mode
+- **Click-outside to exit**: Automatically exits edit mode when clicking elsewhere
+- **Key relationships**:
+  - Coordinates with drag.js to prevent dragging during edit mode
+  - Integrates with pan.js to allow space key typing when editing (disables space+drag pan)
+  - Uses MutationObserver to ensure new text elements start with contentEditable=false
+  - Provides global API (`window.textEditing`) for other modules to check edit state
 
 #### `js/marquee-selection.js`
 **Purpose**: Rectangle-based multi-selection
@@ -205,6 +225,13 @@ Comprehensive CSS styling defining:
 5. **Keep duplicates**: Release mouse while holding modifier keys
 6. **Cancel operation**: Release Option/Alt before mouse-up (aborts drag, deletes duplicates)
 
+### Text Editing Workflow
+1. **Double-click** any text element (h1-h6, p, div.text-element, etc.) to enter edit mode
+2. Element shows blue outline and light background when editing
+3. Type, select, delete text as needed - space key works normally
+4. **Click outside** the element or press **Escape/Enter** to exit edit mode
+5. Dragging is disabled while editing to prevent accidental moves
+
 ### Deletion Workflow
 1. Select any element(s) using single-click, shift+click, or marquee selection
 2. Press Backspace to delete all selected elements
@@ -232,6 +259,7 @@ The application uses a distributed state management approach where each module e
 - `window.isResizing`, `window.isInPlacementMode` - Operation state flags
 - `window.undoManager` - Undo/redo system instance
 - `window.recordCreate`, `window.recordDelete`, `window.recordMove`, etc. - Operation recording functions
+- `window.textEditing` - Text editing state and utilities (isEditing, getCurrentlyEditingElement)
 
 This architecture allows modules to coordinate without tight coupling while maintaining clear separation of concerns.
 
