@@ -21,16 +21,28 @@ class UndoManager {
 
     // Start a batch operation (for multi-element actions)
     startBatch() {
+        if (window.DEBUG_UNDO) {
+            console.log('UNDO DEBUG: Starting batch operation');
+        }
         this.batchMode = true;
         this.currentBatch = [];
     }
 
     // End batch and add as single command
     endBatch() {
+        if (window.DEBUG_UNDO) {
+            console.log('UNDO DEBUG: Ending batch operation, batch size:', this.currentBatch.length);
+        }
+        
         if (this.currentBatch.length > 0) {
             const batchCommand = new Command('batch', {
                 commands: this.currentBatch
             });
+            
+            if (window.DEBUG_UNDO) {
+                console.log('UNDO DEBUG: Creating batch command with commands:', this.currentBatch.map(c => c.type));
+            }
+            
             this.addCommand(batchCommand);
         }
         this.batchMode = false;
@@ -41,8 +53,22 @@ class UndoManager {
     addCommand(command) {
         if (this.isExecuting) return;
 
+        // Debug logging to help identify command patterns
+        if (window.DEBUG_UNDO) {
+            console.log('UNDO DEBUG: Adding command:', {
+                type: command.type,
+                batchMode: this.batchMode,
+                currentBatchSize: this.currentBatch.length,
+                historySize: this.history.length,
+                data: command.data
+            });
+        }
+
         if (this.batchMode) {
             this.currentBatch.push(command);
+            if (window.DEBUG_UNDO) {
+                console.log('UNDO DEBUG: Command added to batch, batch size now:', this.currentBatch.length);
+            }
             return;
         }
 
@@ -52,6 +78,10 @@ class UndoManager {
         // Add new command
         this.history.push(command);
         this.currentIndex++;
+
+        if (window.DEBUG_UNDO) {
+            console.log('UNDO DEBUG: Command added to history, history size now:', this.history.length);
+        }
 
         // Limit history size
         if (this.history.length > this.maxHistory) {
@@ -67,8 +97,19 @@ class UndoManager {
         this.isExecuting = true;
         const command = this.history[this.currentIndex];
         
+        if (window.DEBUG_UNDO) {
+            console.log('UNDO DEBUG: Undoing command:', {
+                type: command.type,
+                index: this.currentIndex,
+                data: command.data
+            });
+        }
+        
         try {
             if (command.type === 'batch') {
+                if (window.DEBUG_UNDO) {
+                    console.log('UNDO DEBUG: Undoing batch with commands:', command.data.commands.map(c => c.type));
+                }
                 // Undo batch commands in reverse order
                 for (let i = command.data.commands.length - 1; i >= 0; i--) {
                     this.executeUndo(command.data.commands[i]);
@@ -90,8 +131,19 @@ class UndoManager {
         this.currentIndex++;
         const command = this.history[this.currentIndex];
         
+        if (window.DEBUG_UNDO) {
+            console.log('UNDO DEBUG: Redoing command:', {
+                type: command.type,
+                index: this.currentIndex,
+                data: command.data
+            });
+        }
+        
         try {
             if (command.type === 'batch') {
+                if (window.DEBUG_UNDO) {
+                    console.log('UNDO DEBUG: Redoing batch with commands:', command.data.commands.map(c => c.type));
+                }
                 // Redo batch commands in original order
                 for (const cmd of command.data.commands) {
                     this.executeRedo(cmd);
@@ -694,6 +746,45 @@ class UndoManager {
 
 // Global undo manager instance
 const undoManager = new UndoManager();
+
+// Debug utilities for troubleshooting multi-element operations
+// Usage: Open browser console and run:
+//   enableUndoDebug()     - Enable detailed logging of all undo operations
+//   inspectUndoHistory()  - Show current state of undo history
+//   disableUndoDebug()    - Turn off debug logging
+window.enableUndoDebug = () => {
+    window.DEBUG_UNDO = true;
+    console.log('Undo debug mode enabled. All undo operations will be logged.');
+    console.log('Try performing multi-element operations, then run inspectUndoHistory() to see the command structure.');
+};
+
+window.disableUndoDebug = () => {
+    window.DEBUG_UNDO = false;
+    console.log('Undo debug mode disabled.');
+};
+
+window.inspectUndoHistory = () => {
+    console.log('=== UNDO HISTORY INSPECTION ===');
+    console.log('Current index:', undoManager.currentIndex);
+    console.log('Total commands:', undoManager.history.length);
+    console.log('Batch mode:', undoManager.batchMode);
+    console.log('Current batch size:', undoManager.currentBatch.length);
+    
+    console.log('\nCommand history:');
+    undoManager.history.forEach((cmd, index) => {
+        const marker = index === undoManager.currentIndex ? ' <- CURRENT' : '';
+        if (cmd.type === 'batch') {
+            console.log(`${index}: BATCH (${cmd.data.commands.length} commands: ${cmd.data.commands.map(c => c.type).join(', ')})${marker}`);
+        } else if (cmd.type === 'move') {
+            console.log(`${index}: MOVE (${cmd.data.moves.length} elements)${marker}`);
+        } else if (cmd.type === 'delete') {
+            console.log(`${index}: DELETE (${cmd.data.elements.length} elements)${marker}`);
+        } else {
+            console.log(`${index}: ${cmd.type.toUpperCase()}${marker}`);
+        }
+    });
+    console.log('=== END INSPECTION ===');
+};
 
 // Expose global functions
 window.undoManager = undoManager;

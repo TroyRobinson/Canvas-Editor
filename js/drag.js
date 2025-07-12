@@ -478,15 +478,8 @@ document.addEventListener('mouseup', (e) => {
     try {
         // Record movement for undo before handling container changes
         const movedElements = [];
-        let shouldBatch = false;
         
         if (isMultiDragging) {
-            // Start batch for multi-element operations
-            if (window.undoManager && dragStartPositions.size > 1) {
-                window.undoManager.startBatch();
-                shouldBatch = true;
-            }
-            
             // Record positions for all dragged elements
             dragStartPositions.forEach((startPos, element) => {
                 if (startPos.left !== element.style.left || 
@@ -556,11 +549,6 @@ document.addEventListener('mouseup', (e) => {
         // Record the movement if anything changed (and not duplicate drag)
         if (movedElements.length > 0 && !isDuplicateDrag && window.recordMove) {
             window.recordMove(movedElements);
-        }
-        
-        // End batch if we started one
-        if (shouldBatch && window.undoManager) {
-            window.undoManager.endBatch();
         }
     } catch (error) {
         console.error('Error during mouse-up container check:', error);
