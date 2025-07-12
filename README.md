@@ -69,7 +69,8 @@ Comprehensive CSS styling defining:
 - `createFrame()` - Creates full HTML frames with title bars and content areas
 - `createElementFrame()` - Creates simple container frames for grouping elements
 - Automatic setup of drag, resize, and extraction capabilities
-- **Key relationships**: Called by element-creation.js and app.js
+- **Static element tracking**: MutationObserver assigns unique IDs to all static elements
+- **Key relationships**: Called by element-creation.js and app.js, provides ID tracking for undo.js
 
 #### `js/extraction.js`
 **Purpose**: Converting static elements to free-floating draggable elements
@@ -77,7 +78,8 @@ Comprehensive CSS styling defining:
 - Converts position from relative to absolute positioning
 - Adds resize handles and drag capabilities to extracted elements
 - Visual ghost feedback during extraction
-- **Key relationships**: Integrates with drag.js and resize.js to enable full manipulation
+- **Undo support**: Records extraction state for reversal
+- **Key relationships**: Integrates with drag.js and resize.js, records to undo.js
 
 ### Interaction Systems
 
@@ -90,11 +92,12 @@ Comprehensive CSS styling defining:
 - **Option/Alt+drag duplication**: Creates duplicates that follow mouse, with abort capability
 - **Cmd+Option+Alt+drag extraction**: Duplicates static elements as free-floating elements
 - Zoom-aware coordinate calculations
+- **Undo/Redo support**: Records all movements with complete state capture
 - **Key relationships**: 
   - Uses zoom.js for coordinate transformation
   - Integrates with selection.js for multi-selection support
   - Leverages extraction.js logic for making static elements free-floating
-  - Clones elements and re-establishes their drag/resize/selection capabilities
+  - Records movements to undo.js with position and container tracking
   - Prevents conflicts with pan.js and resize.js operations
 
 #### `js/resize.js`
@@ -103,9 +106,11 @@ Comprehensive CSS styling defining:
 - Drag-to-resize mode for element creation
 - Container-aware resizing that moves elements between containers when appropriate
 - Minimum size constraints (different for frames vs other elements)
+- **Undo support**: Records size and position changes with container tracking
 - **Key relationships**: 
   - Uses selection.js for resize handle management
   - Coordinates with zoom.js for accurate sizing
+  - Records resize operations to undo.js
   - Triggers container checks in drag.js system
 
 #### `js/selection.js`
@@ -127,12 +132,31 @@ Comprehensive CSS styling defining:
   - Coordinates with pan.js to prevent conflicts
   - Uses element detection from drag.js system
 
+### State Management Systems
+
+#### `js/undo.js` 
+**Purpose**: Comprehensive undo/redo system using Command pattern
+- **Command Pattern implementation**: Records all canvas operations as reversible commands
+- **Batch operations**: Groups multi-element actions (move, delete) as single undo units
+- **State capture**: Complete DOM state preservation including positioning, content, and hierarchy
+- **Container-aware restoration**: Handles cross-container moves with accurate coordinate conversion
+- **Static element support**: Tracks document flow positioning for proper restoration
+- **Debug utilities**: `enableUndoDebug()`, `inspectUndoHistory()` for troubleshooting
+- **Key relationships**:
+  - Integrates with drag.js for movement tracking
+  - Records operations from app.js (delete, group), resize.js, extraction.js
+  - Works with frame.js MutationObserver to track static elements
+
 ### Application Bootstrap
 
 #### `js/app.js`
 **Purpose**: Application initialization and global keyboard shortcuts
 - Window load event handling
-- Global keyboard shortcuts (Ctrl+N for new frames, Ctrl+0 for zoom reset, Backspace for deletion, **Ctrl+G for grouping**)
+- Global keyboard shortcuts:
+  - **Ctrl+Z / Shift+Ctrl+Z**: Undo/Redo operations
+  - Ctrl+N for new frames, Ctrl+0 for zoom reset
+  - Backspace for deletion (with undo recording)
+  - **Ctrl+G for grouping** (with undo recording)
 - Element deletion functionality with input field protection
 - **Grouping functionality**: Wraps multiple selected elements in element-frame containers
 - Coordinates the initialization of the entire application
@@ -206,5 +230,26 @@ The application uses a distributed state management approach where each module e
 - `window.isPanning` - Pan state
 - `window.selectElement`, `window.getSelectedElements` - Selection management
 - `window.isResizing`, `window.isInPlacementMode` - Operation state flags
+- `window.undoManager` - Undo/redo system instance
+- `window.recordCreate`, `window.recordDelete`, `window.recordMove`, etc. - Operation recording functions
 
 This architecture allows modules to coordinate without tight coupling while maintaining clear separation of concerns.
+
+## Technical Considerations for Undo/Redo
+
+### Multi-Element Operations
+- **Batching**: Multi-element moves and deletes are recorded as single commands, not wrapped in additional batch containers
+- **Container Changes**: Position recording happens AFTER container changes to ensure accurate coordinate capture
+- **State Capture**: Complete DOM state including positioning data, styles, and hierarchy is preserved
+
+### Cross-Container Movement
+- **Coordinate Systems**: Positions are stored relative to containers, with fallback absolute coordinates
+- **Static Elements**: Document flow positioning is tracked using sibling IDs and insertion hints
+- **Restoration**: Elements return to exact positions even after complex cross-container operations
+
+### Debug Utilities
+```javascript
+enableUndoDebug()     // Enable detailed console logging
+inspectUndoHistory()  // View command history structure
+disableUndoDebug()    // Turn off debug logging
+```
