@@ -125,6 +125,9 @@ class UndoManager {
             case 'extract':
                 this.undoExtract(command.data);
                 break;
+            case 'content':
+                this.undoContentChange(command.data);
+                break;
         }
     }
 
@@ -149,6 +152,9 @@ class UndoManager {
             case 'extract':
                 this.redoExtract(command.data);
                 break;
+            case 'content':
+                this.redoContentChange(command.data);
+                break;
         }
     }
 
@@ -164,7 +170,12 @@ class UndoManager {
     redoCreate(data) {
         const element = this.recreateElement(data.elementState);
         const container = document.getElementById(data.containerId) || canvas;
-        container.appendChild(element);
+        
+        // Insert at correct position
+        this.insertElementInContainer(element, data.elementState, container);
+        
+        // Setup behaviors
+        this.setupElementBehaviors(element, data.elementState);
         
         // Restore selection if it was selected
         if (data.wasSelected) {
@@ -174,11 +185,37 @@ class UndoManager {
 
     // Undo element deletion
     undoDelete(data) {
-        // Recreate all deleted elements
-        for (const elementData of data.elements) {
+        // Sort elements by their DOM position for proper restoration order
+        // Static elements should be restored in their original document order
+        const sortedElements = [...data.elements].sort((a, b) => {
+            // If both are static elements in the same container, use DOM order hints
+            if (!a.state.isFreeFloating && !b.state.isFreeFloating && 
+                a.containerId === b.containerId) {
+                // Use positioning data if available
+                if (a.state.positioning && b.state.positioning) {
+                    return a.state.positioning.canvasY - b.state.positioning.canvasY;
+                }
+            }
+            // For mixed types or different containers, preserve original order
+            return 0;
+        });
+        
+        // Recreate all deleted elements in proper order
+        for (const elementData of sortedElements) {
             const element = this.recreateElement(elementData.state);
             const container = document.getElementById(elementData.containerId) || canvas;
-            container.appendChild(element);
+            
+            // For static elements in frames, try to restore HTML flow structure
+            if (!elementData.state.isFreeFloating && 
+                container.classList && container.classList.contains('frame-content')) {
+                this.restoreStaticElementInFrame(element, elementData.state, container, elementData.contextData);
+            } else {
+                // Insert at correct position using standard method
+                this.insertElementInContainer(element, elementData.state, container);
+            }
+            
+            // Setup behaviors
+            this.setupElementBehaviors(element, elementData.state);
             
             // Restore selection state
             if (elementData.wasSelected) {
@@ -202,13 +239,36 @@ class UndoManager {
         for (const move of data.moves) {
             const element = document.getElementById(move.elementId);
             if (element) {
-                element.style.left = move.oldPosition.left;
-                element.style.top = move.oldPosition.top;
+                const oldContainer = document.getElementById(move.oldContainerId) || canvas;
+                const currentContainer = element.parentElement;
                 
-                // Restore container if changed
+                // If container changed, restore to old container first
                 if (move.oldContainerId !== move.newContainerId) {
-                    const oldContainer = document.getElementById(move.oldContainerId) || canvas;
-                    oldContainer.appendChild(element);
+                    // For static elements, use DOM insertion helpers to restore flow position
+                    if (move.oldElementState && !move.oldElementState.isFreeFloating) {
+                        this.insertElementInContainer(element, move.oldElementState, oldContainer);
+                    } else {
+                        oldContainer.appendChild(element);
+                    }
+                }
+                
+                // Restore exact position - use the captured positioning data for precision
+                if (move.oldElementState && move.oldElementState.positioning) {
+                    // Use the stored relative position which should be accurate to the container
+                    element.style.left = move.oldElementState.positioning.relativeLeft || move.oldPosition.left;
+                    element.style.top = move.oldElementState.positioning.relativeTop || move.oldPosition.top;
+                } else {
+                    // Fallback to simple position restore
+                    element.style.left = move.oldPosition.left;
+                    element.style.top = move.oldPosition.top;
+                }
+                
+                // For static elements that were in document flow, clear positioning
+                if (move.oldElementState && !move.oldElementState.isFreeFloating && 
+                    move.oldElementState.computedPosition === 'static') {
+                    element.style.position = '';
+                    element.style.left = '';
+                    element.style.top = '';
                 }
             }
         }
@@ -219,13 +279,35 @@ class UndoManager {
         for (const move of data.moves) {
             const element = document.getElementById(move.elementId);
             if (element) {
-                element.style.left = move.newPosition.left;
-                element.style.top = move.newPosition.top;
+                const newContainer = document.getElementById(move.newContainerId) || canvas;
                 
-                // Restore container if changed
+                // If container changed, move to new container first
                 if (move.oldContainerId !== move.newContainerId) {
-                    const newContainer = document.getElementById(move.newContainerId) || canvas;
-                    newContainer.appendChild(element);
+                    // For static elements, use DOM insertion helpers
+                    if (move.newElementState && !move.newElementState.isFreeFloating) {
+                        this.insertElementInContainer(element, move.newElementState, newContainer);
+                    } else {
+                        newContainer.appendChild(element);
+                    }
+                }
+                
+                // Restore exact position - use the captured positioning data for precision
+                if (move.newElementState && move.newElementState.positioning) {
+                    // Use the stored relative position which should be accurate to the container
+                    element.style.left = move.newElementState.positioning.relativeLeft || move.newPosition.left;
+                    element.style.top = move.newElementState.positioning.relativeTop || move.newPosition.top;
+                } else {
+                    // Fallback to simple position restore
+                    element.style.left = move.newPosition.left;
+                    element.style.top = move.newPosition.top;
+                }
+                
+                // For static elements that should be in document flow, clear positioning
+                if (move.newElementState && !move.newElementState.isFreeFloating && 
+                    move.newElementState.computedPosition === 'static') {
+                    element.style.position = '';
+                    element.style.left = '';
+                    element.style.top = '';
                 }
             }
         }
@@ -289,7 +371,10 @@ class UndoManager {
         // Recreate group frame
         const groupFrame = this.recreateElement(data.groupState);
         const container = document.getElementById(data.groupContainerId) || canvas;
-        container.appendChild(groupFrame);
+        
+        // Insert and setup group frame
+        this.insertElementInContainer(groupFrame, data.groupState, container);
+        this.setupElementBehaviors(groupFrame, data.groupState);
         
         // Move elements into group
         for (const elementData of data.elements) {
@@ -345,6 +430,22 @@ class UndoManager {
         }
     }
 
+    // Undo content change
+    undoContentChange(data) {
+        const element = document.getElementById(data.elementId);
+        if (element) {
+            element.textContent = data.oldContent;
+        }
+    }
+
+    // Redo content change
+    redoContentChange(data) {
+        const element = document.getElementById(data.elementId);
+        if (element) {
+            element.textContent = data.newContent;
+        }
+    }
+
     // Helper: Recreate element from saved state
     recreateElement(state) {
         const element = document.createElement(state.tagName);
@@ -353,39 +454,172 @@ class UndoManager {
         element.id = state.id;
         element.className = state.className;
         
-        // Restore styles
-        Object.assign(element.style, state.styles);
+        // Restore content first (before positioning)
+        if (state.innerHTML) {
+            element.innerHTML = state.innerHTML;
+        }
+        if (state.textContent && !state.innerHTML) {
+            element.textContent = state.textContent;
+        }
+        if (state.contentEditable) {
+            element.contentEditable = state.contentEditable;
+        }
         
         // Restore attributes
         for (const [key, value] of Object.entries(state.attributes || {})) {
             element.setAttribute(key, value);
         }
         
-        // Restore content
-        if (state.innerHTML) {
-            element.innerHTML = state.innerHTML;
+        // Handle positioning based on element type
+        if (state.isFreeFloating || state.computedPosition === 'absolute') {
+            // For free-floating elements, restore all positioning styles
+            Object.assign(element.style, state.styles);
+        } else {
+            // For static elements, only restore non-positioning styles
+            const positioningProps = ['position', 'left', 'top'];
+            for (const [prop, value] of Object.entries(state.styles)) {
+                if (!positioningProps.includes(prop) || 
+                    (prop === 'position' && value !== 'absolute')) {
+                    element.style[prop] = value;
+                }
+            }
+            
+            // Restore position if it was explicitly set and not absolute
+            if (state.styles.position && state.styles.position !== 'absolute') {
+                element.style.position = state.styles.position;
+            }
         }
         
+        return element;
+    }
+    
+    // Helper: Insert element at correct DOM position
+    insertElementInContainer(element, state, container) {
+        // For static elements, try to restore DOM flow position
+        if (!state.isFreeFloating && state.nextSiblingId) {
+            const nextSibling = document.getElementById(state.nextSiblingId);
+            if (nextSibling && nextSibling.parentElement === container) {
+                container.insertBefore(element, nextSibling);
+                return;
+            }
+        }
+        
+        if (!state.isFreeFloating && state.previousSiblingId) {
+            const prevSibling = document.getElementById(state.previousSiblingId);
+            if (prevSibling && prevSibling.parentElement === container) {
+                const nextSibling = prevSibling.nextSibling;
+                if (nextSibling) {
+                    container.insertBefore(element, nextSibling);
+                } else {
+                    container.appendChild(element);
+                }
+                return;
+            }
+        }
+        
+        // Fallback: append to container
+        container.appendChild(element);
+    }
+    
+    // Helper: Restore static element in frame with special handling
+    restoreStaticElementInFrame(element, state, frameContent, contextData = null) {
+        // Try the standard insertion first
+        this.insertElementInContainer(element, state, frameContent);
+        
+        // If insertion failed or element seems misplaced, try alternative approaches
+        if (!element.parentElement || element.parentElement !== frameContent) {
+            // Fallback 1: Try to insert based on DOM structure hints
+            if (state.nextSiblingId) {
+                const nextSibling = frameContent.querySelector(`#${state.nextSiblingId}`);
+                if (nextSibling) {
+                    frameContent.insertBefore(element, nextSibling);
+                    return;
+                }
+            }
+            
+            if (state.previousSiblingId) {
+                const prevSibling = frameContent.querySelector(`#${state.previousSiblingId}`);
+                if (prevSibling) {
+                    // Insert after the previous sibling
+                    if (prevSibling.nextSibling) {
+                        frameContent.insertBefore(element, prevSibling.nextSibling);
+                    } else {
+                        frameContent.appendChild(element);
+                    }
+                    return;
+                }
+            }
+            
+            // Fallback 2: Use context data if available
+            if (contextData && contextData.indexInParent !== undefined) {
+                const currentChildren = Array.from(frameContent.children);
+                const targetIndex = Math.min(contextData.indexInParent, currentChildren.length);
+                
+                if (currentChildren[targetIndex]) {
+                    frameContent.insertBefore(element, currentChildren[targetIndex]);
+                    return;
+                } else {
+                    frameContent.appendChild(element);
+                    return;
+                }
+            }
+            
+            // Fallback 3: Insert based on element type typical positions
+            const tagName = element.tagName.toLowerCase();
+            if (tagName === 'h3') {
+                // Headers typically go at the beginning
+                const firstChild = frameContent.firstElementChild;
+                if (firstChild) {
+                    frameContent.insertBefore(element, firstChild);
+                } else {
+                    frameContent.appendChild(element);
+                }
+            } else if (tagName === 'button') {
+                // Buttons typically go at the end
+                frameContent.appendChild(element);
+            } else {
+                // For other elements (p, etc.), try to insert in middle
+                const children = Array.from(frameContent.children);
+                const midpoint = Math.floor(children.length / 2);
+                if (children[midpoint]) {
+                    frameContent.insertBefore(element, children[midpoint]);
+                } else {
+                    frameContent.appendChild(element);
+                }
+            }
+        }
+    }
+
+    // Helper: Setup element behaviors after recreation
+    setupElementBehaviors(element, state) {
         // Re-setup behaviors based on element type
         if (element.classList.contains('frame')) {
             window.setupFrame(element);
         } else if (element.classList.contains('element-frame')) {
             window.setupElementFrame(element);
-        } else if (element.classList.contains('free-floating')) {
+        } else if (element.classList.contains('free-floating') || state.isFreeFloating) {
             window.setupFreeFloatingElement(element);
+        } else {
+            // For static elements, make them selectable if they should be
+            if (window.makeSelectable) {
+                window.makeSelectable(element);
+            }
         }
-        
-        return element;
     }
 
     // Helper: Capture element state
     captureElementState(element) {
+        const computedStyle = window.getComputedStyle(element);
+        const container = element.parentElement;
+        const canvasRect = canvas.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
+        
         return {
             id: element.id,
             tagName: element.tagName.toLowerCase(),
             className: element.className,
             styles: {
-                position: element.style.position,
+                position: element.style.position || computedStyle.position,
                 left: element.style.left,
                 top: element.style.top,
                 width: element.style.width,
@@ -393,7 +627,56 @@ class UndoManager {
                 zIndex: element.style.zIndex
             },
             attributes: this.captureAttributes(element),
-            innerHTML: element.innerHTML
+            innerHTML: element.innerHTML,
+            textContent: element.textContent,
+            contentEditable: element.contentEditable,
+            
+            // Enhanced positioning data
+            isFreeFloating: element.classList.contains('free-floating'),
+            computedPosition: computedStyle.position,
+            
+            // DOM flow position for static elements
+            nextSiblingId: element.nextSibling?.id || null,
+            previousSiblingId: element.previousSibling?.id || null,
+            
+            // Container-aware coordinates
+            positioning: this.capturePosition(element),
+            
+            // Container scroll state
+            containerScrollLeft: container?.scrollLeft || 0,
+            containerScrollTop: container?.scrollTop || 0
+        };
+    }
+    
+    // Helper: Capture position data for both static and absolute elements
+    capturePosition(element) {
+        const container = element.parentElement;
+        if (!container) return null;
+        
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        return {
+            // Relative to container (for repositioning)
+            relativeLeft: element.style.left,
+            relativeTop: element.style.top,
+            
+            // Absolute canvas coordinates (for cross-container moves)
+            canvasX: elementRect.left - canvasRect.left,
+            canvasY: elementRect.top - canvasRect.top,
+            
+            // Element center for container detection
+            centerX: elementRect.left + elementRect.width / 2,
+            centerY: elementRect.top + elementRect.height / 2,
+            
+            // Container information
+            containerRect: {
+                left: containerRect.left,
+                top: containerRect.top,
+                width: containerRect.width,
+                height: containerRect.height
+            }
         };
     }
 
@@ -425,11 +708,29 @@ window.recordCreate = (elementId, elementState, containerId, wasSelected = false
 
 window.recordDelete = (elements) => {
     const data = {
-        elements: elements.map(element => ({
-            state: undoManager.captureElementState(element),
-            containerId: element.parentElement?.id || 'canvas',
-            wasSelected: element.classList.contains('selected')
-        }))
+        elements: elements.map((element, index) => {
+            const elementData = {
+                state: undoManager.captureElementState(element),
+                containerId: element.parentElement?.id || 'canvas',
+                wasSelected: element.classList.contains('selected'),
+                deletionIndex: index // Track deletion order for proper restoration
+            };
+            
+            // For static elements, capture extra context for better restoration
+            if (!element.classList.contains('free-floating')) {
+                elementData.contextData = {
+                    tagName: element.tagName.toLowerCase(),
+                    innerHTML: element.innerHTML,
+                    textContent: element.textContent,
+                    // Capture surrounding elements for better positioning
+                    parentClassName: element.parentElement?.className || '',
+                    siblingCount: element.parentElement?.children.length || 0,
+                    indexInParent: Array.from(element.parentElement?.children || []).indexOf(element)
+                };
+            }
+            
+            return elementData;
+        })
     };
     undoManager.addCommand(new Command('delete', data));
 };
@@ -465,5 +766,13 @@ window.recordExtract = (elementId, originalState, extractedState, originalContai
         originalState,
         extractedState,
         originalContainerId
+    }));
+};
+
+window.recordContentChange = (elementId, oldContent, newContent) => {
+    undoManager.addCommand(new Command('content', {
+        elementId,
+        oldContent,
+        newContent
     }));
 };

@@ -17,9 +17,9 @@ function createFrame(x, y, title) {
     
     // Add initial content
     content.innerHTML = `
-        <h3>Frame ${frameCounter}</h3>
-        <p>This is isolated content.</p>
-        <button onclick="console.log('Button clicked in Frame ${frameCounter}')">
+        <h3 id="frame-${frameCounter}-heading">Frame ${frameCounter}</h3>
+        <p id="frame-${frameCounter}-text">This is isolated content.</p>
+        <button id="frame-${frameCounter}-button" onclick="console.log('Button clicked in Frame ${frameCounter}')">
             Click Me
         </button>
     `;
@@ -42,13 +42,26 @@ function createFrame(x, y, title) {
     // Make frame draggable by title bar
     setupFrameDragging(frame, titleBar);
     
+    // Ensure all elements have IDs
+    ensureAllElementsHaveIds(content);
+    
     // Setup element extraction for this frame
     setupElementExtraction(content);
+    
+    // Setup content tracking
+    setupContentTracking(content);
     
     // Make frame content elements selectable
     if (window.makeContainerElementsSelectable) {
         window.makeContainerElementsSelectable(content);
     }
+    
+    // Make static elements selectable individually
+    content.querySelectorAll('h3, p, button').forEach(element => {
+        if (window.makeSelectable) {
+            window.makeSelectable(element);
+        }
+    });
     
     return frame;
 }
@@ -87,10 +100,19 @@ window.setupFrame = function(frame) {
     }
     
     if (content) {
+        ensureAllElementsHaveIds(content);
         setupElementExtraction(content);
+        setupContentTracking(content);
         if (window.makeContainerElementsSelectable) {
             window.makeContainerElementsSelectable(content);
         }
+        
+        // Make static elements selectable individually
+        content.querySelectorAll('h3, p, button').forEach(element => {
+            if (window.makeSelectable) {
+                window.makeSelectable(element);
+            }
+        });
     }
     
     addResizeHandles(frame);
@@ -111,3 +133,100 @@ window.setupFreeFloatingElement = function(element) {
         window.makeSelectable(element);
     }
 };
+
+// Ensure all elements have unique IDs for undo tracking
+let staticElementCounter = 0;
+
+function ensureElementHasId(element) {
+    if (!element.id && element.nodeType === Node.ELEMENT_NODE) {
+        staticElementCounter++;
+        const tagName = element.tagName.toLowerCase();
+        element.id = `static-${tagName}-${staticElementCounter}`;
+    }
+}
+
+function ensureAllElementsHaveIds(container) {
+    // Give ID to container if it doesn't have one
+    ensureElementHasId(container);
+    
+    // Give IDs to all children
+    const allElements = container.querySelectorAll('*');
+    allElements.forEach(ensureElementHasId);
+}
+
+// Expose globally for use by other modules
+window.ensureAllElementsHaveIds = ensureAllElementsHaveIds;
+
+// Track content changes in frames for undo
+function setupContentTracking(frameContent) {
+    if (!window.undoManager) return;
+    
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            if (window.undoManager.isExecuting) return; // Don't track during undo/redo
+            
+            if (mutation.type === 'childList') {
+                // Track additions/removals of static elements
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE && 
+                        !node.classList.contains('free-floating') &&
+                        !node.classList.contains('resize-handle')) {
+                        
+                        // Ensure the new element has an ID
+                        ensureElementHasId(node);
+                        
+                        // Make it selectable
+                        if (window.makeSelectable) {
+                            window.makeSelectable(node);
+                        }
+                        
+                        // Record static element creation
+                        setTimeout(() => {
+                            if (window.recordCreate && window.undoManager && node.id) {
+                                const elementState = window.undoManager.captureElementState(node);
+                                window.recordCreate(node.id, elementState, frameContent.id || 'canvas', false);
+                            }
+                        }, 0);
+                    }
+                });
+                
+                mutation.removedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE && 
+                        !node.classList.contains('free-floating') &&
+                        !node.classList.contains('resize-handle')) {
+                        // Note: Removal tracking is handled by explicit deletion
+                    }
+                });
+            } else if (mutation.type === 'characterData' || 
+                      (mutation.type === 'attributes' && mutation.attributeName === 'contenteditable')) {
+                // Track text content changes
+                const element = mutation.target.nodeType === Node.TEXT_NODE ? 
+                    mutation.target.parentElement : mutation.target;
+                
+                if (element && element.id && !element.classList.contains('free-floating')) {
+                    // Record content change as a special operation
+                    if (window.recordContentChange) {
+                        const oldValue = mutation.oldValue;
+                        const newValue = mutation.type === 'characterData' ? 
+                            mutation.target.textContent : element.textContent;
+                        
+                        if (oldValue !== newValue) {
+                            window.recordContentChange(element.id, oldValue, newValue);
+                        }
+                    }
+                }
+            }
+        });
+    });
+    
+    observer.observe(frameContent, { 
+        childList: true, 
+        characterData: true, 
+        subtree: true,
+        attributeOldValue: true,
+        characterDataOldValue: true
+    });
+    
+    // Store observer reference for cleanup
+    frameContent._contentObserver = observer;
+}

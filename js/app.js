@@ -8,6 +8,11 @@ function groupSelectedElements() {
         return;
     }
     
+    // Start batch for grouping operation
+    if (window.undoManager) {
+        window.undoManager.startBatch();
+    }
+    
     // Calculate bounding box of all selected elements
     let minX = Infinity;
     let minY = Infinity;
@@ -83,6 +88,11 @@ function groupSelectedElements() {
         const groupState = window.undoManager.captureElementState(elementFrame);
         window.recordGroup(elementFrame.id, groupState, 'canvas', groupData);
     }
+    
+    // End batch for grouping operation
+    if (window.undoManager) {
+        window.undoManager.endBatch();
+    }
 }
 
 // Initialize the canvas with some frames
@@ -117,6 +127,11 @@ window.addEventListener('load', () => {
             if (selectedElements.length > 0) {
                 e.preventDefault(); // Prevent browser back navigation
                 
+                // Start batch for multi-element deletion
+                if (window.undoManager && selectedElements.length > 1) {
+                    window.undoManager.startBatch();
+                }
+                
                 // Record deletion for undo
                 if (window.recordDelete) {
                     window.recordDelete(selectedElements);
@@ -132,6 +147,11 @@ window.addEventListener('load', () => {
                 // Clear selection
                 if (window.clearSelection) {
                     window.clearSelection();
+                }
+                
+                // End batch for multi-element deletion
+                if (window.undoManager && selectedElements.length > 1) {
+                    window.undoManager.endBatch();
                 }
             }
         }
