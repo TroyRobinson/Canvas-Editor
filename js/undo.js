@@ -304,13 +304,33 @@ class UndoManager {
                     }
                 }
                 
-                // Restore exact position - use the captured positioning data for precision
+                // Restore exact position - prioritize the oldElementState positioning data
+                let positionRestored = false;
+                
                 if (move.oldElementState && move.oldElementState.positioning) {
-                    // Use the stored relative position which should be accurate to the container
-                    element.style.left = move.oldElementState.positioning.relativeLeft || move.oldPosition.left;
-                    element.style.top = move.oldElementState.positioning.relativeTop || move.oldPosition.top;
-                } else {
-                    // Fallback to simple position restore
+                    const relativeLeft = move.oldElementState.positioning.relativeLeft;
+                    const relativeTop = move.oldElementState.positioning.relativeTop;
+                    
+                    if (relativeLeft && relativeTop) {
+                        if (window.DEBUG_UNDO) {
+                            console.log('UNDO DEBUG: Setting position from oldElementState positioning', {
+                                relativeLeft: relativeLeft,
+                                relativeTop: relativeTop,
+                                containerId: move.oldContainerId
+                            });
+                        }
+                        
+                        element.style.left = relativeLeft;
+                        element.style.top = relativeTop;
+                        positionRestored = true;
+                    }
+                }
+                
+                // Fallback to oldPosition if no positioning data
+                if (!positionRestored) {
+                    if (window.DEBUG_UNDO) {
+                        console.log('UNDO DEBUG: Setting position from oldPosition fallback', move.oldPosition);
+                    }
                     element.style.left = move.oldPosition.left;
                     element.style.top = move.oldPosition.top;
                 }
@@ -331,10 +351,25 @@ class UndoManager {
         for (const move of data.moves) {
             const element = document.getElementById(move.elementId);
             if (element) {
+                if (window.DEBUG_UNDO) {
+                    console.log('REDO DEBUG: Moving element', {
+                        elementId: move.elementId,
+                        from: move.oldContainerId,
+                        to: move.newContainerId,
+                        oldPos: move.oldPosition,
+                        newPos: move.newPosition,
+                        hasNewState: !!move.newElementState
+                    });
+                }
+                
                 const newContainer = document.getElementById(move.newContainerId) || canvas;
                 
                 // If container changed, move to new container first
                 if (move.oldContainerId !== move.newContainerId) {
+                    if (window.DEBUG_UNDO) {
+                        console.log('REDO DEBUG: Container change detected, moving to', move.newContainerId);
+                    }
+                    
                     // For static elements, use DOM insertion helpers
                     if (move.newElementState && !move.newElementState.isFreeFloating) {
                         this.insertElementInContainer(element, move.newElementState, newContainer);
@@ -343,13 +378,34 @@ class UndoManager {
                     }
                 }
                 
-                // Restore exact position - use the captured positioning data for precision
+                // Restore exact position - prioritize the newElementState positioning data
+                let positionRestored = false;
+                
                 if (move.newElementState && move.newElementState.positioning) {
                     // Use the stored relative position which should be accurate to the container
-                    element.style.left = move.newElementState.positioning.relativeLeft || move.newPosition.left;
-                    element.style.top = move.newElementState.positioning.relativeTop || move.newPosition.top;
-                } else {
-                    // Fallback to simple position restore
+                    const relativeLeft = move.newElementState.positioning.relativeLeft;
+                    const relativeTop = move.newElementState.positioning.relativeTop;
+                    
+                    if (relativeLeft && relativeTop) {
+                        if (window.DEBUG_UNDO) {
+                            console.log('REDO DEBUG: Setting position from newElementState positioning', {
+                                relativeLeft: relativeLeft,
+                                relativeTop: relativeTop,
+                                containerId: move.newContainerId
+                            });
+                        }
+                        
+                        element.style.left = relativeLeft;
+                        element.style.top = relativeTop;
+                        positionRestored = true;
+                    }
+                }
+                
+                // Fallback to newPosition if no positioning data
+                if (!positionRestored) {
+                    if (window.DEBUG_UNDO) {
+                        console.log('REDO DEBUG: Setting position from newPosition fallback', move.newPosition);
+                    }
                     element.style.left = move.newPosition.left;
                     element.style.top = move.newPosition.top;
                 }
@@ -357,6 +413,9 @@ class UndoManager {
                 // For static elements that should be in document flow, clear positioning
                 if (move.newElementState && !move.newElementState.isFreeFloating && 
                     move.newElementState.computedPosition === 'static') {
+                    if (window.DEBUG_UNDO) {
+                        console.log('REDO DEBUG: Clearing positioning for static element');
+                    }
                     element.style.position = '';
                     element.style.left = '';
                     element.style.top = '';

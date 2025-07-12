@@ -480,25 +480,31 @@ document.addEventListener('mouseup', (e) => {
         const movedElements = [];
         
         if (isMultiDragging) {
-            // Record positions for all dragged elements
+            // Handle container changes for all selected elements FIRST
+            handleMultiSelectionContainerChanges(e);
+            
+            // THEN record positions after container changes are complete
             dragStartPositions.forEach((startPos, element) => {
+                const currentContainerId = element.parentElement?.id || 'canvas';
+                
                 if (startPos.left !== element.style.left || 
                     startPos.top !== element.style.top ||
-                    startPos.containerId !== (element.parentElement?.id || 'canvas')) {
+                    startPos.containerId !== currentContainerId) {
+                    
+                    // Capture complete element state after all changes are finalized
+                    const finalElementState = window.undoManager ? window.undoManager.captureElementState(element) : null;
+                    
                     movedElements.push({
                         elementId: element.id,
                         oldPosition: { left: startPos.left, top: startPos.top },
                         newPosition: { left: element.style.left, top: element.style.top },
                         oldContainerId: startPos.containerId,
-                        newContainerId: element.parentElement?.id || 'canvas',
+                        newContainerId: currentContainerId,
                         oldElementState: startPos.elementState,
-                        newElementState: window.undoManager ? window.undoManager.captureElementState(element) : null
+                        newElementState: finalElementState
                     });
                 }
             });
-            
-            // Handle container changes for all selected elements
-            handleMultiSelectionContainerChanges(e);
         } else if (currentDragging.classList.contains('free-floating')) {
             // Check if element should be moved to a different container
             const elementRect = currentDragging.getBoundingClientRect();
