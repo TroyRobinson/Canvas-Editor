@@ -97,8 +97,16 @@
             exitEditMode(currentlyEditingElement);
         }
 
+        // Ensure element has an ID for undo tracking
+        if (!element.id && window.ensureElementHasId) {
+            window.ensureElementHasId(element);
+        }
+
         // Set this element as currently editing
         currentlyEditingElement = element;
+        
+        // Store the original content for undo tracking
+        element.dataset.originalContent = element.textContent;
         
         // Enable contentEditable
         element.contentEditable = 'true';
@@ -128,6 +136,17 @@
     // Exit edit mode for a text element
     function exitEditMode(element) {
         if (!element || !isEditing(element)) return;
+        
+        // Check if content changed and record for undo
+        const originalContent = element.dataset.originalContent;
+        const currentContent = element.textContent;
+        
+        if (originalContent !== currentContent && window.recordContentChange && element.id) {
+            window.recordContentChange(element.id, originalContent, currentContent);
+        }
+        
+        // Clean up the original content data
+        delete element.dataset.originalContent;
         
         // Remove contentEditable
         element.contentEditable = 'false';

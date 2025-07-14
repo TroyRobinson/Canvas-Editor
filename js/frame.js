@@ -197,18 +197,21 @@ function setupContentTracking(frameContent) {
                         // Note: Removal tracking is handled by explicit deletion
                     }
                 });
-            } else if (mutation.type === 'characterData' || 
-                      (mutation.type === 'attributes' && mutation.attributeName === 'contenteditable')) {
-                // Track text content changes
+            } else if (mutation.type === 'characterData') {
+                // Track text content changes (only for actual text node changes)
                 const element = mutation.target.nodeType === Node.TEXT_NODE ? 
                     mutation.target.parentElement : mutation.target;
+                
+                // Skip if element is currently being edited (text-editing.js will handle it)
+                if (element && window.textEditing && window.textEditing.isEditing(element)) {
+                    return;
+                }
                 
                 if (element && element.id && !element.classList.contains('free-floating')) {
                     // Record content change as a special operation
                     if (window.recordContentChange) {
                         const oldValue = mutation.oldValue;
-                        const newValue = mutation.type === 'characterData' ? 
-                            mutation.target.textContent : element.textContent;
+                        const newValue = mutation.target.textContent;
                         
                         if (oldValue !== newValue) {
                             window.recordContentChange(element.id, oldValue, newValue);
@@ -223,7 +226,6 @@ function setupContentTracking(frameContent) {
         childList: true, 
         characterData: true, 
         subtree: true,
-        attributeOldValue: true,
         characterDataOldValue: true
     });
     

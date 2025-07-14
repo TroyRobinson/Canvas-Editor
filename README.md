@@ -76,7 +76,11 @@ Comprehensive CSS styling defining:
 - `createElementFrame()` - Creates simple container frames for grouping elements
 - Automatic setup of drag, resize, and extraction capabilities
 - **Static element tracking**: MutationObserver assigns unique IDs to all static elements
-- **Key relationships**: Called by element-creation.js and app.js, provides ID tracking for undo.js
+- **Content change detection**: Tracks text modifications in static elements (pauses during active editing)
+- **Key relationships**: 
+  - Called by element-creation.js and app.js
+  - Provides ID tracking for undo.js
+  - Coordinates with text-editing.js to avoid duplicate content change recording
 
 #### `js/extraction.js`
 **Purpose**: Converting static elements to free-floating draggable elements
@@ -136,10 +140,12 @@ Comprehensive CSS styling defining:
 - **Mode management**: Toggles contentEditable dynamically, preventing conflicts with drag operations
 - **Visual feedback**: Adds blue outline and light background during edit mode
 - **Click-outside to exit**: Automatically exits edit mode when clicking elsewhere
+- **Undo integration**: Captures complete text edits (original → final content) as single undo operations
 - **Key relationships**:
   - Coordinates with drag.js to prevent dragging during edit mode
   - Integrates with pan.js to allow space key typing when editing (disables space+drag pan)
   - Uses MutationObserver to ensure new text elements start with contentEditable=false
+  - Records content changes to undo.js when exiting edit mode (if content changed)
   - Provides global API (`window.textEditing`) for other modules to check edit state
 
 #### `js/marquee-selection.js`
@@ -162,11 +168,13 @@ Comprehensive CSS styling defining:
 - **State capture**: Complete DOM state preservation including positioning, content, and hierarchy
 - **Container-aware restoration**: Handles cross-container moves with accurate coordinate conversion
 - **Static element support**: Tracks document flow positioning for proper restoration
+- **Content change support**: Records and reverses text content modifications
 - **Debug utilities**: `enableUndoDebug()`, `inspectUndoHistory()` for troubleshooting
 - **Key relationships**:
   - Integrates with drag.js for movement tracking
   - Records operations from app.js (delete, group), resize.js, extraction.js
-  - Works with frame.js MutationObserver to track static elements
+  - Records text edits from text-editing.js as complete content changes
+  - Works with frame.js MutationObserver to track static elements (skips during active editing)
 
 ### Application Bootstrap
 
@@ -293,6 +301,11 @@ This architecture allows modules to coordinate without tight coupling while main
 - **Batching**: Multi-element moves and deletes are recorded as single commands, not wrapped in additional batch containers
 - **Container Changes**: Position recording happens AFTER container changes to ensure accurate coordinate capture
 - **State Capture**: Complete DOM state including positioning data, styles, and hierarchy is preserved
+
+### Text Editing Integration
+- **Complete Edit Tracking**: Text changes from enter → edit → exit are recorded as single undo operations
+- **Duplicate Prevention**: MutationObserver pauses characterData tracking during active editing
+- **Content Comparison**: Only records changes when text actually differs from original
 
 ### Cross-Container Movement
 - **Coordinate Systems**: Positions are stored relative to containers, with fallback absolute coordinates
