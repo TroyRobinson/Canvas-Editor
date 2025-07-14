@@ -6,6 +6,7 @@ function setupElementExtraction(frameContent) {
     frameContent.addEventListener('mousedown', (e) => {
         if (!e.metaKey && !e.ctrlKey) return; // Only extract with cmd/ctrl
         if (window.isPanning) return; // Don't extract while panning
+        if (window.canvasMode && window.canvasMode.isInteractiveMode()) return; // No extraction in interactive mode
         
         let target = e.target;
         

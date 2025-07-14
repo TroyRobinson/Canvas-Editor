@@ -414,6 +414,11 @@ function cancelElementPlacement() {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
+    // Check if in interactive mode
+    if (window.canvasMode && window.canvasMode.isInteractiveMode()) {
+        return;
+    }
+    
     // Don't trigger if user is typing in an input
     if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') return;
     

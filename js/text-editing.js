@@ -18,6 +18,11 @@
 
     // Handle double-click on text elements
     function handleDoubleClick(e) {
+        // Check if in interactive mode
+        if (window.canvasMode && window.canvasMode.isInteractiveMode()) {
+            return;
+        }
+        
         const textElement = findEditableTextElement(e.target);
         if (textElement && !isEditing(textElement)) {
             e.preventDefault();

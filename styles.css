@@ -443,3 +443,103 @@ body.shift-selecting {
     z-index: 10002;
     opacity: 0.8;
 }
+
+/* Mode Toggle */
+#mode-toggle-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(26, 26, 26, 0.9);
+    padding: 8px 16px;
+    border-radius: 24px;
+    border: 1px solid #333;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.mode-label {
+    color: #999;
+    font-size: 13px;
+    font-weight: 500;
+    user-select: none;
+}
+
+[data-canvas-mode="edit"] .mode-label:first-child,
+[data-canvas-mode="interactive"] .mode-label:last-child {
+    color: #e0e0e0;
+}
+
+.mode-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.mode-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.mode-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #4a4a4a;
+    transition: .3s;
+    border-radius: 24px;
+}
+
+.mode-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #e0e0e0;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked + .mode-toggle-slider {
+    background-color: #3b82f6;
+}
+
+input:checked + .mode-toggle-slider:before {
+    transform: translateX(20px);
+}
+
+/* Interactive mode styling */
+[data-canvas-mode="interactive"] .resize-handle {
+    display: none !important;
+}
+
+/* Remove selection outline in interactive mode */
+[data-canvas-mode="interactive"] .selected,
+[data-canvas-mode="interactive"] .preview-selected {
+    outline: none !important;
+}
+
+[data-canvas-mode="interactive"] .frame,
+[data-canvas-mode="interactive"] .element-frame,
+[data-canvas-mode="interactive"] .free-floating {
+    cursor: default !important;
+}
+
+[data-canvas-mode="interactive"] .frame-title,
+[data-canvas-mode="interactive"] .frame-content {
+    cursor: default !important;
+}
+
+/* Hide marquee selection in interactive mode */
+[data-canvas-mode="interactive"] #marquee-selection {
+    display: none !important;
+}

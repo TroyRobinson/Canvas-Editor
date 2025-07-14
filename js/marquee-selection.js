@@ -198,6 +198,11 @@ function initializeMarqueeSelection() {
     document.addEventListener('mousedown', (e) => {
         // Handle canvas clicks for marquee selection
         if (e.target === canvas) {
+            // Check if in interactive mode
+            if (window.canvasMode && window.canvasMode.isInteractiveMode()) {
+                return;
+            }
+            
             // Don't start marquee if panning or other operations
             if (window.isPanning) return;
             if (window.isInPlacementMode && window.isInPlacementMode()) return;

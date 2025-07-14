@@ -27,6 +27,11 @@ function captureStartPositions(elements) {
 
 function setupFrameDragging(frame, titleBar) {
     frame.addEventListener('mousedown', (e) => {
+        // Check if in interactive mode
+        if (window.canvasMode && window.canvasMode.isInteractiveMode()) {
+            return;
+        }
+        
         if (e.metaKey || e.ctrlKey) return; // Don't drag frame if cmd/ctrl is held
         if (e.target.classList.contains('free-floating')) return; // Don't drag frame if clicking a free-floating element
         if (e.target.classList.contains('resize-handle')) return; // Don't drag if clicking resize handle
@@ -117,6 +122,11 @@ function setupFrameDragging(frame, titleBar) {
 
 function setupElementDragging(element) {
     element.addEventListener('mousedown', (e) => {
+        // Check if in interactive mode
+        if (window.canvasMode && window.canvasMode.isInteractiveMode()) {
+            return;
+        }
+        
         if (e.metaKey || e.ctrlKey) return; // This is for extraction, not dragging
         if (!element.classList.contains('free-floating')) return;
         if (e.target.classList.contains('resize-handle')) return; // Don't drag if clicking resize handle

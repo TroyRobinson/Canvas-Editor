@@ -21,6 +21,11 @@ function addResizeHandles(element) {
 }
 
 function startResize(e, element, handlePos) {
+    // Check if in interactive mode
+    if (window.canvasMode && window.canvasMode.isInteractiveMode()) {
+        return;
+    }
+    
     if (window.isPanning) return; // Don't resize while panning
     
     resizing = true;

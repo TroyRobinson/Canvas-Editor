@@ -86,6 +86,11 @@ function addSelectionAnchors(element) {
 function makeSelectable(element) {
     // Add click handler for selection
     element.addEventListener('mousedown', (e) => {
+        // Check if in interactive mode
+        if (window.canvasMode && window.canvasMode.isInteractiveMode()) {
+            return;
+        }
+        
         // Don't interfere with existing operations
         if (window.isPanning) return;
         

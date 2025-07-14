@@ -90,8 +90,33 @@ function groupSelectedElements() {
 window.addEventListener('load', () => {
     initializeCanvas();
     
+    // Create mode toggle UI
+    if (window.canvasMode && window.canvasMode.createToggleUI) {
+        window.canvasMode.createToggleUI();
+    }
+    
     // Add keyboard shortcut to create new frames
     document.addEventListener('keydown', (e) => {
+        // Mode toggle with Cmd/Ctrl + I
+        if (e.key === 'i' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            if (window.canvasMode) {
+                window.canvasMode.toggleMode();
+            }
+            return;
+        }
+        
+        // Allow zoom and pan in both modes
+        const isZoomOrPan = (
+            (e.key === '0' && (e.metaKey || e.ctrlKey)) || // Reset zoom
+            e.key === ' ' // Pan
+        );
+        
+        // In interactive mode, only allow zoom and pan
+        if (window.canvasMode && window.canvasMode.isInteractiveMode() && !isZoomOrPan) {
+            return;
+        }
+        // New frame shortcut
         if (e.key === 'n' && (e.metaKey || e.ctrlKey)) {
             e.preventDefault();
             const x = Math.random() * (window.innerWidth - 300);

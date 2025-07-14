@@ -23,6 +23,7 @@ Comprehensive CSS styling defining:
 - Selection states and marquee selection styling
 - Performance optimizations (will-change properties)
 - Responsive grid background pattern
+- **Mode-specific styling**: Interactive mode hides selection indicators via `data-canvas-mode` attribute selectors
 
 ### Core Modules
 
@@ -182,6 +183,17 @@ Comprehensive CSS styling defining:
 - Coordinates the initialization of the entire application
 - **Key relationships**: Orchestrates the other modules and provides entry point
 
+#### `js/mode-manager.js`
+**Purpose**: Canvas mode switching between edit and interactive modes
+- **Edit Mode**: Default mode for creating, selecting, and manipulating elements
+- **Interactive Mode**: Allows interaction with button onclick handlers and input fields
+- **Mode Toggle UI**: Checkbox switch in top-right corner for quick mode changes
+- **Visual Feedback**: CSS-driven hiding of selection indicators in interactive mode
+- **Key relationships**: 
+  - Modifies canvas container's `data-canvas-mode` attribute
+  - CSS rules in styles.css respond to mode changes
+  - Preserves element selection state across mode transitions
+
 ## Element Hierarchy and Types
 
 ### Frames
@@ -198,6 +210,17 @@ Comprehensive CSS styling defining:
 - All free-floating elements can be dragged, resized, and moved between containers
 
 ## Key Interaction Patterns
+
+### Mode Switching
+1. **Edit Mode** (default): Full canvas editing capabilities
+   - Element creation, selection, dragging, resizing
+   - All keyboard shortcuts active
+   - Selection indicators visible (blue outlines, resize handles)
+2. **Interactive Mode**: Test interactive elements
+   - Button onclick handlers execute
+   - Input fields accept focus and text
+   - Selection indicators hidden for clean interaction
+   - Toggle via checkbox in top-right corner
 
 ### Creation Workflow
 1. Press keyboard shortcut (F, R, T, etc.) to enter placement mode
@@ -260,6 +283,7 @@ The application uses a distributed state management approach where each module e
 - `window.undoManager` - Undo/redo system instance
 - `window.recordCreate`, `window.recordDelete`, `window.recordMove`, etc. - Operation recording functions
 - `window.textEditing` - Text editing state and utilities (isEditing, getCurrentlyEditingElement)
+- `window.canvasMode` - Current mode state ('edit' or 'interactive')
 
 This architecture allows modules to coordinate without tight coupling while maintaining clear separation of concerns.
 
