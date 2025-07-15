@@ -126,14 +126,7 @@
                 if (isInFrame && isInteractiveElement) {
                     e.stopImmediatePropagation();
                     e.preventDefault();
-                    
-                    // Allow selection to work on the element
-                    if (window.selectElement) {
-                        const selectableElement = target.closest('.free-floating') || target;
-                        if (selectableElement.classList.contains('free-floating')) {
-                            window.selectElement(selectableElement, e);
-                        }
-                    }
+                    // Do NOT call window.selectElement here; selection is handled on mousedown
                 }
             }
         };
