@@ -58,7 +58,7 @@
         if (element.classList.contains('text-element')) return true;
         
         // Common text elements
-        if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li', 'td', 'th', 'dt', 'dd', 'blockquote', 'figcaption'].includes(tagName)) {
+        if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li', 'td', 'th', 'dt', 'dd', 'blockquote', 'figcaption', 'button', 'a'].includes(tagName)) {
             return true;
         }
         
