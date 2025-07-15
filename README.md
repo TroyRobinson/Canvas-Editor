@@ -135,6 +135,7 @@ Comprehensive CSS styling defining:
 - Automatic selection setup for new elements via MutationObserver
 - **Key relationships**: Core system used by drag.js, resize.js, and marquee-selection.js
   - Via a double click on corner event, calls window.resizeTextElementToFitContent (from resize.js) and window.textEditing.isTextLikeElement (from text-editing.js) to resize text elements easily.
+  - Provides `window.refreshSelectionVisuals()`, which ensures all currently selected elements have up-to-date selection overlays (resize handles). This function removes any duplicate or stale handles and re-applies them as needed. It is designed to be called after DOM mutations, undo/redo, or text editing to keep selection visuals in sync.
 
 #### `js/text-editing.js`
 **Purpose**: Inline text editing for all text elements
@@ -149,6 +150,7 @@ Comprehensive CSS styling defining:
   - Integrates with pan.js to allow space key typing when editing (disables space+drag pan)
   - Uses MutationObserver to ensure new text elements start with contentEditable=false
   - Records content changes to undo.js when exiting edit mode (if content changed)
+  - Selection overlay restoration: On exiting edit mode, calls `window.refreshSelectionVisuals()` to ensure that, if the edited element remains selected, its selection overlay (resize handles) is restored.
   - Provides global API (`window.textEditing`) for other modules to check edit state.
     - E.g. exposes isTextLikeElement utility globally for use by other modules (e.g., resize.js, selection.js)
 
