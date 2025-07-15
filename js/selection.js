@@ -93,6 +93,18 @@ function addSelectionAnchors(element) {
     });
 }
 
+// Utility: check if element is static inside a frame (not free-floating)
+function isStaticElementInFrame(element) {
+    // Must be inside a .frame-content
+    const frameContent = element.closest('.frame-content');
+    if (!frameContent) return false;
+    // If absolutely positioned, it's extracted/free-floating
+    const style = window.getComputedStyle(element);
+    if (style.position === 'absolute') return false;
+    // Could add more checks if needed (e.g., data attributes)
+    return true;
+}
+
 // --- Add this function for modular selection overlay refresh ---
 function refreshSelectionVisuals() {
     const selected = getSelectedElements();
@@ -100,6 +112,8 @@ function refreshSelectionVisuals() {
         // Remove any existing resize handles to avoid duplicates
         const handles = element.querySelectorAll('.resize-handle');
         handles.forEach(handle => handle.remove());
+        // Skip overlays for static elements inside frames
+        if (isStaticElementInFrame(element)) return;
         // Re-add anchors
         addSelectionAnchors(element);
     });
