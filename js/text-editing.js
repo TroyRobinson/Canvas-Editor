@@ -164,7 +164,7 @@
         // Remove event listener
         element.removeEventListener('keydown', handleKeyDown);
         
-        // Clear selection
+        // Clear text selection
         const selection = window.getSelection();
         selection.removeAllRanges();
         
@@ -175,6 +175,11 @@
         
         // Blur the element
         element.blur();
+
+        // Refresh selection visuals if available (restores anchors if still selected)
+        if (window.refreshSelectionVisuals) {
+            window.refreshSelectionVisuals();
+        }
     }
 
     // Check if an element is currently being edited

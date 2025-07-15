@@ -79,6 +79,19 @@ function addSelectionAnchors(element) {
     });
 }
 
+// --- Add this function for modular selection overlay refresh ---
+function refreshSelectionVisuals() {
+    const selected = getSelectedElements();
+    selected.forEach(element => {
+        // Remove any existing resize handles to avoid duplicates
+        const handles = element.querySelectorAll('.resize-handle');
+        handles.forEach(handle => handle.remove());
+        // Re-add anchors
+        addSelectionAnchors(element);
+    });
+}
+window.refreshSelectionVisuals = refreshSelectionVisuals;
+
 // Canvas click handling is now managed by marquee-selection.js
 // to properly coordinate between marquee selection and selection clearing
 
