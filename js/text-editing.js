@@ -241,7 +241,8 @@
     window.textEditing = {
         isEditing: isEditing,
         exitEditMode: exitEditMode,
-        getCurrentlyEditingElement: () => currentlyEditingElement
+        getCurrentlyEditingElement: () => currentlyEditingElement,
+        isTextLikeElement: isTextLikeElement
     };
 
     // Initialize when DOM is ready

@@ -55,6 +55,20 @@ function addSelectionAnchors(element) {
                 window.startResize(e, element, pos);
             }
         });
+        // Add double-click event for corner handles only
+        if (["nw", "ne", "sw", "se"].includes(pos)) {
+            handle.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Only trigger if this element is selected and is a text element
+                if (window.getSelectedElements && window.textEditing && window.textEditing.isTextLikeElement) {
+                    const selected = window.getSelectedElements();
+                    if (selected.includes(element) && window.textEditing.isTextLikeElement(element) && window.resizeTextElementToFitContent) {
+                        window.resizeTextElementToFitContent(element);
+                    }
+                }
+            });
+        }
     });
     
     // Add click handler for selection

@@ -300,3 +300,47 @@ function checkElementFrameContainment(elementFrame) {
         }
     });
 }
+
+// Resize a text element to fit its content
+function resizeTextElementToFitContent(element) {
+    if (!window.textEditing || !window.textEditing.isTextLikeElement(element)) return;
+    // Create a clone for measurement
+    const clone = element.cloneNode(true);
+    clone.style.position = 'absolute';
+    clone.style.visibility = 'hidden';
+    clone.style.height = 'auto';
+    clone.style.width = 'auto';
+    clone.style.whiteSpace = 'pre-wrap';
+    clone.style.left = '-9999px';
+    clone.style.top = '-9999px';
+    clone.style.zIndex = '-1';
+    // Remove any fixed width/height
+    clone.style.maxWidth = 'none';
+    clone.style.maxHeight = 'none';
+    clone.style.minWidth = '0';
+    clone.style.minHeight = '0';
+    // Append to body for measurement
+    document.body.appendChild(clone);
+    // Get computed size
+    const rect = clone.getBoundingClientRect();
+    // Remove the clone
+    document.body.removeChild(clone);
+    // Account for zoom
+    const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+    // Set the element's size to fit content
+    element.style.width = (rect.width / zoom) + 'px';
+    element.style.height = (rect.height / zoom) + 'px';
+    // Optionally, record resize for undo
+    if (window.recordResize && element.id) {
+        window.recordResize(
+            element.id,
+            { width: '', height: '' },
+            { width: element.style.width, height: element.style.height },
+            { left: element.style.left, top: element.style.top },
+            { left: element.style.left, top: element.style.top },
+            element.parentElement?.id || 'canvas',
+            element.parentElement?.id || 'canvas'
+        );
+    }
+}
+window.resizeTextElementToFitContent = resizeTextElementToFitContent;

@@ -118,12 +118,14 @@ Comprehensive CSS styling defining:
 - Drag-to-resize mode for element creation
 - Container-aware resizing that moves elements between containers when appropriate
 - Minimum size constraints (different for frames vs other elements)
+- Double-click a corner resize handle of a selected text element to resize it to fit its content.
 - **Undo support**: Records size and position changes with container tracking
 - **Key relationships**: 
   - Uses selection.js for resize handle management
   - Coordinates with zoom.js for accurate sizing
   - Records resize operations to undo.js
   - Triggers container checks in drag.js system
+  - Integrates with text-editing.js to determine if an element is a text element for the resize-to-fit-content feature.
 
 #### `js/selection.js`
 **Purpose**: Multi-element selection and visual feedback
@@ -132,6 +134,7 @@ Comprehensive CSS styling defining:
 - Visual selection indicators
 - Automatic selection setup for new elements via MutationObserver
 - **Key relationships**: Core system used by drag.js, resize.js, and marquee-selection.js
+  - Via a double click on corner event, calls window.resizeTextElementToFitContent (from resize.js) and window.textEditing.isTextLikeElement (from text-editing.js) to resize text elements easily.
 
 #### `js/text-editing.js`
 **Purpose**: Inline text editing for all text elements
@@ -146,7 +149,8 @@ Comprehensive CSS styling defining:
   - Integrates with pan.js to allow space key typing when editing (disables space+drag pan)
   - Uses MutationObserver to ensure new text elements start with contentEditable=false
   - Records content changes to undo.js when exiting edit mode (if content changed)
-  - Provides global API (`window.textEditing`) for other modules to check edit state
+  - Provides global API (`window.textEditing`) for other modules to check edit state.
+    - E.g. exposes isTextLikeElement utility globally for use by other modules (e.g., resize.js, selection.js)
 
 #### `js/marquee-selection.js`
 **Purpose**: Rectangle-based multi-selection
