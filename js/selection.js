@@ -14,6 +14,10 @@ function selectElement(element, addToSelection = false) {
     if (addToSelection && selectedElements.includes(element)) {
         element.classList.remove('selected');
         selectedElements = selectedElements.filter(el => el !== element);
+        // Dispatch selection changed event
+        window.dispatchEvent(new CustomEvent('selectionChanged', {
+            detail: { selectedElements: [...selectedElements] }
+        }));
         return;
     }
     
@@ -22,6 +26,11 @@ function selectElement(element, addToSelection = false) {
         selectedElements.push(element);
         element.classList.add('selected');
     }
+    
+    // Dispatch selection changed event
+    window.dispatchEvent(new CustomEvent('selectionChanged', {
+        detail: { selectedElements: [...selectedElements] }
+    }));
 }
 
 function clearSelection() {
@@ -29,6 +38,11 @@ function clearSelection() {
         element.classList.remove('selected');
     });
     selectedElements = [];
+    
+    // Dispatch selection changed event
+    window.dispatchEvent(new CustomEvent('selectionChanged', {
+        detail: { selectedElements: [] }
+    }));
 }
 
 function getSelectedElement() {
