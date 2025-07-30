@@ -20,16 +20,14 @@
     let panel = null;
     let resizer = null;
     let textarea = null;
-    let applyButton = null;
 
     // Initialize the code editor when the DOM is ready
     function init() {
         panel = document.getElementById('code-editor-panel');
         resizer = document.getElementById('code-editor-resizer');
         textarea = document.getElementById('code-editor-textarea');
-        applyButton = document.getElementById('code-editor-apply');
 
-        if (!panel || !resizer || !textarea || !applyButton) {
+        if (!panel || !resizer || !textarea) {
             console.error('Code editor elements not found in DOM');
             return;
         }
@@ -64,11 +62,8 @@
         // Listen for selection changes
         window.addEventListener('selectionChanged', handleSelectionChange);
         
-        // Apply button functionality
-        applyButton.addEventListener('click', applyCodeChanges);
-        
-        // Real-time updates on textarea change (debounced)
-        textarea.addEventListener('input', debounce(handleTextareaChange, 300));
+        // Real-time updates on textarea change (debounced for performance)
+        textarea.addEventListener('input', debounce(applyCodeChanges, 500));
         
         // Keyboard shortcuts
         textarea.addEventListener('keydown', handleKeyDown);
@@ -131,7 +126,7 @@
         });
         
         textarea.value = combinedCode;
-        applyButton.disabled = true; // Disable apply for multiple selection
+        textarea.disabled = true; // Disable editing for multiple selection
     }
 
     // Clear selection
@@ -141,7 +136,7 @@
         }
         currentSelectedElement = null;
         textarea.value = '';
-        applyButton.disabled = true;
+        textarea.disabled = true;
     }
 
     // Update the code view with current element's HTML
@@ -154,11 +149,11 @@
             const cleanElement = cleanElementForSerialization(currentSelectedElement);
             const formattedHTML = formatHTML(cleanElement.outerHTML);
             textarea.value = formattedHTML;
-            applyButton.disabled = false;
+            textarea.disabled = false;
         } catch (error) {
             console.error('Error updating code view:', error);
             textarea.value = '<!-- Error serializing element -->';
-            applyButton.disabled = true;
+            textarea.disabled = true;
         }
         
         isUpdatingFromCanvas = false;
@@ -227,7 +222,7 @@
 
     // Apply code changes back to the element
     function applyCodeChanges() {
-        if (!currentSelectedElement || isUpdatingFromCanvas) return;
+        if (!currentSelectedElement || isUpdatingFromCanvas || textarea.disabled) return;
 
         isUpdatingFromCode = true;
 
@@ -310,23 +305,19 @@
         }
     }
 
-    // Handle textarea changes (for real-time preview if implemented)
-    function handleTextareaChange() {
-        // Could implement real-time preview here
-        // For now, just enable the apply button
-        if (currentSelectedElement && textarea.value.trim()) {
-            applyButton.disabled = false;
+    // Validate HTML syntax without applying changes
+    function validateHTML(html) {
+        try {
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = html;
+            return tempContainer.children.length === 1;
+        } catch (error) {
+            return false;
         }
     }
 
     // Handle keyboard shortcuts in textarea
     function handleKeyDown(event) {
-        // Ctrl/Cmd + Enter to apply changes
-        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-            event.preventDefault();
-            applyCodeChanges();
-        }
-        
         // Escape to close panel
         if (event.key === 'Escape') {
             event.preventDefault();

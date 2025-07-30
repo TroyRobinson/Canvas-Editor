@@ -603,26 +603,6 @@ input:checked + .mode-toggle-slider:before {
     color: #e0e0e0;
 }
 
-#code-editor-apply {
-    background: #3b82f6;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-#code-editor-apply:hover:not(:disabled) {
-    background: #2563eb;
-}
-
-#code-editor-apply:disabled {
-    background: #555;
-    cursor: not-allowed;
-    opacity: 0.6;
-}
 
 #code-editor-textarea {
     flex: 1;
@@ -643,6 +623,12 @@ input:checked + .mode-toggle-slider:before {
 
 #code-editor-textarea:focus {
     background: #131313;
+}
+
+#code-editor-textarea:disabled {
+    background: #0a0a0a;
+    color: #666;
+    cursor: not-allowed;
 }
 
 /* Scrollbar styling for the textarea */
