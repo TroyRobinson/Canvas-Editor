@@ -149,8 +149,9 @@ function makeSelectable(element) {
         // Don't interfere with existing operations
         if (window.isPanning) return;
         
-        // Don't select if it's an input and user is typing
-        if (element.tagName === 'INPUT' && document.activeElement === element) return;
+        // Don't select if it's an input/textarea and user is typing or in code editor
+        if ((element.tagName === 'INPUT' && document.activeElement === element) ||
+            (window.codeEditor && window.codeEditor.isActive())) return;
         
         e.stopPropagation();
         

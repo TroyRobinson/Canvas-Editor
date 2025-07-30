@@ -419,8 +419,11 @@ document.addEventListener('keydown', (e) => {
         return;
     }
     
-    // Don't trigger if user is typing in an input
-    if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') return;
+    // Don't trigger if user is typing in an input or code editor
+    if (e.target.tagName === 'INPUT' || 
+        e.target.tagName === 'TEXTAREA' || 
+        e.target.contentEditable === 'true' ||
+        (window.codeEditor && window.codeEditor.isActive())) return;
     
     // Don't trigger if already placing an element
     if (placementMode) return;

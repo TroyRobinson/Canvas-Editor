@@ -9,8 +9,9 @@ window.isPanning = false;
 // Track spacebar state
 document.addEventListener('keydown', (e) => {
     if (e.code === 'Space' && !isSpaceHeld) {
-        // Don't prevent default if user is editing text
-        if (window.textEditing && window.textEditing.getCurrentlyEditingElement()) {
+        // Don't prevent default if user is editing text or in code editor
+        if ((window.textEditing && window.textEditing.getCurrentlyEditingElement()) ||
+            (window.codeEditor && window.codeEditor.isActive())) {
             return; // Allow space to be typed in text
         }
         
@@ -22,8 +23,9 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('keyup', (e) => {
     if (e.code === 'Space') {
-        // Don't affect pan state if user is editing text
-        if (window.textEditing && window.textEditing.getCurrentlyEditingElement()) {
+        // Don't affect pan state if user is editing text or in code editor
+        if ((window.textEditing && window.textEditing.getCurrentlyEditingElement()) ||
+            (window.codeEditor && window.codeEditor.isActive())) {
             return; // Let text editing handle space normally
         }
         

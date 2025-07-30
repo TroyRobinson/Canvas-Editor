@@ -15,6 +15,10 @@
     let isUpdatingFromCanvas = false;
     let panelWidth = localStorage.getItem('codeEditorWidth') || '400px';
     let isDragging = false;
+    
+    // Snapshot system for canvas undo integration
+    let elementSnapshot = null;
+    let snapshotTimer = null;
 
     // DOM elements
     let panel = null;
@@ -62,8 +66,17 @@
         // Listen for selection changes
         window.addEventListener('selectionChanged', handleSelectionChange);
         
+        // Take snapshot when user starts editing
+        textarea.addEventListener('focus', takeInitialSnapshot);
+        
         // Real-time updates on textarea change (debounced for performance)
         textarea.addEventListener('input', debounce(applyCodeChanges, 500));
+        
+        // Record final snapshot when user stops editing (debounced)
+        textarea.addEventListener('input', debounce(recordFinalSnapshot, 2000));
+        
+        // Record snapshot when switching elements or closing panel
+        textarea.addEventListener('blur', recordFinalSnapshot);
         
         // Keyboard shortcuts
         textarea.addEventListener('keydown', handleKeyDown);
@@ -95,6 +108,11 @@
 
     // Set the currently selected element
     function setSelectedElement(element) {
+        // Record final snapshot of previous element if there was one
+        if (currentSelectedElement && currentSelectedElement !== element) {
+            recordFinalSnapshot();
+        }
+        
         // Stop observing previous element
         if (mutationObserver) {
             mutationObserver.disconnect();
@@ -131,6 +149,9 @@
 
     // Clear selection
     function clearSelection() {
+        // Record final snapshot if there was an active edit
+        recordFinalSnapshot();
+        
         if (mutationObserver) {
             mutationObserver.disconnect();
         }
@@ -229,10 +250,6 @@
         try {
             const newHTML = textarea.value.trim();
             
-            // Capture old state for undo before making changes
-            const oldElement = currentSelectedElement;
-            const oldHTML = cleanElementForSerialization(oldElement).outerHTML;
-            
             // Create a temporary container to parse the HTML
             const tempContainer = document.createElement('div');
             tempContainer.innerHTML = newHTML;
@@ -244,16 +261,16 @@
             const newElement = tempContainer.children[0];
             
             // Preserve the original element's ID to maintain undo system tracking
-            if (oldElement.id && !newElement.id) {
-                newElement.id = oldElement.id;
+            if (currentSelectedElement.id && !newElement.id) {
+                newElement.id = currentSelectedElement.id;
             }
             
             // Preserve the element's position and container
-            const parent = oldElement.parentNode;
-            const nextSibling = oldElement.nextSibling;
+            const parent = currentSelectedElement.parentNode;
+            const nextSibling = currentSelectedElement.nextSibling;
             
             // Replace the element
-            parent.removeChild(oldElement);
+            parent.removeChild(currentSelectedElement);
             parent.insertBefore(newElement, nextSibling);
             
             // Update the current reference
@@ -279,12 +296,6 @@
             // Update selection to the new element
             if (window.selectElement) {
                 window.selectElement(newElement);
-            }
-            
-            // Record undo operation as content change
-            if (window.recordContentChange && newElement.id) {
-                const newHTML = cleanElementForSerialization(newElement).outerHTML;
-                window.recordContentChange(newElement.id, oldHTML, newHTML);
             }
             
             // Restart observation on the new element
@@ -322,6 +333,52 @@
         }
     }
 
+    // Snapshot system for canvas undo integration
+    function takeInitialSnapshot() {
+        if (currentSelectedElement && !elementSnapshot) {
+            elementSnapshot = {
+                elementId: currentSelectedElement.id,
+                originalHTML: cleanElementForSerialization(currentSelectedElement).outerHTML,
+                timestamp: Date.now()
+            };
+        }
+    }
+    
+    function recordFinalSnapshot() {
+        if (elementSnapshot && currentSelectedElement && currentSelectedElement.id === elementSnapshot.elementId) {
+            const currentHTML = cleanElementForSerialization(currentSelectedElement).outerHTML;
+            
+            // Only record if there was an actual change
+            if (currentHTML !== elementSnapshot.originalHTML) {
+                // Record element replacement for canvas undo system
+                if (window.recordElementReplacement) {
+                    window.recordElementReplacement(
+                        elementSnapshot.elementId,
+                        elementSnapshot.originalHTML,
+                        currentHTML
+                    );
+                }
+            }
+            
+            // Clear snapshot
+            elementSnapshot = null;
+        }
+        
+        // Clear any pending snapshot timer
+        if (snapshotTimer) {
+            clearTimeout(snapshotTimer);
+            snapshotTimer = null;
+        }
+    }
+    
+    function clearSnapshot() {
+        elementSnapshot = null;
+        if (snapshotTimer) {
+            clearTimeout(snapshotTimer);
+            snapshotTimer = null;
+        }
+    }
+
     // Validate HTML syntax without applying changes
     function validateHTML(html) {
         try {
@@ -353,6 +410,9 @@
     }
 
     function hidePanel() {
+        // Record final snapshot when hiding panel
+        recordFinalSnapshot();
+        
         panel.style.display = 'none';
         document.body.style.paddingRight = '0';
     }
@@ -399,6 +459,11 @@
         };
     }
 
+    // Utility function to check if user is actively editing in the code editor
+    function isCodeEditorActive() {
+        return textarea && document.activeElement === textarea && !textarea.disabled;
+    }
+
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
@@ -411,7 +476,13 @@
         show: showPanel,
         hide: hidePanel,
         updateCodeView: updateCodeView,
-        isVisible: () => panel && panel.style.display !== 'none'
+        isVisible: () => panel && panel.style.display !== 'none',
+        // Snapshot management for external use
+        takeSnapshot: takeInitialSnapshot,
+        recordSnapshot: recordFinalSnapshot,
+        clearSnapshot: clearSnapshot,
+        // Utility for other modules to check if code editor is active
+        isActive: isCodeEditorActive
     };
 
 })();

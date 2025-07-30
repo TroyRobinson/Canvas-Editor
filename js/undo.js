@@ -180,6 +180,9 @@ class UndoManager {
             case 'content':
                 this.undoContentChange(command.data);
                 break;
+            case 'replace':
+                this.undoElementReplace(command.data);
+                break;
         }
     }
 
@@ -206,6 +209,9 @@ class UndoManager {
                 break;
             case 'content':
                 this.redoContentChange(command.data);
+                break;
+            case 'replace':
+                this.redoElementReplace(command.data);
                 break;
         }
     }
@@ -554,6 +560,75 @@ class UndoManager {
         const element = document.getElementById(data.elementId);
         if (element) {
             element.textContent = data.newContent;
+        }
+    }
+
+    // Undo element replacement (restore old HTML)
+    undoElementReplace(data) {
+        const element = document.getElementById(data.elementId);
+        if (element) {
+            // Get parent and position info before removal
+            const parent = element.parentNode;
+            const nextSibling = element.nextSibling;
+            
+            // Remove current element
+            element.remove();
+            
+            // Create new element from old HTML
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = data.oldHTML;
+            const restoredElement = tempContainer.children[0];
+            
+            // Insert at original position
+            parent.insertBefore(restoredElement, nextSibling);
+            
+            // Re-setup element behaviors
+            this.setupElementAfterRestore(restoredElement);
+        }
+    }
+
+    // Redo element replacement (restore new HTML) 
+    redoElementReplace(data) {
+        const element = document.getElementById(data.elementId);
+        if (element) {
+            // Get parent and position info before removal
+            const parent = element.parentNode;
+            const nextSibling = element.nextSibling;
+            
+            // Remove current element
+            element.remove();
+            
+            // Create new element from new HTML
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = data.newHTML;
+            const restoredElement = tempContainer.children[0];
+            
+            // Insert at original position
+            parent.insertBefore(restoredElement, nextSibling);
+            
+            // Re-setup element behaviors
+            this.setupElementAfterRestore(restoredElement);
+        }
+    }
+
+    // Helper: Re-setup element behaviors after restore
+    setupElementAfterRestore(element) {
+        // Re-setup frame behaviors if it's a frame
+        if (element.classList.contains('frame') && window.setupFrame) {
+            window.setupFrame(element);
+        }
+        
+        // Re-setup free-floating element behaviors
+        if (element.classList.contains('free-floating') && window.setupFreeFloatingElement) {
+            window.setupFreeFloatingElement(element);
+        }
+        
+        // Ensure element is selectable
+        if (!element.dataset.selectable) {
+            element.dataset.selectable = 'true';
+        }
+        if (window.makeSelectable) {
+            window.makeSelectable(element);
         }
     }
 
@@ -924,5 +999,13 @@ window.recordContentChange = (elementId, oldContent, newContent) => {
         elementId,
         oldContent,
         newContent
+    }));
+};
+
+window.recordElementReplacement = (elementId, oldHTML, newHTML) => {
+    undoManager.addCommand(new Command('replace', {
+        elementId,
+        oldHTML,
+        newHTML
     }));
 };

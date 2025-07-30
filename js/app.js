@@ -118,6 +118,14 @@ window.addEventListener('load', () => {
         }
         // New frame shortcut
         if (e.key === 'n' && (e.metaKey || e.ctrlKey)) {
+            // Protect situations where user is typing in input fields or code editor
+            if (e.target.tagName === 'INPUT' || 
+                e.target.tagName === 'TEXTAREA' || 
+                e.target.contentEditable === 'true' ||
+                (window.codeEditor && window.codeEditor.isActive())) {
+                return; // Allow normal typing behavior
+            }
+            
             e.preventDefault();
             const x = Math.random() * (window.innerWidth - 300);
             const y = Math.random() * (window.innerHeight - 200);
@@ -126,14 +134,25 @@ window.addEventListener('load', () => {
         
         // Reset zoom with Cmd/Ctrl + 0
         if (e.key === '0' && (e.metaKey || e.ctrlKey)) {
+            // Protect situations where user is typing in input fields or code editor
+            if (e.target.tagName === 'INPUT' || 
+                e.target.tagName === 'TEXTAREA' || 
+                e.target.contentEditable === 'true' ||
+                (window.codeEditor && window.codeEditor.isActive())) {
+                return; // Allow normal typing behavior
+            }
+            
             e.preventDefault();
             window.canvasZoom.resetZoom();
         }
         
         // Delete selected elements with Backspace
         if (e.key === 'Backspace') {
-            // Protect situations where user is typing in input fields
-            if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') {
+            // Protect situations where user is typing in input fields or code editor
+            if (e.target.tagName === 'INPUT' || 
+                e.target.tagName === 'TEXTAREA' || 
+                e.target.contentEditable === 'true' ||
+                (window.codeEditor && window.codeEditor.isActive())) {
                 return; // Allow normal backspace behavior in text fields
             }
             
@@ -164,8 +183,11 @@ window.addEventListener('load', () => {
         
         // Group selected elements with Cmd/Ctrl + G
         if (e.key === 'g' && (e.metaKey || e.ctrlKey)) {
-            // Protect situations where user is typing in input fields
-            if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') {
+            // Protect situations where user is typing in input fields or code editor
+            if (e.target.tagName === 'INPUT' || 
+                e.target.tagName === 'TEXTAREA' || 
+                e.target.contentEditable === 'true' ||
+                (window.codeEditor && window.codeEditor.isActive())) {
                 return; // Allow normal typing behavior in text fields
             }
             
@@ -175,8 +197,11 @@ window.addEventListener('load', () => {
         
         // Undo with Cmd/Ctrl + Z
         if (e.key === 'z' && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
-            // Protect situations where user is typing in input fields
-            if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') {
+            // Protect situations where user is typing in input fields or code editor
+            if (e.target.tagName === 'INPUT' || 
+                e.target.tagName === 'TEXTAREA' || 
+                e.target.contentEditable === 'true' ||
+                (window.codeEditor && window.codeEditor.isActive())) {
                 return; // Allow normal undo behavior in text fields
             }
             
@@ -188,8 +213,11 @@ window.addEventListener('load', () => {
         
         // Redo with Shift + Cmd/Ctrl + Z
         if (e.key === 'z' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
-            // Protect situations where user is typing in input fields
-            if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') {
+            // Protect situations where user is typing in input fields or code editor
+            if (e.target.tagName === 'INPUT' || 
+                e.target.tagName === 'TEXTAREA' || 
+                e.target.contentEditable === 'true' ||
+                (window.codeEditor && window.codeEditor.isActive())) {
                 return; // Allow normal redo behavior in text fields
             }
             
