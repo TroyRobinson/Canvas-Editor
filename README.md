@@ -63,6 +63,7 @@ Comprehensive CSS styling defining:
 - Drag-to-resize during initial placement
 - Keyboard shortcuts (F, R, T, L/D, O, B, P) for quick element creation
 - **Text elements**: Created with `contentEditable=false` by default (edit mode activated via double-click)
+- **⚠️ Event Priority**: Exposes `window.isInPlacementMode()` - ALL event handlers must check this before calling `stopPropagation()` to prevent interference with element placement precision
 - **Key relationships**: 
   - Uses zoom.js for coordinate calculations
   - Calls frame.js for frame creation

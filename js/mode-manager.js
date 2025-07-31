@@ -106,8 +106,14 @@
 
         // Create new listener
         jsInterceptionListener = function(e) {
+            // Don't intercept during placement mode - let placement system handle events
+            if (window.isInPlacementMode && window.isInPlacementMode()) {
+                return;
+            }
+            
             // Only intercept in edit mode
             if (window.canvasMode.isEditMode()) {
+                
                 // Check if click is on an interactive element within a frame
                 const target = e.target;
                 const isInFrame = target.closest('.frame-content') || target.closest('.element-frame');

@@ -62,6 +62,11 @@ function addSelectionAnchors(element) {
         element.appendChild(handle);
         
         handle.addEventListener('mousedown', (e) => {
+            // Check if in placement mode - let placement system handle events
+            if (window.isInPlacementMode && window.isInPlacementMode()) {
+                return;
+            }
+            
             e.preventDefault();
             e.stopPropagation();
             // Trigger resize functionality if available
@@ -72,6 +77,11 @@ function addSelectionAnchors(element) {
         // Add double-click event for corner handles only
         if (["nw", "ne", "sw", "se"].includes(pos)) {
             handle.addEventListener('dblclick', (e) => {
+                // Check if in placement mode - let placement system handle events
+                if (window.isInPlacementMode && window.isInPlacementMode()) {
+                    return;
+                }
+                
                 e.preventDefault();
                 e.stopPropagation();
                 // Only trigger if this element is selected and is a text element
@@ -89,6 +99,11 @@ function addSelectionAnchors(element) {
     element.addEventListener('mousedown', (e) => {
         // Don't select if clicking on a resize handle
         if (e.target.classList.contains('resize-handle')) return;
+        
+        // Check if in placement mode - let placement system handle events
+        if (window.isInPlacementMode && window.isInPlacementMode()) {
+            return;
+        }
         
         // Don't interfere with existing drag operations
         if (window.isPanning) return;
@@ -141,6 +156,11 @@ window.refreshSelectionVisuals = refreshSelectionVisuals;
 function makeSelectable(element) {
     // Add click handler for selection
     element.addEventListener('mousedown', (e) => {
+        // Check if in placement mode - let placement system handle events
+        if (window.isInPlacementMode && window.isInPlacementMode()) {
+            return;
+        }
+        
         // Check if in interactive mode
         if (window.canvasMode && window.canvasMode.isInteractiveMode()) {
             return;
@@ -221,6 +241,11 @@ const observer = new MutationObserver((mutations) => {
     mutations.forEach(mutation => {
         mutation.addedNodes.forEach(node => {
             if (node.nodeType === 1) { // Element node
+                // Skip processing if in placement mode - element will be handled after placement
+                if (window.isInPlacementMode && window.isInPlacementMode()) {
+                    return;
+                }
+                
                 // If it's a frame, make it selectable and scan its content
                 if (node.classList && node.classList.contains('frame')) {
                     if (node.dataset.selectable !== 'true') {
