@@ -208,6 +208,21 @@ Comprehensive CSS styling defining:
   - CSS rules in styles.css respond to mode changes
   - Preserves element selection state across mode transitions
 
+#### `js/code-editor.js`
+**Purpose**: Right-side resizable code pane with bi-directional editing
+- **Real-time Code View**: Shows exact HTML of selected elements with live updates
+- **Automatic Code Application**: Changes apply automatically with 500ms debounce
+- **Bi-directional Sync**: Code changes update canvas, canvas changes update code
+- **Native Textarea Undo**: Standard Ctrl/Cmd+Z works within the code editor
+- **Canvas Undo Integration**: Focus/blur snapshots create proper canvas undo entries
+- **Resizable Panel**: Drag border to resize, width persisted in localStorage
+- **Multi-selection Support**: Shows combined code for multiple selected elements
+- **Key relationships**:
+  - Listens to `selectionChanged` events from selection.js
+  - Integrates with undo.js via `recordElementReplacement` for HTML structure changes
+  - Protected from canvas keyboard shortcuts when focused
+  - Re-establishes element behaviors after code application
+
 ## Element Hierarchy and Types
 
 ### Frames
@@ -269,6 +284,16 @@ Comprehensive CSS styling defining:
 4. **Click outside** the element or press **Escape/Enter** to exit edit mode
 5. Dragging is disabled while editing to prevent accidental moves
 
+### Code Editing Workflow
+1. **Select any element** → Code appears in right-side panel automatically
+2. **Click in code editor** → Native text editing with immediate visual feedback
+3. **Type HTML changes** → Canvas updates automatically after 500ms pause
+4. **Use Ctrl/Cmd+Z in code editor** → Instant undo/redo within editor (native browser behavior)
+5. **Click on canvas or switch elements** → Code change recorded in canvas undo system
+6. **Press Ctrl/Cmd+Z on canvas** → Reverts entire element to previous HTML state
+7. **Escape key** → Closes code panel and clears selection
+8. **Drag panel border** → Resize code editor width (persisted)
+
 ### Deletion Workflow
 1. Select any element(s) using single-click, shift+click, or marquee selection
 2. Press Backspace to delete all selected elements
@@ -295,9 +320,10 @@ The application uses a distributed state management approach where each module e
 - `window.selectElement`, `window.getSelectedElements` - Selection management
 - `window.isResizing`, `window.isInPlacementMode` - Operation state flags
 - `window.undoManager` - Undo/redo system instance
-- `window.recordCreate`, `window.recordDelete`, `window.recordMove`, etc. - Operation recording functions
+- `window.recordCreate`, `window.recordDelete`, `window.recordMove`, `window.recordElementReplacement`, etc. - Operation recording functions
 - `window.textEditing` - Text editing state and utilities (isEditing, getCurrentlyEditingElement)
 - `window.canvasMode` - Current mode state ('edit' or 'interactive')
+- `window.codeEditor` - Code editor API (show, hide, isActive, updateCodeView)
 
 This architecture allows modules to coordinate without tight coupling while maintaining clear separation of concerns.
 
@@ -307,6 +333,11 @@ This architecture allows modules to coordinate without tight coupling while main
 - **Batching**: Multi-element moves and deletes are recorded as single commands, not wrapped in additional batch containers
 - **Container Changes**: Position recording happens AFTER container changes to ensure accurate coordinate capture
 - **State Capture**: Complete DOM state including positioning data, styles, and hierarchy is preserved
+
+### HTML Structure Changes
+- **Element Replacement**: Code editor changes use `recordElementReplacement` for complete HTML structure updates
+- **Focus/Blur Snapshots**: Before/after HTML states captured on code editor focus and blur events
+- **Native vs Canvas Undo**: Code editor supports native browser undo within textarea, plus canvas undo for complete element restoration
 
 ### Text Editing Integration
 - **Complete Edit Tracking**: Text changes from enter → edit → exit are recorded as single undo operations
