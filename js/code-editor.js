@@ -206,17 +206,35 @@
     // Format HTML for better readability
     function formatHTML(html) {
         try {
-            // Simple HTML formatting - add indentation and line breaks
-            return html
+            // Simple HTML formatting - add proper indentation and line breaks
+            const lines = html
                 .replace(/></g, '>\n<')
                 .replace(/^\s*\n/gm, '')
-                .split('\n')
-                .map((line, index) => {
-                    const depth = (line.match(/^\s*</g) && line.match(/^\s*<\//g)) ? 0 : 
-                                 line.match(/^\s*</g) ? 1 : 0;
-                    return '  '.repeat(depth) + line.trim();
-                })
-                .join('\n');
+                .split('\n');
+            
+            let indentLevel = 0;
+            const indentSize = 2;
+            
+            return lines.map(line => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return '';
+                
+                // Decrease indent for closing tags
+                if (trimmedLine.startsWith('</')) {
+                    indentLevel = Math.max(0, indentLevel - 1);
+                }
+                
+                const indentedLine = ' '.repeat(indentLevel * indentSize) + trimmedLine;
+                
+                // Increase indent for opening tags (but not self-closing or closing tags)
+                if (trimmedLine.startsWith('<') && 
+                    !trimmedLine.startsWith('</') && 
+                    !trimmedLine.endsWith('/>')) {
+                    indentLevel++;
+                }
+                
+                return indentedLine;
+            }).join('\n');
         } catch (error) {
             return html; // Return original if formatting fails
         }
