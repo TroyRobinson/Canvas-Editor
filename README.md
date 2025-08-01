@@ -224,6 +224,7 @@ Comprehensive CSS styling defining:
   - Integrates with undo.js via `recordElementReplacement` for HTML structure changes
   - Protected from canvas keyboard shortcuts when focused
   - Re-establishes element behaviors after code application
+  - **⚠️ Child Element Behaviors**: When parent elements are replaced via code editing, child elements with special behaviors (`.free-floating`, `.frame`) must have their behaviors restored recursively
 
 ## Element Hierarchy and Types
 

@@ -325,18 +325,12 @@
             // Re-setup element behaviors if needed
             setupElementBehaviors(newElement);
             
-            // Ensure the element gets properly processed by the selection system
-            // by calling makeContainerElementsSelectable if it's in a container
-            const container = newElement.closest('.frame-content') || newElement.closest('#canvas');
-            if (container && window.makeContainerElementsSelectable) {
-                // Re-process this specific element to ensure it's selectable
-                if (!newElement.dataset.selectable && 
-                    ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'BUTTON', 'INPUT', 'IMG', 'DIV'].includes(newElement.tagName)) {
-                    newElement.dataset.selectable = 'true';
-                    if (window.makeSelectable) {
-                        window.makeSelectable(newElement);
-                    }
-                }
+            // Also setup behaviors for child elements that need special treatment
+            setupChildElementBehaviors(newElement);
+            
+            // Ensure all elements are properly processed by the selection system
+            if (window.makeContainerElementsSelectable) {
+                window.makeContainerElementsSelectable(newElement);
             }
             
             // Update selection to the new element
@@ -380,6 +374,16 @@
         if (window.makeSelectable) {
             window.makeSelectable(element);
         }
+    }
+
+    // Setup behaviors for child elements that need special treatment
+    function setupChildElementBehaviors(parentElement) {
+        // Find all child elements that need special behavior setup
+        const elementsNeedingSetup = parentElement.querySelectorAll('.free-floating, .frame');
+        
+        elementsNeedingSetup.forEach(childElement => {
+            setupElementBehaviors(childElement);
+        });
     }
 
     // Snapshot system for canvas undo integration
