@@ -108,12 +108,19 @@
         // Store the original content for undo tracking
         element.dataset.originalContent = element.textContent;
         
+        // Normalize whitespace - trim excess but preserve intentional spaces
+        const normalizedText = element.textContent.replace(/\n\s*/g, ' ').trim();
+        element.textContent = normalizedText;
+        
         // Enable contentEditable
         element.contentEditable = 'true';
         element.dataset.editing = 'true';
         
         // Add editing class for visual feedback
         element.classList.add('editing');
+        
+        // Apply white-space preservation style to maintain spaces
+        element.style.whiteSpace = 'pre-wrap';
         
         // Focus and select all text
         element.focus();
@@ -154,6 +161,9 @@
         
         // Remove editing class
         element.classList.remove('editing');
+        
+        // Remove white-space style (let CSS handle it normally)
+        element.style.whiteSpace = '';
         
         // Restore draggable if it was set
         if (element.dataset.originalDraggable === 'true') {
@@ -205,6 +215,23 @@
         else if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             exitEditMode(e.target);
+        }
+        // Handle spacebar for buttons - prevent default button behavior
+        else if (e.key === ' ' && e.target.tagName.toLowerCase() === 'button') {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Manually insert a space at the cursor position
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            const textNode = document.createTextNode(' ');
+            range.insertNode(textNode);
+            
+            // Move cursor after the space
+            range.setStartAfter(textNode);
+            range.setEndAfter(textNode);
+            selection.removeAllRanges();
+            selection.addRange(range);
         }
     }
 

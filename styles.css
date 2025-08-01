@@ -676,3 +676,9 @@ body.code-editor-visible {
     color: #666;
     font-style: italic;
 }
+
+/* Preserve spaces in elements being edited */
+.editing {
+    white-space: pre-wrap !important;
+    word-wrap: break-word;
+}
