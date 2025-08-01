@@ -24,12 +24,6 @@ function createFrame(x, y, title) {
         </button>
     `;
     
-    // Add an element-frame to the first two frames
-    if (frameCounter <= 2) {
-        setTimeout(() => {
-            createElementFrame(20, 80, 120, 80, content);
-        }, 100);
-    }
     
     frame.appendChild(titleBar);
     frame.appendChild(content);

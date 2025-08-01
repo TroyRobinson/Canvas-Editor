@@ -58,7 +58,7 @@ body.panning {
 /* Element-frames: Special divs that act as containers */
 .element-frame {
     position: absolute;
-    background: #f5f5f5;
+    background: transparent;
     border: 2px dashed #999;
     border-radius: 6px;
     overflow: visible;
