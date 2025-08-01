@@ -169,7 +169,30 @@
         try {
             const cleanElement = cleanElementForSerialization(currentSelectedElement);
             const formattedHTML = formatHTML(cleanElement.outerHTML);
-            textarea.value = formattedHTML;
+            
+            // Preserve cursor position if user is actively editing
+            const shouldPreserveCursor = document.activeElement === textarea && !textarea.disabled;
+            let cursorStart, cursorEnd;
+            
+            if (shouldPreserveCursor) {
+                cursorStart = textarea.selectionStart;
+                cursorEnd = textarea.selectionEnd;
+            }
+            
+            // Only update if content actually changed to avoid unnecessary cursor disruption
+            if (textarea.value !== formattedHTML) {
+                textarea.value = formattedHTML;
+                
+                // Restore cursor position if we preserved it and it's still valid
+                if (shouldPreserveCursor && cursorStart !== undefined) {
+                    const maxLength = textarea.value.length;
+                    textarea.setSelectionRange(
+                        Math.min(cursorStart, maxLength), 
+                        Math.min(cursorEnd, maxLength)
+                    );
+                }
+            }
+            
             textarea.disabled = false;
         } catch (error) {
             console.error('Error updating code view:', error);
@@ -206,12 +229,17 @@
     // Format HTML for better readability
     function formatHTML(html) {
         try {
-            // Simple HTML formatting - add proper indentation and line breaks
-            const lines = html
+            // First, separate text content from tags for better formatting
+            let formatted = html
+                // Add line breaks around tags
                 .replace(/></g, '>\n<')
+                // Separate text content from opening tags
+                .replace(/>([^<\s][^<]*[^<\s])</g, '>\n$1\n<')
+                // Clean up extra whitespace
                 .replace(/^\s*\n/gm, '')
-                .split('\n');
+                .replace(/\n\s*\n/g, '\n');
             
+            const lines = formatted.split('\n');
             let indentLevel = 0;
             const indentSize = 2;
             
@@ -327,7 +355,10 @@
             alert('Error applying changes: ' + error.message);
         }
 
-        isUpdatingFromCode = false;
+        // Delay resetting the flag to account for mutation observer debounce (100ms)
+        setTimeout(() => {
+            isUpdatingFromCode = false;
+        }, 150);
     }
 
     // Setup behaviors for the new element after code application
