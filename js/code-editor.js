@@ -70,7 +70,7 @@
         textarea.addEventListener('focus', takeInitialSnapshot);
         
         // Real-time updates on textarea change (debounced for performance)
-        textarea.addEventListener('input', debounce(applyCodeChanges, 500));
+        textarea.addEventListener('input', debounce(applyCodeChanges, 200));
         
         // Record final snapshot when user stops editing (debounced)
         textarea.addEventListener('input', debounce(recordFinalSnapshot, 2000));
