@@ -145,6 +145,7 @@ Comprehensive CSS styling defining:
 - **Mode management**: Toggles contentEditable dynamically, preventing conflicts with drag operations
 - **Visual feedback**: Adds blue outline and light background during edit mode
 - **Click-outside to exit**: Automatically exits edit mode when clicking elsewhere
+- **Space handling fixes**: Prevents default button behavior on spacebar, uses CSS `white-space: pre-wrap` for proper space preservation, and normalizes HTML formatting whitespace when entering edit mode
 - **Undo integration**: Captures complete text edits (original → final content) as single undo operations
 - **Key relationships**:
   - Coordinates with drag.js to prevent dragging during edit mode
