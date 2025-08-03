@@ -374,6 +374,9 @@
         if (window.makeSelectable) {
             window.makeSelectable(element);
         }
+        
+        // Activate any scripts within the element
+        activateScripts(element);
     }
 
     // Setup behaviors for child elements that need special treatment
@@ -385,6 +388,135 @@
             setupElementBehaviors(childElement);
         });
     }
+
+    // Activate scripts within an element using proper cleanup and re-execution
+    function activateScripts(element) {
+        const scripts = element.querySelectorAll('script');
+        const styles = element.querySelectorAll('style');
+        
+        // Activate styles first (they don't need special handling)
+        styles.forEach(style => {
+            if (!style.dataset.activated) {
+                style.dataset.activated = 'true';
+            }
+        });
+        
+        // Clean up any existing script handlers for this element before activating new ones
+        cleanupScriptHandlers(element);
+        
+        // Process scripts
+        scripts.forEach(script => {
+            const scriptContent = script.textContent || script.innerText;
+            if (!scriptContent.trim()) return; // Skip empty scripts
+            
+            try {
+                // Execute the script with container scoping
+                executeScriptInContainer(scriptContent, element);
+                
+                // Mark as activated
+                script.dataset.activated = 'true';
+                
+                console.log('Script activated for element:', element.id);
+            } catch (error) {
+                console.error('Error activating script:', error);
+                console.error('Script content:', scriptContent);
+                // Mark as activated even if failed to prevent repeated attempts
+                script.dataset.activated = 'true';
+            }
+        });
+    }
+
+    // Clean up existing script handlers for an element
+    function cleanupScriptHandlers(element) {
+        const containerId = element.id || 'canvas';
+        
+        // Initialize tracking objects if they don't exist
+        if (!window.scriptCleanupRegistry) {
+            window.scriptCleanupRegistry = new Map();
+        }
+        
+        // Remove any existing handlers for this container
+        if (window.scriptCleanupRegistry.has(containerId)) {
+            const cleanupFunctions = window.scriptCleanupRegistry.get(containerId);
+            cleanupFunctions.forEach(cleanup => {
+                try {
+                    cleanup();
+                } catch (error) {
+                    console.warn('Error during script cleanup:', error);
+                }
+            });
+            window.scriptCleanupRegistry.set(containerId, []);
+        }
+    }
+
+    // Execute script with proper container scoping and cleanup tracking
+    function executeScriptInContainer(scriptContent, containerElement) {
+        const containerId = containerElement.id || 'canvas';
+        
+        // Initialize cleanup registry
+        if (!window.scriptCleanupRegistry) {
+            window.scriptCleanupRegistry = new Map();
+        }
+        if (!window.scriptCleanupRegistry.has(containerId)) {
+            window.scriptCleanupRegistry.set(containerId, []);
+        }
+        
+        // Create a sandbox for script execution with cleanup tracking
+        const scriptSandbox = {
+            containerElement: containerElement,
+            cleanupFunctions: window.scriptCleanupRegistry.get(containerId),
+            
+            // Override document.querySelectorAll to scope to container
+            querySelectorAll: function(selector) {
+                return containerElement.querySelectorAll(selector);
+            },
+            
+            // Helper to add event listeners with cleanup tracking
+            addEventListenerWithCleanup: function(target, event, handler, options) {
+                target.addEventListener(event, handler, options);
+                
+                // Add cleanup function
+                const cleanup = () => target.removeEventListener(event, handler, options);
+                this.cleanupFunctions.push(cleanup);
+                
+                return cleanup;
+            }
+        };
+        
+        // Create wrapped script that uses the sandbox
+        const wrappedScript = `
+        (function() {
+            const containerElement = arguments[0];
+            const cleanupFunctions = arguments[1];
+            const addEventListenerWithCleanup = arguments[2];
+            const querySelectorAll = arguments[3];
+            
+            // Override document.querySelectorAll temporarily
+            const originalQuerySelectorAll = document.querySelectorAll;
+            document.querySelectorAll = querySelectorAll;
+            
+            try {
+                ${scriptContent}
+            } finally {
+                // Restore original function
+                document.querySelectorAll = originalQuerySelectorAll;
+            }
+        })`;
+        
+        try {
+            // Execute the script with our sandbox parameters
+            eval(wrappedScript)(
+                scriptSandbox.containerElement,
+                scriptSandbox.cleanupFunctions,
+                scriptSandbox.addEventListenerWithCleanup,
+                scriptSandbox.querySelectorAll
+            );
+        } catch (error) {
+            console.error('Error executing script:', error);
+            throw error;
+        }
+    }
+
 
     // Snapshot system for canvas undo integration
     function takeInitialSnapshot() {
