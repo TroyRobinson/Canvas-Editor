@@ -426,74 +426,27 @@
         });
     }
 
-    // Clean up existing script handlers for an element
+    // Clean up existing script handlers for a container (when scripts are re-activated)
     function cleanupScriptHandlers(element) {
-        const containerId = element.id || 'canvas';
-        
-        // Initialize tracking objects if they don't exist
-        if (!window.scriptCleanupRegistry) {
-            window.scriptCleanupRegistry = new Map();
-        }
-        
-        // Remove any existing handlers for this container
-        if (window.scriptCleanupRegistry.has(containerId)) {
-            const cleanupFunctions = window.scriptCleanupRegistry.get(containerId);
-            cleanupFunctions.forEach(cleanup => {
-                try {
-                    cleanup();
-                } catch (error) {
-                    console.warn('Error during script cleanup:', error);
-                }
-            });
-            window.scriptCleanupRegistry.set(containerId, []);
-        }
+        // For container script re-activation, we don't need complex cleanup
+        // since we're re-running the entire script for the container
+        console.log('Re-activating scripts for container:', element.id);
     }
 
-    // Execute script with proper container scoping and cleanup tracking
+    // Execute script with container scoping (simple approach)
     function executeScriptInContainer(scriptContent, containerElement) {
         const containerId = containerElement.id || 'canvas';
         
-        // Initialize cleanup registry
-        if (!window.scriptCleanupRegistry) {
-            window.scriptCleanupRegistry = new Map();
-        }
-        if (!window.scriptCleanupRegistry.has(containerId)) {
-            window.scriptCleanupRegistry.set(containerId, []);
-        }
-        
-        // Create a sandbox for script execution with cleanup tracking
-        const scriptSandbox = {
-            containerElement: containerElement,
-            cleanupFunctions: window.scriptCleanupRegistry.get(containerId),
-            
-            // Override document.querySelectorAll to scope to container
-            querySelectorAll: function(selector) {
-                return containerElement.querySelectorAll(selector);
-            },
-            
-            // Helper to add event listeners with cleanup tracking
-            addEventListenerWithCleanup: function(target, event, handler, options) {
-                target.addEventListener(event, handler, options);
-                
-                // Add cleanup function
-                const cleanup = () => target.removeEventListener(event, handler, options);
-                this.cleanupFunctions.push(cleanup);
-                
-                return cleanup;
-            }
-        };
-        
-        // Create wrapped script that uses the sandbox
+        // Create wrapped script that scopes querySelectorAll to the container
         const wrappedScript = `
         (function() {
             const containerElement = arguments[0];
-            const cleanupFunctions = arguments[1];
-            const addEventListenerWithCleanup = arguments[2];
-            const querySelectorAll = arguments[3];
             
-            // Override document.querySelectorAll temporarily
+            // Override document.querySelectorAll temporarily to scope to container
             const originalQuerySelectorAll = document.querySelectorAll;
-            document.querySelectorAll = querySelectorAll;
+            document.querySelectorAll = function(selector) {
+                return containerElement.querySelectorAll(selector);
+            };
             
             try {
                 ${scriptContent}
@@ -504,13 +457,8 @@
         })`;
         
         try {
-            // Execute the script with our sandbox parameters
-            eval(wrappedScript)(
-                scriptSandbox.containerElement,
-                scriptSandbox.cleanupFunctions,
-                scriptSandbox.addEventListenerWithCleanup,
-                scriptSandbox.querySelectorAll
-            );
+            // Execute the script with container scoping
+            eval(wrappedScript)(containerElement);
         } catch (error) {
             console.error('Error executing script:', error);
             throw error;
@@ -649,8 +597,87 @@
         return textarea && document.activeElement === textarea && !textarea.disabled;
     }
 
+    // Clean up script handlers from an element when it leaves a container using cloning
+    function cleanupElementHandlers(element, oldContainerId) {
+        console.log(`🧹 CLEANING: Element ${element.id} leaving container ${oldContainerId}`);
+        
+        // Always clone to strip ALL event listeners (both script and Canvas handlers)
+        const cleanElement = cloneElementClean(element);
+        
+        // Replace the original element with the clean clone
+        const parent = element.parentElement;
+        const nextSibling = element.nextSibling;
+        
+        // Important: Remove the old element completely
+        parent.removeChild(element);
+        parent.insertBefore(cleanElement, nextSibling);
+        
+        // CRITICAL: Re-establish Canvas behaviors that were stripped by cloning
+        reestablishCanvasBehaviors(cleanElement);
+        
+        console.log(`✅ CLEANED: Element ${cleanElement.id} is now clean of all script handlers`);
+        
+        return cleanElement; // Return the clean element for further processing
+    }
+
+    // Re-establish Canvas behaviors after cloning strips all event listeners
+    function reestablishCanvasBehaviors(element) {
+        // Re-establish selection behavior
+        if (window.makeSelectable) {
+            window.makeSelectable(element);
+        }
+        
+        // Re-establish drag behavior for free-floating elements
+        if (element.classList.contains('free-floating') && window.setupElementDragging) {
+            window.setupElementDragging(element);
+        }
+        
+        // Re-establish frame behaviors if it's a frame
+        if (element.classList.contains('frame') && window.setupFrame) {
+            window.setupFrame(element);
+        }
+        
+        // Re-establish element-frame behaviors
+        if (element.classList.contains('element-frame') && window.setupElementFrame) {
+            window.setupElementFrame(element);
+        }
+        
+        // Re-establish resize handles (this is usually handled by selection system)
+        if (window.addResizeHandles && (element.classList.contains('free-floating') || element.classList.contains('frame') || element.classList.contains('element-frame'))) {
+            window.addResizeHandles(element);
+        }
+        
+        // Ensure the element is marked as selectable
+        if (!element.dataset.selectable) {
+            element.dataset.selectable = 'true';
+        }
+        
+        console.log(`Re-established Canvas behaviors for element ${element.id}`);
+    }
+
+    // Clone an element while preserving all attributes but stripping event listeners
+    function cloneElementClean(element) {
+        const clone = element.cloneNode(true);
+        
+        // Ensure the clone has the same ID and attributes
+        clone.id = element.id;
+        clone.className = element.className;
+        
+        // Copy all inline styles
+        clone.style.cssText = element.style.cssText;
+        
+        // Copy all data attributes and other attributes
+        Array.from(element.attributes).forEach(attr => {
+            if (attr.name !== 'id' && attr.name !== 'class' && attr.name !== 'style') {
+                clone.setAttribute(attr.name, attr.value);
+            }
+        });
+        
+        return clone;
+    }
+
     // Re-activate scripts in a container when elements are moved into it
-    function reactivateContainerScripts(container) {
+    function reactivateContainerScripts(container, movedElement = null) {
         // Find the root container (frame or element-frame) that might have scripts
         let scriptContainer = container;
         
@@ -659,23 +686,24 @@
             scriptContainer = container.parentElement;
         }
         
-        // Look for containers that have scripts (frame, element-frame, or canvas)
+        // Only re-activate scripts for containers that actually have scripts
+        // Canvas typically doesn't have scripts, so don't activate for canvas moves
         if (scriptContainer.classList.contains('frame') || 
-            scriptContainer.classList.contains('element-frame') || 
-            scriptContainer.id === 'canvas') {
+            scriptContainer.classList.contains('element-frame')) {
             
-            console.log('Re-activating scripts for container:', scriptContainer.id);
+            console.log(`🔄 RE-ACTIVATING: Scripts for container ${scriptContainer.id}`);
             activateScripts(scriptContainer);
+        } else if (scriptContainer.id === 'canvas') {
+            console.log(`📋 CANVAS MOVE: Element moved to canvas, no script activation needed`);
         }
         
-        // Also check parent containers up the tree
+        // Check parent containers up the tree (but be more selective)
         let parent = scriptContainer.parentElement;
-        while (parent && parent !== document.body) {
+        while (parent && parent !== document.body && parent.id !== 'canvas') {
             if (parent.classList.contains('frame') || 
-                parent.classList.contains('element-frame') || 
-                parent.id === 'canvas') {
+                parent.classList.contains('element-frame')) {
                 
-                console.log('Re-activating scripts for parent container:', parent.id);
+                console.log(`🔄 RE-ACTIVATING: Scripts for parent container ${parent.id}`);
                 activateScripts(parent);
                 break; // Only go up to the first script container
             }
@@ -703,7 +731,9 @@
         // Utility for other modules to check if code editor is active
         isActive: isCodeEditorActive,
         // Script re-activation when elements move between containers
-        reactivateContainerScripts: reactivateContainerScripts
+        reactivateContainerScripts: reactivateContainerScripts,
+        // Clean up script handlers when elements leave containers
+        cleanupElementHandlers: cleanupElementHandlers
     };
 
 })();

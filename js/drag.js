@@ -665,12 +665,26 @@ function moveElementToContainer(element, newParent, mouseX, mouseY) {
     let newLeft = mouseCanvasCoords.x - dragOffset.x - parentCanvasCoords.x;
     let newTop = mouseCanvasCoords.y - dragOffset.y - parentCanvasCoords.y;
     
-    // Move element to new parent
-    newParent.appendChild(element);
+    // Get the old container before moving
+    const oldParent = element.parentElement;
+    const oldContainerId = oldParent?.id || 'canvas';
     
-    // Update position
-    element.style.left = newLeft + 'px';
-    element.style.top = newTop + 'px';
+    // Clean up script handlers from the old container by cloning
+    // Only clean up if moving FROM a scripted container (frame or element-frame)
+    let cleanElement = element;
+    if (window.codeEditor && window.codeEditor.cleanupElementHandlers && 
+        oldParent && (oldParent.classList.contains('frame') || 
+                     oldParent.classList.contains('element-frame') ||
+                     oldParent.classList.contains('frame-content'))) {
+        cleanElement = window.codeEditor.cleanupElementHandlers(element, oldContainerId);
+    }
+    
+    // Move the clean element to new parent
+    newParent.appendChild(cleanElement);
+    
+    // Update position on the clean element
+    cleanElement.style.left = newLeft + 'px';
+    cleanElement.style.top = newTop + 'px';
     
     // Re-activate scripts in the new parent container to include the moved element
     if (window.codeEditor && window.codeEditor.reactivateContainerScripts) {
@@ -791,12 +805,26 @@ function handleMultiSelectionContainerChanges(e) {
                 let newLeft = elementCanvasCoords.x - parentCanvasCoords.x;
                 let newTop = elementCanvasCoords.y - parentCanvasCoords.y;
                 
-                // Move element to new parent
-                newParent.appendChild(element);
+                // Get the old container before moving
+                const oldParent = element.parentElement;
+                const oldContainerId = oldParent?.id || 'canvas';
                 
-                // Update position
-                element.style.left = newLeft + 'px';
-                element.style.top = newTop + 'px';
+                // Clean up script handlers from the old container by cloning
+                // Only clean up if moving FROM a scripted container (frame or element-frame)
+                let cleanElement = element;
+                if (window.codeEditor && window.codeEditor.cleanupElementHandlers && 
+                    oldParent && (oldParent.classList.contains('frame') || 
+                                 oldParent.classList.contains('element-frame') ||
+                                 oldParent.classList.contains('frame-content'))) {
+                    cleanElement = window.codeEditor.cleanupElementHandlers(element, oldContainerId);
+                }
+                
+                // Move the clean element to new parent
+                newParent.appendChild(cleanElement);
+                
+                // Update position on the clean element
+                cleanElement.style.left = newLeft + 'px';
+                cleanElement.style.top = newTop + 'px';
                 
                 // Re-activate scripts in the new parent container to include the moved element
                 if (window.codeEditor && window.codeEditor.reactivateContainerScripts) {

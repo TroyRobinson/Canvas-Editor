@@ -230,9 +230,23 @@ function checkElementContainment(frame) {
                 const newLeft = (elementRect.left - newParentRect.left) / zoom;
                 const newTop = (elementRect.top - newParentRect.top) / zoom;
                 
-                newParent.appendChild(element);
-                element.style.left = newLeft + 'px';
-                element.style.top = newTop + 'px';
+                // Get the old container before moving
+                const oldParent = element.parentElement;
+                const oldContainerId = oldParent?.id || 'canvas';
+                
+                // Clean up script handlers from the old container by cloning
+                // Only clean up if moving FROM a scripted container (frame or element-frame)
+                let cleanElement = element;
+                if (window.codeEditor && window.codeEditor.cleanupElementHandlers && 
+                    oldParent && (oldParent.classList.contains('frame') || 
+                                 oldParent.classList.contains('element-frame') ||
+                                 oldParent.classList.contains('frame-content'))) {
+                    cleanElement = window.codeEditor.cleanupElementHandlers(element, oldContainerId);
+                }
+                
+                newParent.appendChild(cleanElement);
+                cleanElement.style.left = newLeft + 'px';
+                cleanElement.style.top = newTop + 'px';
                 
                 // Re-activate scripts in the new parent container to include the moved element
                 if (window.codeEditor && window.codeEditor.reactivateContainerScripts) {
@@ -298,9 +312,23 @@ function checkElementFrameContainment(elementFrame) {
                 const newLeft = (elementRect.left - newParentRect.left) / zoom;
                 const newTop = (elementRect.top - newParentRect.top) / zoom;
                 
-                newParent.appendChild(element);
-                element.style.left = newLeft + 'px';
-                element.style.top = newTop + 'px';
+                // Get the old container before moving
+                const oldParent = element.parentElement;
+                const oldContainerId = oldParent?.id || 'canvas';
+                
+                // Clean up script handlers from the old container by cloning
+                // Only clean up if moving FROM a scripted container (frame or element-frame)
+                let cleanElement = element;
+                if (window.codeEditor && window.codeEditor.cleanupElementHandlers && 
+                    oldParent && (oldParent.classList.contains('frame') || 
+                                 oldParent.classList.contains('element-frame') ||
+                                 oldParent.classList.contains('frame-content'))) {
+                    cleanElement = window.codeEditor.cleanupElementHandlers(element, oldContainerId);
+                }
+                
+                newParent.appendChild(cleanElement);
+                cleanElement.style.left = newLeft + 'px';
+                cleanElement.style.top = newTop + 'px';
                 
                 // Re-activate scripts in the new parent container to include the moved element
                 if (window.codeEditor && window.codeEditor.reactivateContainerScripts) {
