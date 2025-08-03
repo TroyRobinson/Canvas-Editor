@@ -210,10 +210,23 @@ Comprehensive CSS styling defining:
   - CSS rules in styles.css respond to mode changes
   - Preserves element selection state across mode transitions
 
+#### `js/script-manager.js`
+**Purpose**: User script execution, activation, and cleanup management
+- **Container-Scoped Execution**: Scripts run with `querySelectorAll` scoped to their container
+- **Event Handler Cleanup**: Elements moving between containers lose old script handlers and gain new ones
+- **Element Cloning Approach**: Uses cloning to strip event listeners while preserving element attributes
+- **Canvas Behavior Restoration**: Maintains drag/resize/selection behaviors after cleanup
+- **currentScript Support**: Provides mock `document.currentScript` for advanced scripts
+- **Key relationships**:
+  - Called by code-editor.js when scripts are edited
+  - Called by drag.js and resize.js when elements move between containers
+  - Coordinates with Canvas behavior setup functions (makeSelectable, setupElementDragging, etc.)
+  - **Design Decision**: Separated from code-editor.js for single responsibility and reusability
+
 #### `js/code-editor.js`
 **Purpose**: Right-side resizable code pane with bi-directional editing
 - **Real-time Code View**: Shows exact HTML of selected elements with live updates
-- **Automatic Code Application**: Changes apply automatically with 500ms debounce
+- **Automatic Code Application**: Changes apply automatically with 200ms debounce
 - **Bi-directional Sync**: Code changes update canvas, canvas changes update code
 - **Native Textarea Undo**: Standard Ctrl/Cmd+Z works within the code editor
 - **Canvas Undo Integration**: Focus/blur snapshots create proper canvas undo entries
@@ -222,9 +235,9 @@ Comprehensive CSS styling defining:
 - **Key relationships**:
   - Listens to `selectionChanged` events from selection.js
   - Integrates with undo.js via `recordElementReplacement` for HTML structure changes
+  - Delegates script activation to script-manager.js
   - Protected from canvas keyboard shortcuts when focused
   - Re-establishes element behaviors after code application
-  - **⚠️ Child Element Behaviors**: When parent elements are replaced via code editing, child elements with special behaviors (`.free-floating`, `.frame`) must have their behaviors restored recursively
 
 ## Element Hierarchy and Types
 
@@ -290,12 +303,20 @@ Comprehensive CSS styling defining:
 ### Code Editing Workflow
 1. **Select any element** → Code appears in right-side panel automatically
 2. **Click in code editor** → Native text editing with immediate visual feedback
-3. **Type HTML changes** → Canvas updates automatically after 500ms pause
+3. **Type HTML changes** → Canvas updates automatically after 200ms pause
 4. **Use Ctrl/Cmd+Z in code editor** → Instant undo/redo within editor (native browser behavior)
 5. **Click on canvas or switch elements** → Code change recorded in canvas undo system
 6. **Press Ctrl/Cmd+Z on canvas** → Reverts entire element to previous HTML state
 7. **Escape key** → Closes code panel and clears selection
 8. **Drag panel border** → Resize code editor width (persisted)
+
+### Script Activation Workflow
+1. **Insert `<script>` tags** in element code → Scripts activate automatically when code is applied
+2. **Container Scoping**: `document.querySelectorAll()` finds elements only within the script's container
+3. **Element Movement**: When elements move OUT of scripted containers → event handlers are cleaned up via cloning
+4. **Element Movement**: When elements move INTO scripted containers → new event handlers are applied automatically
+5. **Advanced Scripts**: `document.currentScript.closest('.frame')` works for container detection
+6. **Canvas Behaviors Preserved**: Drag, resize, and selection behaviors remain intact through all script operations
 
 ### Deletion Workflow
 1. Select any element(s) using single-click, shift+click, or marquee selection
