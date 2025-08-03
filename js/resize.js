@@ -233,6 +233,11 @@ function checkElementContainment(frame) {
                 newParent.appendChild(element);
                 element.style.left = newLeft + 'px';
                 element.style.top = newTop + 'px';
+                
+                // Re-activate scripts in the new parent container to include the moved element
+                if (window.codeEditor && window.codeEditor.reactivateContainerScripts) {
+                    window.codeEditor.reactivateContainerScripts(newParent);
+                }
             }
         }
     });
@@ -296,6 +301,11 @@ function checkElementFrameContainment(elementFrame) {
                 newParent.appendChild(element);
                 element.style.left = newLeft + 'px';
                 element.style.top = newTop + 'px';
+                
+                // Re-activate scripts in the new parent container to include the moved element
+                if (window.codeEditor && window.codeEditor.reactivateContainerScripts) {
+                    window.codeEditor.reactivateContainerScripts(newParent);
+                }
             }
         }
     });

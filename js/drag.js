@@ -672,6 +672,11 @@ function moveElementToContainer(element, newParent, mouseX, mouseY) {
     element.style.left = newLeft + 'px';
     element.style.top = newTop + 'px';
     
+    // Re-activate scripts in the new parent container to include the moved element
+    if (window.codeEditor && window.codeEditor.reactivateContainerScripts) {
+        window.codeEditor.reactivateContainerScripts(newParent);
+    }
+    
     console.log(`Element moved to ${newParent.id || newParent.className || 'container'}`);
 }
 
@@ -792,6 +797,11 @@ function handleMultiSelectionContainerChanges(e) {
                 // Update position
                 element.style.left = newLeft + 'px';
                 element.style.top = newTop + 'px';
+                
+                // Re-activate scripts in the new parent container to include the moved element
+                if (window.codeEditor && window.codeEditor.reactivateContainerScripts) {
+                    window.codeEditor.reactivateContainerScripts(newParent);
+                }
                 
                 console.log(`Multi-selected element moved to ${newParent.id || newParent.className || 'container'}`);
             }

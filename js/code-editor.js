@@ -649,6 +649,40 @@
         return textarea && document.activeElement === textarea && !textarea.disabled;
     }
 
+    // Re-activate scripts in a container when elements are moved into it
+    function reactivateContainerScripts(container) {
+        // Find the root container (frame or element-frame) that might have scripts
+        let scriptContainer = container;
+        
+        // If the container is a frame content area, get the parent frame
+        if (container.classList.contains('frame-content')) {
+            scriptContainer = container.parentElement;
+        }
+        
+        // Look for containers that have scripts (frame, element-frame, or canvas)
+        if (scriptContainer.classList.contains('frame') || 
+            scriptContainer.classList.contains('element-frame') || 
+            scriptContainer.id === 'canvas') {
+            
+            console.log('Re-activating scripts for container:', scriptContainer.id);
+            activateScripts(scriptContainer);
+        }
+        
+        // Also check parent containers up the tree
+        let parent = scriptContainer.parentElement;
+        while (parent && parent !== document.body) {
+            if (parent.classList.contains('frame') || 
+                parent.classList.contains('element-frame') || 
+                parent.id === 'canvas') {
+                
+                console.log('Re-activating scripts for parent container:', parent.id);
+                activateScripts(parent);
+                break; // Only go up to the first script container
+            }
+            parent = parent.parentElement;
+        }
+    }
+
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
@@ -667,7 +701,9 @@
         recordSnapshot: recordFinalSnapshot,
         clearSnapshot: clearSnapshot,
         // Utility for other modules to check if code editor is active
-        isActive: isCodeEditorActive
+        isActive: isCodeEditorActive,
+        // Script re-activation when elements move between containers
+        reactivateContainerScripts: reactivateContainerScripts
     };
 
 })();
