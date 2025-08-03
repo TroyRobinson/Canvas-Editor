@@ -437,28 +437,51 @@
     function executeScriptInContainer(scriptContent, containerElement) {
         const containerId = containerElement.id || 'canvas';
         
-        // Create wrapped script that scopes querySelectorAll to the container
+        // Find the actual script element in the container for currentScript support
+        const scriptElements = containerElement.querySelectorAll('script');
+        const currentScriptElement = Array.from(scriptElements).find(script => 
+            script.textContent.includes(scriptContent.trim().substring(0, 50))
+        );
+        
+        // Create wrapped script that provides container context and currentScript
         const wrappedScript = `
         (function() {
             const containerElement = arguments[0];
+            const scriptElement = arguments[1];
             
             // Override document.querySelectorAll temporarily to scope to container
             const originalQuerySelectorAll = document.querySelectorAll;
+            const originalCurrentScript = document.currentScript;
+            
             document.querySelectorAll = function(selector) {
                 return containerElement.querySelectorAll(selector);
             };
             
+            // Provide a mock currentScript that points to the actual script element
+            Object.defineProperty(document, 'currentScript', {
+                get: function() {
+                    return scriptElement;
+                },
+                configurable: true
+            });
+            
             try {
                 ${scriptContent}
             } finally {
-                // Restore original function
+                // Restore original functions
                 document.querySelectorAll = originalQuerySelectorAll;
+                Object.defineProperty(document, 'currentScript', {
+                    get: function() {
+                        return originalCurrentScript;
+                    },
+                    configurable: true
+                });
             }
         })`;
         
         try {
-            // Execute the script with container scoping
-            eval(wrappedScript)(containerElement);
+            // Execute the script with container scoping and currentScript support
+            eval(wrappedScript)(containerElement, currentScriptElement);
         } catch (error) {
             console.error('Error executing script:', error);
             throw error;
