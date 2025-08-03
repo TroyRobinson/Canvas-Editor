@@ -237,11 +237,11 @@ function checkElementContainment(frame) {
                 // Clean up script handlers from the old container by cloning
                 // Only clean up if moving FROM a scripted container (frame or element-frame)
                 let cleanElement = element;
-                if (window.codeEditor && window.codeEditor.cleanupElementHandlers && 
+                if (window.scriptManager && window.scriptManager.cleanupElementHandlers && 
                     oldParent && (oldParent.classList.contains('frame') || 
                                  oldParent.classList.contains('element-frame') ||
                                  oldParent.classList.contains('frame-content'))) {
-                    cleanElement = window.codeEditor.cleanupElementHandlers(element, oldContainerId);
+                    cleanElement = window.scriptManager.cleanupElementHandlers(element, oldContainerId);
                 }
                 
                 newParent.appendChild(cleanElement);
@@ -249,8 +249,8 @@ function checkElementContainment(frame) {
                 cleanElement.style.top = newTop + 'px';
                 
                 // Re-activate scripts in the new parent container to include the moved element
-                if (window.codeEditor && window.codeEditor.reactivateContainerScripts) {
-                    window.codeEditor.reactivateContainerScripts(newParent);
+                if (window.scriptManager && window.scriptManager.reactivateContainerScripts) {
+                    window.scriptManager.reactivateContainerScripts(newParent);
                 }
             }
         }
@@ -319,11 +319,11 @@ function checkElementFrameContainment(elementFrame) {
                 // Clean up script handlers from the old container by cloning
                 // Only clean up if moving FROM a scripted container (frame or element-frame)
                 let cleanElement = element;
-                if (window.codeEditor && window.codeEditor.cleanupElementHandlers && 
+                if (window.scriptManager && window.scriptManager.cleanupElementHandlers && 
                     oldParent && (oldParent.classList.contains('frame') || 
                                  oldParent.classList.contains('element-frame') ||
                                  oldParent.classList.contains('frame-content'))) {
-                    cleanElement = window.codeEditor.cleanupElementHandlers(element, oldContainerId);
+                    cleanElement = window.scriptManager.cleanupElementHandlers(element, oldContainerId);
                 }
                 
                 newParent.appendChild(cleanElement);
@@ -331,8 +331,8 @@ function checkElementFrameContainment(elementFrame) {
                 cleanElement.style.top = newTop + 'px';
                 
                 // Re-activate scripts in the new parent container to include the moved element
-                if (window.codeEditor && window.codeEditor.reactivateContainerScripts) {
-                    window.codeEditor.reactivateContainerScripts(newParent);
+                if (window.scriptManager && window.scriptManager.reactivateContainerScripts) {
+                    window.scriptManager.reactivateContainerScripts(newParent);
                 }
             }
         }
