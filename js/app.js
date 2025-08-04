@@ -95,6 +95,11 @@ window.addEventListener('load', () => {
         window.canvasMode.createToggleUI();
     }
     
+    // Show CSS editor on app load (user requirement)
+    if (window.codeEditor && window.codeEditor.showCSSEditor) {
+        window.codeEditor.showCSSEditor();
+    }
+    
     // Add keyboard shortcut to create new frames
     document.addEventListener('keydown', (e) => {
         // Mode toggle with Cmd/Ctrl + I

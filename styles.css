@@ -603,6 +603,39 @@ input:checked + .mode-toggle-slider:before {
     color: #e0e0e0;
 }
 
+#mode-toggle {
+    display: flex;
+    background: #1a1a1a;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #333;
+}
+
+.mode-toggle-btn {
+    background: transparent;
+    color: #999;
+    border: none;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-right: 1px solid #333;
+}
+
+.mode-toggle-btn:last-child {
+    border-right: none;
+}
+
+.mode-toggle-btn:hover {
+    background: #333;
+    color: #e0e0e0;
+}
+
+.mode-toggle-btn.active {
+    background: #6366f1;
+    color: #fff;
+}
+
 
 #code-editor-textarea {
     flex: 1;

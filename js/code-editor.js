@@ -16,6 +16,11 @@
     let panelWidth = localStorage.getItem('codeEditorWidth') || '400px';
     let isDragging = false;
     
+    // CSS mode state
+    let currentMode = 'html'; // 'html' or 'css'
+    let cssContent = '';
+    let cssStyleElement = null;
+    
     // Snapshot system for canvas undo integration
     let elementSnapshot = null;
     let snapshotTimer = null;
@@ -24,14 +29,18 @@
     let panel = null;
     let resizer = null;
     let textarea = null;
+    let modeToggleHtml = null;
+    let modeToggleCss = null;
 
     // Initialize the code editor when the DOM is ready
     function init() {
         panel = document.getElementById('code-editor-panel');
         resizer = document.getElementById('code-editor-resizer');
         textarea = document.getElementById('code-editor-textarea');
+        modeToggleHtml = document.getElementById('mode-toggle-html');
+        modeToggleCss = document.getElementById('mode-toggle-css');
 
-        if (!panel || !resizer || !textarea) {
+        if (!panel || !resizer || !textarea || !modeToggleHtml || !modeToggleCss) {
             console.error('Code editor elements not found in DOM');
             return;
         }
@@ -39,6 +48,8 @@
         setupPanel();
         setupResizer();
         setupEventListeners();
+        setupModeToggle();
+        loadCSSContent();
         
         // Initially hide the panel
         hidePanel();
@@ -82,6 +93,78 @@
         textarea.addEventListener('keydown', handleKeyDown);
     }
 
+    // Setup mode toggle functionality
+    function setupModeToggle() {
+        modeToggleHtml.addEventListener('click', () => switchMode('html'));
+        modeToggleCss.addEventListener('click', () => switchMode('css'));
+        
+        // Set initial state
+        updateModeUI();
+    }
+
+    // Switch between HTML and CSS modes
+    function switchMode(mode) {
+        if (mode === currentMode) return;
+        
+        // Save current content before switching
+        if (currentMode === 'css') {
+            cssContent = textarea.value;
+        }
+        
+        currentMode = mode;
+        updateModeUI();
+        
+        if (currentMode === 'html') {
+            // Switch to HTML mode - show selected element's HTML
+            updateCodeView();
+            textarea.disabled = !currentSelectedElement;
+        } else {
+            // Switch to CSS mode - show all CSS
+            // Ensure CSS content is loaded if it's empty
+            if (!cssContent || cssContent.trim() === '') {
+                loadCSSContent();
+            }
+            textarea.value = cssContent;
+            textarea.disabled = false;
+        }
+    }
+
+    // Update mode toggle UI
+    function updateModeUI() {
+        if (currentMode === 'html') {
+            modeToggleHtml.classList.add('active');
+            modeToggleCss.classList.remove('active');
+            document.getElementById('code-editor-header').querySelector('span').textContent = 'HTML View';
+        } else {
+            modeToggleHtml.classList.remove('active');
+            modeToggleCss.classList.add('active');
+            document.getElementById('code-editor-header').querySelector('span').textContent = 'CSS View';
+        }
+    }
+
+    // Load CSS content from embedded script tag
+    function loadCSSContent() {
+        try {
+            const cssContentElement = document.getElementById('css-content');
+            if (cssContentElement) {
+                cssContent = cssContentElement.textContent || cssContentElement.innerText;
+            } else {
+                cssContent = '/* CSS content not found */';
+            }
+            
+            // Create or update CSS style element for live updates
+            if (!cssStyleElement) {
+                cssStyleElement = document.createElement('style');
+                cssStyleElement.id = 'dynamic-css';
+                document.head.appendChild(cssStyleElement);
+            }
+            cssStyleElement.textContent = cssContent;
+        } catch (error) {
+            console.error('Failed to load CSS content:', error);
+            cssContent = '/* Error loading CSS */';
+        }
+    }
+
     // Handle selection changes from the main selection system
     function handleSelectionChange() {
         // Avoid updates when we're applying code changes to prevent infinite loops
@@ -92,11 +175,15 @@
         if (selectedElements.length === 1) {
             const element = selectedElements[0];
             if (element !== currentSelectedElement) {
+                // Switch to HTML mode when selecting an element
+                switchMode('html');
                 setSelectedElement(element);
                 showPanel();
             }
         } else if (selectedElements.length > 1) {
             // Multiple selection - show combined code or a summary
+            // Switch to HTML mode for multiple selection
+            switchMode('html');
             setMultipleSelection(selectedElements);
             showPanel();
         } else {
@@ -287,10 +374,16 @@
         });
     }
 
-    // Apply code changes back to the element
+    // Apply code changes back to the element or CSS
     function applyCodeChanges() {
-        if (!currentSelectedElement || isUpdatingFromCanvas || textarea.disabled) return;
+        if (isUpdatingFromCanvas || textarea.disabled) return;
 
+        if (currentMode === 'css') {
+            applyCSSChanges();
+            return;
+        }
+
+        if (!currentSelectedElement) return;
         isUpdatingFromCode = true;
 
         try {
@@ -320,18 +413,19 @@
             parent.insertBefore(newElement, nextSibling);
             
             // Update the current reference
+            const oldElement = currentSelectedElement;
             currentSelectedElement = newElement;
             
-            // Re-setup element behaviors if needed
+            // Ensure all elements are properly processed by the selection system first
+            if (window.makeContainerElementsSelectable) {
+                window.makeContainerElementsSelectable(newElement);
+            }
+            
+            // Re-setup element behaviors
             setupElementBehaviors(newElement);
             
             // Also setup behaviors for child elements that need special treatment
             setupChildElementBehaviors(newElement);
-            
-            // Ensure all elements are properly processed by the selection system
-            if (window.makeContainerElementsSelectable) {
-                window.makeContainerElementsSelectable(newElement);
-            }
             
             // Update selection to the new element
             if (window.selectElement) {
@@ -353,6 +447,21 @@
         setTimeout(() => {
             isUpdatingFromCode = false;
         }, 150);
+    }
+
+    // Apply CSS changes to the dynamic style element
+    function applyCSSChanges() {
+        try {
+            const newCSS = textarea.value;
+            
+            // Update the dynamic CSS style element
+            if (cssStyleElement) {
+                cssStyleElement.textContent = newCSS;
+                cssContent = newCSS;
+            }
+        } catch (error) {
+            console.error('Error applying CSS changes:', error);
+        }
     }
 
     // Setup behaviors for the new element after code application
@@ -543,7 +652,23 @@
         recordSnapshot: recordFinalSnapshot,
         clearSnapshot: clearSnapshot,
         // Utility for other modules to check if code editor is active
-        isActive: isCodeEditorActive
+        isActive: isCodeEditorActive,
+        // CSS mode functionality
+        switchToCSS: () => switchMode('css'),
+        switchToHTML: () => switchMode('html'),
+        showCSSEditor: () => {
+            // Always ensure CSS content is loaded when showing CSS editor
+            if (!cssContent || cssContent.trim() === '') {
+                loadCSSContent();
+            }
+            switchMode('css');
+            showPanel();
+            // Force update textarea even if already in CSS mode
+            if (currentMode === 'css') {
+                textarea.value = cssContent;
+                textarea.disabled = false; // Ensure textarea is enabled in CSS mode
+            }
+        }
     };
 
 })();

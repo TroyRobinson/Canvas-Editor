@@ -249,6 +249,11 @@ function initializeMarqueeSelection() {
             if (!e.shiftKey && window.clearSelection) {
                 window.clearSelection();
             }
+            
+            // Show CSS editor on canvas click (user requirement - blur focus from other elements)
+            if (window.codeEditor && window.codeEditor.showCSSEditor) {
+                window.codeEditor.showCSSEditor();
+            }
         }
         
         // Reset marquee state
