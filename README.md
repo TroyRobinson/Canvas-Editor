@@ -210,6 +210,19 @@ Comprehensive CSS styling defining:
   - CSS rules in styles.css respond to mode changes
   - Preserves element selection state across mode transitions
 
+#### `js/css-manager.js`
+**Purpose**: Centralized CSS loading, persistence, application, and recovery
+- **CSS State Management**: Manages global CSS content, edit state, and dynamic style element
+- **Embedded CSS Loading**: Loads initial CSS from embedded script tag to avoid CORS issues
+- **Live CSS Application**: Real-time CSS updates via dynamic `<style>` element
+- **Edit Tracking**: Prevents accidental overwrites of user CSS modifications
+- **Recovery System**: Smart fallback when CSS content goes missing
+- **Initialization Control**: Safe initialization with fallback CSS manager if needed
+- **Key relationships**:
+  - Used exclusively by code-editor.js for all CSS operations
+  - Operates independently of other canvas modules
+  - **Design Decision**: Abstracted from code-editor.js for single responsibility and testability
+
 #### `js/script-manager.js`
 **Purpose**: User script execution, activation, and cleanup management
 - **Container-Scoped Execution**: Scripts run with `querySelectorAll` scoped to their container
@@ -224,15 +237,19 @@ Comprehensive CSS styling defining:
   - **Design Decision**: Separated from code-editor.js for single responsibility and reusability
 
 #### `js/code-editor.js`
-**Purpose**: Right-side resizable code pane with bi-directional editing
-- **Real-time Code View**: Shows exact HTML of selected elements with live updates
+**Purpose**: Right-side resizable code pane with bi-directional editing for HTML and CSS
+- **HTML/CSS Mode Toggle**: Switch between editing element HTML and global CSS styles
+- **Real-time Code View**: Shows exact HTML of selected elements OR global CSS with live updates
 - **Automatic Code Application**: Changes apply automatically with 200ms debounce
 - **Bi-directional Sync**: Code changes update canvas, canvas changes update code
+- **CSS Global Editing**: Live CSS editing with immediate visual feedback across all canvas elements
 - **Native Textarea Undo**: Standard Ctrl/Cmd+Z works within the code editor
 - **Canvas Undo Integration**: Focus/blur snapshots create proper canvas undo entries
 - **Resizable Panel**: Drag border to resize, width persisted in localStorage
 - **Multi-selection Support**: Shows combined code for multiple selected elements
+- **Smart Mode Switching**: Auto-switches to HTML when selecting elements, CSS when clicking canvas
 - **Key relationships**:
+  - Delegates CSS operations to css-manager.js
   - Listens to `selectionChanged` events from selection.js
   - Integrates with undo.js via `recordElementReplacement` for HTML structure changes
   - Delegates script activation to script-manager.js
@@ -301,14 +318,15 @@ Comprehensive CSS styling defining:
 5. Dragging is disabled while editing to prevent accidental moves
 
 ### Code Editing Workflow
-1. **Select any element** → Code appears in right-side panel automatically
-2. **Click in code editor** → Native text editing with immediate visual feedback
-3. **Type HTML changes** → Canvas updates automatically after 200ms pause
-4. **Use Ctrl/Cmd+Z in code editor** → Instant undo/redo within editor (native browser behavior)
-5. **Click on canvas or switch elements** → Code change recorded in canvas undo system
-6. **Press Ctrl/Cmd+Z on canvas** → Reverts entire element to previous HTML state
-7. **Escape key** → Closes code panel and clears selection
-8. **Drag panel border** → Resize code editor width (persisted)
+1. **Select any element** → HTML code appears in right-side panel automatically (HTML mode)
+2. **Click canvas (no selection)** → Global CSS appears in right-side panel (CSS mode)
+3. **Toggle HTML/CSS modes** → Use buttons in code editor header to switch
+4. **Type HTML/CSS changes** → Canvas updates automatically after 200ms pause
+5. **Use Ctrl/Cmd+Z in code editor** → Instant undo/redo within editor (native browser behavior)
+6. **Click on canvas or switch elements** → Code change recorded in canvas undo system
+7. **Press Ctrl/Cmd+Z on canvas** → Reverts entire element to previous HTML state
+8. **Escape key** → Closes code panel and clears selection
+9. **Drag panel border** → Resize code editor width (persisted)
 
 ### Script Activation Workflow
 1. **Insert `<script>` tags** in element code → Scripts activate automatically when code is applied
@@ -347,7 +365,8 @@ The application uses a distributed state management approach where each module e
 - `window.recordCreate`, `window.recordDelete`, `window.recordMove`, `window.recordElementReplacement`, etc. - Operation recording functions
 - `window.textEditing` - Text editing state and utilities (isEditing, getCurrentlyEditingElement)
 - `window.canvasMode` - Current mode state ('edit' or 'interactive')
-- `window.codeEditor` - Code editor API (show, hide, isActive, updateCodeView)
+- `window.codeEditor` - Code editor API (show, hide, isActive, updateCodeView, showCSSEditor)
+- `window.cssManager` - CSS management API (getCurrentCSS, updateCSS, hasBeenEdited, initialize)
 
 This architecture allows modules to coordinate without tight coupling while maintaining clear separation of concerns.
 

@@ -18,9 +18,6 @@
     
     // CSS mode state
     let currentMode = 'html'; // 'html' or 'css'
-    let cssContent = '';
-    let cssStyleElement = null;
-    let cssHasBeenEdited = false;
     
     // Snapshot system for canvas undo integration
     let elementSnapshot = null;
@@ -50,7 +47,9 @@
         setupResizer();
         setupEventListeners();
         setupModeToggle();
-        loadCSSContent();
+        
+        // Initialize CSS Manager - ensure it's available
+        initializeCSSManager();
         
         // Initially hide the panel
         hidePanel();
@@ -107,9 +106,9 @@
     function switchMode(mode) {
         if (mode === currentMode) return;
         
-        // Save current content before switching
-        if (currentMode === 'css') {
-            cssContent = textarea.value;
+        // Save current content before switching - but only if textarea has content
+        if (currentMode === 'css' && window.cssManager && textarea.value.trim()) {
+            window.cssManager.updateCSS(textarea.value);
         }
         
         currentMode = mode;
@@ -121,23 +120,18 @@
             textarea.disabled = !currentSelectedElement;
         } else {
             // Switch to CSS mode - show all CSS
-            // Load CSS if empty, but preserve edited content if it exists
-            if (!cssContent) {
-                // If we've never loaded CSS, load from embedded script
-                if (!cssHasBeenEdited) {
-                    loadCSSContent();
-                } else {
-                    // If we've edited but content is missing, try to get from style element
-                    if (cssStyleElement && cssStyleElement.textContent) {
-                        cssContent = cssStyleElement.textContent;
-                    } else {
-                        // Last resort: reload from embedded script
-                        cssHasBeenEdited = false;
-                        loadCSSContent();
-                    }
+            if (window.cssManager) {
+                try {
+                    const currentCSS = window.cssManager.getCurrentCSS();
+                    textarea.value = currentCSS;
+                } catch (error) {
+                    console.error('Error getting CSS from CSS Manager:', error);
+                    textarea.value = '/* Error loading CSS: ' + error.message + ' */';
                 }
+            } else {
+                console.error('CSS Manager not available in switchMode');
+                textarea.value = '/* CSS Manager not available - check console for errors */';
             }
-            textarea.value = cssContent;
             textarea.disabled = false;
         }
     }
@@ -155,34 +149,60 @@
         }
     }
 
-    // Load CSS content from embedded script tag (only if not already loaded)
+    // Initialize CSS Manager with fallback to embedded CSS
+    function initializeCSSManager() {
+        // Check if CSS Manager is available
+        if (typeof window.cssManager !== 'undefined') {
+            try {
+                window.cssManager.initialize();
+                return;
+            } catch (error) {
+                console.error('Failed to initialize CSS Manager:', error);
+            }
+        }
+        
+        // Fallback: create a simple CSS manager if the module didn't load
+        createFallbackCSSManager();
+    }
+    
+    // Create a fallback CSS manager if the module fails to load
+    function createFallbackCSSManager() {
+        let fallbackCssContent = '';
+        let fallbackStyleElement = null;
+        
+        // Load CSS from embedded script
+        const cssContentElement = document.getElementById('css-content');
+        if (cssContentElement) {
+            fallbackCssContent = cssContentElement.textContent || cssContentElement.innerText;
+        }
+        
+        // Create style element
+        fallbackStyleElement = document.createElement('style');
+        fallbackStyleElement.id = 'dynamic-css';
+        document.head.appendChild(fallbackStyleElement);
+        fallbackStyleElement.textContent = fallbackCssContent;
+        
+        // Create minimal CSS manager API
+        window.cssManager = {
+            initialize: () => {},
+            getCurrentCSS: () => fallbackCssContent,
+            updateCSS: (newCSS) => {
+                fallbackCssContent = newCSS;
+                if (fallbackStyleElement) {
+                    fallbackStyleElement.textContent = newCSS;
+                }
+            },
+            hasBeenEdited: () => true,
+            ensureInitialized: () => {}
+        };
+        
+    }
+
+    // CSS loading is now handled by CSS Manager
+    // This function is kept for backward compatibility but delegates to CSS Manager
     function loadCSSContent() {
-        try {
-            // Only load from embedded script if CSS has never been loaded or edited
-            if (!cssContent && !cssHasBeenEdited) {
-                const cssContentElement = document.getElementById('css-content');
-                if (cssContentElement) {
-                    cssContent = cssContentElement.textContent || cssContentElement.innerText;
-                } else {
-                    cssContent = '/* CSS content not found */';
-                }
-            }
-            
-            // Create dynamic CSS style element if it doesn't exist
-            if (!cssStyleElement) {
-                cssStyleElement = document.createElement('style');
-                cssStyleElement.id = 'dynamic-css';
-                document.head.appendChild(cssStyleElement);
-                // Only set initial content if style element is new AND cssContent exists
-                if (cssContent) {
-                    cssStyleElement.textContent = cssContent;
-                }
-            }
-        } catch (error) {
-            console.error('Failed to load CSS content:', error);
-            if (!cssContent) {
-                cssContent = '/* Error loading CSS */';
-            }
+        if (window.cssManager) {
+            window.cssManager.ensureInitialized();
         }
     }
 
@@ -470,16 +490,13 @@
         }, 150);
     }
 
-    // Apply CSS changes to the dynamic style element
+    // Apply CSS changes using CSS Manager
     function applyCSSChanges() {
         try {
             const newCSS = textarea.value;
             
-            // Update the dynamic CSS style element
-            if (cssStyleElement) {
-                cssStyleElement.textContent = newCSS;
-                cssContent = newCSS;
-                cssHasBeenEdited = true; // Mark as edited
+            if (window.cssManager) {
+                window.cssManager.updateCSS(newCSS);
             }
         } catch (error) {
             console.error('Error applying CSS changes:', error);
@@ -679,27 +696,18 @@
         switchToCSS: () => switchMode('css'),
         switchToHTML: () => switchMode('html'),
         showCSSEditor: () => {
-            // Load CSS if empty, but preserve edited content if it exists
-            if (!cssContent) {
-                // If we've never loaded CSS, load from embedded script
-                if (!cssHasBeenEdited) {
-                    loadCSSContent();
-                } else {
-                    // If we've edited but content is missing, try to get from style element
-                    if (cssStyleElement && cssStyleElement.textContent) {
-                        cssContent = cssStyleElement.textContent;
-                    } else {
-                        // Last resort: reload from embedded script
-                        cssHasBeenEdited = false;
-                        loadCSSContent();
-                    }
-                }
+            // Ensure CSS Manager is ready
+            if (window.cssManager) {
+                window.cssManager.ensureInitialized();
             }
+            
             switchMode('css');
             showPanel();
+            
             // Force update textarea even if already in CSS mode
-            if (currentMode === 'css') {
-                textarea.value = cssContent;
+            if (currentMode === 'css' && window.cssManager) {
+                const currentCSS = window.cssManager.getCurrentCSS();
+                textarea.value = currentCSS;
                 textarea.disabled = false; // Ensure textarea is enabled in CSS mode
             }
         }
