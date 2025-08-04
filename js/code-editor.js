@@ -20,6 +20,7 @@
     let currentMode = 'html'; // 'html' or 'css'
     let cssContent = '';
     let cssStyleElement = null;
+    let cssHasBeenEdited = false;
     
     // Snapshot system for canvas undo integration
     let elementSnapshot = null;
@@ -120,9 +121,21 @@
             textarea.disabled = !currentSelectedElement;
         } else {
             // Switch to CSS mode - show all CSS
-            // Ensure CSS content is loaded if it's empty
-            if (!cssContent || cssContent.trim() === '') {
-                loadCSSContent();
+            // Load CSS if empty, but preserve edited content if it exists
+            if (!cssContent) {
+                // If we've never loaded CSS, load from embedded script
+                if (!cssHasBeenEdited) {
+                    loadCSSContent();
+                } else {
+                    // If we've edited but content is missing, try to get from style element
+                    if (cssStyleElement && cssStyleElement.textContent) {
+                        cssContent = cssStyleElement.textContent;
+                    } else {
+                        // Last resort: reload from embedded script
+                        cssHasBeenEdited = false;
+                        loadCSSContent();
+                    }
+                }
             }
             textarea.value = cssContent;
             textarea.disabled = false;
@@ -142,26 +155,34 @@
         }
     }
 
-    // Load CSS content from embedded script tag
+    // Load CSS content from embedded script tag (only if not already loaded)
     function loadCSSContent() {
         try {
-            const cssContentElement = document.getElementById('css-content');
-            if (cssContentElement) {
-                cssContent = cssContentElement.textContent || cssContentElement.innerText;
-            } else {
-                cssContent = '/* CSS content not found */';
+            // Only load from embedded script if CSS has never been loaded or edited
+            if (!cssContent && !cssHasBeenEdited) {
+                const cssContentElement = document.getElementById('css-content');
+                if (cssContentElement) {
+                    cssContent = cssContentElement.textContent || cssContentElement.innerText;
+                } else {
+                    cssContent = '/* CSS content not found */';
+                }
             }
             
-            // Create or update CSS style element for live updates
+            // Create dynamic CSS style element if it doesn't exist
             if (!cssStyleElement) {
                 cssStyleElement = document.createElement('style');
                 cssStyleElement.id = 'dynamic-css';
                 document.head.appendChild(cssStyleElement);
+                // Only set initial content if style element is new AND cssContent exists
+                if (cssContent) {
+                    cssStyleElement.textContent = cssContent;
+                }
             }
-            cssStyleElement.textContent = cssContent;
         } catch (error) {
             console.error('Failed to load CSS content:', error);
-            cssContent = '/* Error loading CSS */';
+            if (!cssContent) {
+                cssContent = '/* Error loading CSS */';
+            }
         }
     }
 
@@ -458,6 +479,7 @@
             if (cssStyleElement) {
                 cssStyleElement.textContent = newCSS;
                 cssContent = newCSS;
+                cssHasBeenEdited = true; // Mark as edited
             }
         } catch (error) {
             console.error('Error applying CSS changes:', error);
@@ -657,9 +679,21 @@
         switchToCSS: () => switchMode('css'),
         switchToHTML: () => switchMode('html'),
         showCSSEditor: () => {
-            // Always ensure CSS content is loaded when showing CSS editor
-            if (!cssContent || cssContent.trim() === '') {
-                loadCSSContent();
+            // Load CSS if empty, but preserve edited content if it exists
+            if (!cssContent) {
+                // If we've never loaded CSS, load from embedded script
+                if (!cssHasBeenEdited) {
+                    loadCSSContent();
+                } else {
+                    // If we've edited but content is missing, try to get from style element
+                    if (cssStyleElement && cssStyleElement.textContent) {
+                        cssContent = cssStyleElement.textContent;
+                    } else {
+                        // Last resort: reload from embedded script
+                        cssHasBeenEdited = false;
+                        loadCSSContent();
+                    }
+                }
             }
             switchMode('css');
             showPanel();
