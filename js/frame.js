@@ -16,17 +16,100 @@ function createFrame(x, y, title) {
     content.className = 'frame-content';
     
     // Add initial content
-    content.innerHTML = `
-        <h3 id="frame-${frameCounter}-heading">Frame ${frameCounter}</h3>
-        <p id="frame-${frameCounter}-text">This is isolated content.</p>
-        <button id="frame-${frameCounter}-button" onclick="console.log('Button clicked in Frame ${frameCounter}')">
-            Click Me
-        </button>
-    `;
+    if (frameCounter === 1) {
+        content.innerHTML = `
+            <h3 id="frame-${frameCounter}-heading">Frame ${frameCounter}</h3>
+            <p id="frame-${frameCounter}-text">My buttons sparkle</p>
+            <button id="frame-${frameCounter}-button" onclick="console.log('Button clicked in Frame ${frameCounter}')">
+                Click Me
+            </button>
+        `;
+    } else if (frameCounter === 2) {
+        content.innerHTML = `
+            <h3 id="frame-${frameCounter}-heading">Frame ${frameCounter}</h3>
+            <p id="frame-${frameCounter}-text">My buttons spin</p>
+            <button id="frame-${frameCounter}-button" onclick="console.log('Button clicked in Frame ${frameCounter}')">
+                Click Me
+            </button>
+        `;
+    } else {
+        content.innerHTML = `
+            <h3 id="frame-${frameCounter}-heading">Frame ${frameCounter}</h3>
+            <p id="frame-${frameCounter}-text">This is isolated content.</p>
+            <button id="frame-${frameCounter}-button" onclick="console.log('Button clicked in Frame ${frameCounter}')">
+                Click Me
+            </button>
+        `;
+    }
     
     
     frame.appendChild(titleBar);
     frame.appendChild(content);
+    
+    // Add frame-specific scripts at frame level
+    if (frameCounter === 1) {
+        // Frame 1: Sparkle script
+        const script1 = document.createElement('script');
+        script1.innerHTML = `
+            (function() {
+            const frame = document.currentScript.closest('.frame');
+            const buttons = frame.querySelectorAll('button');
+            buttons.forEach(button => {
+            button.addEventListener('click', () => {
+            button.classList.add('flash');
+            setTimeout(() => button.classList.remove('flash'), 300);
+            });
+            });
+            })();
+        `;
+        
+        const style1 = document.createElement('style');
+        style1.innerHTML = `
+            .flash {
+            animation: flash-animation 0.3s;
+            }
+            @keyframes flash-animation {
+            0% { background-color: yellow; }
+            50% { background-color: red; }
+            100% { background-color: yellow; }
+            }
+        `;
+        
+        frame.appendChild(script1);
+        frame.appendChild(style1);
+    } else if (frameCounter === 2) {
+        // Frame 2: Spin script
+        const style2 = document.createElement('style');
+        style2.innerHTML = `
+            .spin {
+            animation: spin 1s linear;
+            }
+            @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+            }
+        `;
+        
+        const script2 = document.createElement('script');
+        script2.innerHTML = `
+            (function() {
+            const frame = document.currentScript.closest('.frame');
+            const buttons = frame.querySelectorAll('button');
+            buttons.forEach(button => {
+            button.addEventListener("click", (e) => {
+            console.log("Button clicked in Frame 2");
+            button.classList.add("spin");
+            button.addEventListener("animationend", () => {
+            button.classList.remove("spin");
+            }, { once: true });
+            });
+            });
+            })();
+        `;
+        
+        frame.appendChild(style2);
+        frame.appendChild(script2);
+    }
     
     // Add resize handles
     addResizeHandles(frame);
@@ -56,6 +139,11 @@ function createFrame(x, y, title) {
             window.makeSelectable(element);
         }
     });
+    
+    // Activate scripts for this frame
+    if (window.scriptManager && window.scriptManager.activateScripts) {
+        window.scriptManager.activateScripts(frame);
+    }
     
     return frame;
 }
