@@ -53,6 +53,10 @@ function createFrame(x, y, title) {
             <button id="frame-${frameCounter}-button">
                 Click Me
             </button>
+            <style>
+            </style>
+            <script>
+            </script>
         `;
     } else {
         content.innerHTML = `
@@ -61,6 +65,10 @@ function createFrame(x, y, title) {
             <button id="frame-${frameCounter}-button">
                 Click Me
             </button>
+            <style>
+            </style>
+            <script>
+            </script>
         `;
     }
     
@@ -196,6 +204,43 @@ function ensureAllElementsHaveIds(container) {
 
 // Expose globally for use by other modules
 window.ensureAllElementsHaveIds = ensureAllElementsHaveIds;
+
+// Helper function to insert elements before script/style tags in frame-content
+function insertElementIntoFrameContent(container, element) {
+    // Check if container is a frame-content
+    if (!container.classList.contains('frame-content')) {
+        // If not frame-content, use regular appendChild
+        container.appendChild(element);
+        return;
+    }
+    
+    // Find the first style or script tag to insert before
+    const styleTag = container.querySelector('style');
+    const scriptTag = container.querySelector('script');
+    
+    // Determine insertion point (whichever comes first, or null if neither exists)
+    let insertBefore = null;
+    if (styleTag && scriptTag) {
+        // Both exist, find which comes first
+        const styleIndex = Array.from(container.children).indexOf(styleTag);
+        const scriptIndex = Array.from(container.children).indexOf(scriptTag);
+        insertBefore = styleIndex < scriptIndex ? styleTag : scriptTag;
+    } else if (styleTag) {
+        insertBefore = styleTag;
+    } else if (scriptTag) {
+        insertBefore = scriptTag;
+    }
+    
+    if (insertBefore) {
+        container.insertBefore(element, insertBefore);
+    } else {
+        // No style/script tags found, use regular appendChild
+        container.appendChild(element);
+    }
+}
+
+// Expose globally for use by other modules
+window.insertElementIntoFrameContent = insertElementIntoFrameContent;
 
 // Track content changes in frames for undo
 function setupContentTracking(frameContent) {

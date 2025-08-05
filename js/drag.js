@@ -315,7 +315,12 @@ function duplicateElement(element, shouldExtract = false) {
         duplicate.style.height = (elementRect.height / zoom) + 'px';
         
         // Insert duplicate after original
-        element.parentElement.appendChild(duplicate);
+        // Use helper function to insert before script/style tags if in frame-content
+        if (window.insertElementIntoFrameContent) {
+            window.insertElementIntoFrameContent(element.parentElement, duplicate);
+        } else {
+            element.parentElement.appendChild(duplicate);
+        }
         
         // Set up dragging and resize for this new free-floating element
         setupElementDragging(duplicate);
@@ -333,7 +338,12 @@ function duplicateElement(element, shouldExtract = false) {
         duplicate.style.top = (currentTop + 10) + 'px';
         
         // Insert duplicate after original
-        element.parentElement.appendChild(duplicate);
+        // Use helper function to insert before script/style tags if in frame-content
+        if (window.insertElementIntoFrameContent) {
+            window.insertElementIntoFrameContent(element.parentElement, duplicate);
+        } else {
+            element.parentElement.appendChild(duplicate);
+        }
         
         // Set up interactivity for the duplicate
         if (duplicate.classList.contains('frame')) {
@@ -680,7 +690,12 @@ function moveElementToContainer(element, newParent, mouseX, mouseY) {
     }
     
     // Move the clean element to new parent
-    newParent.appendChild(cleanElement);
+    // Use helper function to insert before script/style tags if in frame-content
+    if (window.insertElementIntoFrameContent) {
+        window.insertElementIntoFrameContent(newParent, cleanElement);
+    } else {
+        newParent.appendChild(cleanElement);
+    }
     
     // Update position on the clean element
     cleanElement.style.left = newLeft + 'px';
@@ -820,7 +835,12 @@ function handleMultiSelectionContainerChanges(e) {
                 }
                 
                 // Move the clean element to new parent
-                newParent.appendChild(cleanElement);
+                // Use helper function to insert before script/style tags if in frame-content
+                if (window.insertElementIntoFrameContent) {
+                    window.insertElementIntoFrameContent(newParent, cleanElement);
+                } else {
+                    newParent.appendChild(cleanElement);
+                }
                 
                 // Update position on the clean element
                 cleanElement.style.left = newLeft + 'px';

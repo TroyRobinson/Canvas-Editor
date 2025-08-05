@@ -159,11 +159,10 @@ function createFrameForPlacement() {
     const content = document.createElement('div');
     content.className = 'frame-content';
     content.innerHTML = `
-        <h3>Frame ${frameCounter}</h3>
-        <p>This is isolated content.</p>
-        <button onclick="console.log('Button clicked in Frame ${frameCounter}')">
-            Click Me
-        </button>
+        <style>
+        </style>
+        <script>
+        </script>
     `;
     
     frame.appendChild(titleBar);
@@ -314,7 +313,13 @@ function placeElement(mouseX, mouseY) {
     
     // Move from body to container
     document.body.removeChild(placingElement);
-    container.appendChild(placingElement);
+    
+    // Use helper function to insert before script/style tags if in frame-content
+    if (window.insertElementIntoFrameContent) {
+        window.insertElementIntoFrameContent(container, placingElement);
+    } else {
+        container.appendChild(placingElement);
+    }
     
     // Setup element based on type
     if (placingElement.classList.contains('frame')) {
