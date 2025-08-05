@@ -235,11 +235,11 @@ window.addEventListener('load', () => {
         // AI Enhancement with Cmd/Ctrl + R
         if (e.key === 'r' && (e.metaKey || e.ctrlKey)) {
             // Protect situations where user is typing in input fields or code editor
+            // BUT allow AI enhancement even during text editing in frames
             if (e.target.tagName === 'INPUT' || 
                 e.target.tagName === 'TEXTAREA' || 
-                e.target.contentEditable === 'true' ||
                 (window.codeEditor && window.codeEditor.isActive())) {
-                return; // Allow normal refresh behavior in text fields
+                return; // Allow normal refresh behavior in text fields and code editor
             }
             
             e.preventDefault();
