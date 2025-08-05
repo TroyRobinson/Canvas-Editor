@@ -193,6 +193,7 @@ Comprehensive CSS styling defining:
 - Window load event handling
 - Global keyboard shortcuts:
   - **Ctrl+Z / Shift+Ctrl+Z**: Undo/Redo operations
+  - **Ctrl+R**: AI-powered frame enhancement (works even during text editing)
   - Ctrl+N for new frames, Ctrl+0 for zoom reset
   - Backspace for deletion (with undo recording)
   - **Ctrl+G for grouping** (with undo recording)
@@ -237,6 +238,22 @@ Comprehensive CSS styling defining:
   - Called by drag.js and resize.js when elements move between containers
   - Coordinates with Canvas behavior setup functions (makeSelectable, setupElementDragging, etc.)
   - **Design Decision**: Separated from code-editor.js for single responsibility and reusability
+
+#### `js/llm-manager.js`
+**Purpose**: AI-powered code enhancement via OpenRouter API integration
+- **Frame Enhancement**: Analyzes selected frame HTML and generates improved script/style code using AI
+- **API Integration**: Uses OpenRouter for code generation
+- **Smart HTML Processing**: Strips existing script/style content before sending to AI, then parses response
+- **Visual Feedback**: Shows loading spinner in frame title bar that moves with frame
+- **Script Re-activation**: Automatically reactivates scripts after code insertion
+- **Key constraints for AI-generated code**:
+  - No `DOMContentLoaded` events (scripts execute dynamically after page load)
+  - Use `@keyframes` animations instead of CSS transitions (`.free-floating` has `transition: none !important`)
+  - Append elements to frame content area, not `document.body`
+  - Target ALL elements of type with `querySelectorAll`, use `MutationObserver` for dynamic elements
+- **Key relationships**:
+  - Uses script-manager.js for script re-activation
+  - Coordinates with selection.js to get selected frames
 
 #### `js/code-editor.js`
 **Purpose**: Right-side resizable code pane with bi-directional editing for HTML and CSS
