@@ -49,7 +49,7 @@ function createFrame(x, y, title) {
     } else if (frameCounter === 2) {
         content.innerHTML = `
             <h3 id="frame-${frameCounter}-heading">Frame ${frameCounter}</h3>
-            <p id="frame-${frameCounter}-text">Clean frame content</p>
+            <p id="frame-${frameCounter}-text">Click the button to </p>
             <button id="frame-${frameCounter}-button">
                 Click Me
             </button>
