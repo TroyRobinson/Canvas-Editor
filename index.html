@@ -5,85 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Canvas Builder</title>
     <link rel="stylesheet" href="styles.css">
-    <script id="css-content" type="text/plain">* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    background: #0a0a0a;
+    <script id="css-content" type="text/plain">.frame-content {
     color: #e0e0e0;
-    font-family: system-ui, -apple-system, sans-serif;
-    overflow: hidden;
-}
-
-body.space-held {
-    cursor: grab;
-}
-
-body.panning {
-    cursor: grabbing;
-}
-
-#canvas {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    background-image: 
-        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-    background-size: 50px 50px;
-    transform-origin: 0 0;
-    transition: none;
-}
-
-/* Performance optimization: will-change hints browser to optimize transform */
-#canvas.zooming {
-    will-change: transform;
-}
-
-/* Optimize moving elements */
-.dragging,
-.resizing {
-    will-change: transform;
-}
-
-/* Screen-frames: Full HTML frames with title bars */
-.frame {
-    position: absolute;
     background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    font-family: system-ui, -apple-system, sans-serif;
     min-width: 200px;
     min-height: 150px;
-    overflow: visible;
-    cursor: move;
-}
-
-/* Element-frames: Special divs that act as containers */
-.element-frame {
-    position: absolute;
-    background: transparent;
-    border: 2px dashed #999;
-    border-radius: 6px;
-    overflow: visible;
-    cursor: move;
-    padding: 8px;
-}
-
-.frame-title {
-    background: #252525;
-    padding: 8px 12px;
-    cursor: default;
-    user-select: none;
-    border-radius: 4px 4px 0 0;
-    font-size: 14px;
-    border-bottom: 1px solid #333;
-}
-
-.frame-content {
     padding: 16px;
     height: calc(100% - 41px);
     overflow: visible;
@@ -91,202 +18,16 @@ body.panning {
     cursor: move;
 }
 
-.free-floating {
-    position: absolute !important;
-    cursor: move;
-    z-index: 100;
-    transition: none !important;
+/* Element Frames */
+.frame-content .element-frame {
+    background: transparent;
+    border: 2px dashed #999;
+    border-radius: 6px;
+    overflow: visible;
+    padding: 8px;
 }
 
-.free-floating:is(p, h1, h2, h3, h4, h5, h6, span) {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-
-
-/* Resize handles */
-.resize-handle {
-    position: absolute;
-    background: #6366f1;
-    border: 1px solid #4338ca;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-/* Corner handles - larger for easier clicking */
-.resize-handle.nw,
-.resize-handle.ne,
-.resize-handle.sw,
-.resize-handle.se {
-    width: 12px;
-    height: 12px;
-    z-index: 2;
-}
-
-/* Edge handles - fill entire sides */
-.resize-handle.n,
-.resize-handle.s {
-    width: 100%;
-    height: 6px;
-    left: 0;
-}
-
-.resize-handle.e,
-.resize-handle.w {
-    width: 6px;
-    height: 100%;
-    top: 0;
-}
-
-.frame.selected .resize-handle,
-.element-frame.selected .resize-handle,
-.free-floating.selected .resize-handle,
-.resizing .resize-handle,
-.dragging .resize-handle {
-    opacity: 1;
-}
-
-/* Hide resize handles on non-selected children when parent frame/element-frame is selected */
-.frame.selected .frame:not(.selected) .resize-handle,
-.frame.selected .element-frame:not(.selected) .resize-handle,
-.frame.selected .free-floating:not(.selected) .resize-handle,
-.element-frame.selected .frame:not(.selected) .resize-handle,
-.element-frame.selected .element-frame:not(.selected) .resize-handle,
-.element-frame.selected .free-floating:not(.selected) .resize-handle {
-    opacity: 0 !important;
-}
-
-/* Ensure selected children show their resize handles even when parent is selected */
-.frame.selected .frame.selected .resize-handle,
-.frame.selected .element-frame.selected .resize-handle,
-.frame.selected .free-floating.selected .resize-handle,
-.element-frame.selected .frame.selected .resize-handle,
-.element-frame.selected .element-frame.selected .resize-handle,
-.element-frame.selected .free-floating.selected .resize-handle {
-    opacity: 1 !important;
-}
-
-/* Positioning for handles */
-.resize-handle.nw { top: -6px; left: -6px; }
-.resize-handle.ne { top: -6px; right: -6px; }
-.resize-handle.sw { bottom: -6px; left: -6px; }
-.resize-handle.se { bottom: -6px; right: -6px; }
-.resize-handle.n { top: -3px; }
-.resize-handle.s { bottom: -3px; }
-.resize-handle.e { right: -3px; }
-.resize-handle.w { left: -3px; }
-
-/* Cursor states only when element is selected */
-.selected .resize-handle.nw { cursor: nw-resize; }
-.selected .resize-handle.ne { cursor: ne-resize; }
-.selected .resize-handle.sw { cursor: sw-resize; }
-.selected .resize-handle.se { cursor: se-resize; }
-.selected .resize-handle.n { cursor: n-resize; }
-.selected .resize-handle.s { cursor: s-resize; }
-.selected .resize-handle.e { cursor: e-resize; }
-.selected .resize-handle.w { cursor: w-resize; }
-
-.resizing {
-    opacity: 0.9;
-    z-index: 10000 !important;
-}
-
-.dragging {
-    opacity: 0.8;
-    z-index: 10000 !important;
-}
-
-/* Ensure nested element-frames maintain proper interaction */
-.element-frame {
-    pointer-events: auto;
-}
-
-/* Prevent parent drag when child is being dragged */
-.element-frame.dragging .element-frame {
-    pointer-events: none;
-}
-
-/* Remove will-change after interaction ends to free memory */
-.frame:not(.dragging):not(.resizing),
-.element-frame:not(.dragging):not(.resizing),
-.free-floating:not(.dragging):not(.resizing) {
-    will-change: auto;
-}
-
-/* Selection outline for non-free-floating elements */
-.selected:not(.frame):not(.element-frame):not(.free-floating) {
-    outline: 2px solid #6366f1;
-    outline-offset: 2px;
-    position: relative;
-    z-index: 1;
-}
-
-/* Preview selection during marquee drag */
-.preview-selected:not(.frame):not(.element-frame):not(.free-floating) {
-    outline: 2px dashed #6366f1;
-    outline-offset: 2px;
-    position: relative;
-    z-index: 1;
-    opacity: 0.7;
-}
-
-/* Preview selection for elements with resize handles */
-.preview-selected.frame .resize-handle,
-.preview-selected.element-frame .resize-handle,
-.preview-selected.free-floating .resize-handle {
-    opacity: 0.5;
-    border-color: #6366f1;
-}
-
-/* Prevent text selection during shift+click multi-selection */
-body.shift-selecting {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
-/* Marquee selection rectangle */
-.selection-marquee {
-    position: fixed;
-    border: 1px dashed #6366f1;
-    background: rgba(99, 102, 241, 0.1);
-    pointer-events: none;
-    z-index: 10000;
-    display: none;
-}
-
-.extraction-ghost {
-    position: fixed;
-    pointer-events: none;
-    opacity: 0.6;
-    z-index: 10001;
-}
-
-/* Default frame content styles */
-.frame-content * {
-    cursor: default;
-}
-
-.frame-content .free-floating {
-    cursor: move;
-}
-
-.frame-content button {
-    background: #3a3a3a;
-    color: #e0e0e0;
-    border: 1px solid #555;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.frame-content button:hover {
-    background: #4a4a4a;
-}
-
+/* Headings & Paragraphs */
 .frame-content h3 {
     margin-bottom: 12px;
     color: #f0f0f0;
@@ -297,109 +38,9 @@ body.shift-selecting {
     line-height: 1.5;
 }
 
-/* Zoom indicator */
-#zoom-indicator {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.8);
-    color: #e0e0e0;
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: monospace;
-    opacity: 0;
-    transition: opacity 0.2s;
-    pointer-events: none;
-    z-index: 10000;
-}
-
-#zoom-indicator.visible {
-    opacity: 1;
-}
-
-/* Help text */
-#help-text {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    background: rgba(0, 0, 0, 0.6);
-    color: #808080;
-    padding: 10px 14px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-family: monospace;
-    line-height: 1.5;
-    z-index: 100;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-
-#help-text:hover {
-    opacity: 1;
-}
-
-#help-text kbd {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 2px 5px;
-    border-radius: 3px;
-    margin: 0 2px;
-    font-size: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* New element types */
-.text-element {
-    background: transparent;
-    color: #e0e0e0;
-    font-size: 14px;
-    line-height: 1.4;
-    padding: 4px;
-    border: none;
-    outline: none;
-    resize: none;
-    font-family: inherit;
-}
-
-/* Text element in editing mode */
-.text-element.editing {
-    background: rgba(255, 255, 255, 0.05);
-    outline: 2px solid rgba(100, 150, 255, 0.5);
-    outline-offset: -1px;
-    cursor: text;
-}
-
-.text-element.editing::selection {
-    background-color: rgba(100, 150, 255, 0.3);
-    color: #ffffff;
-}
-
-/* Any element in editing mode (for static text elements like h3, p, etc.) */
-.editing {
-    background: rgba(255, 255, 255, 0.05) !important;
-    outline: 2px solid rgba(100, 150, 255, 0.5) !important;
-    outline-offset: -1px !important;
-    cursor: text !important;
-}
-
-.editing::selection {
-    background-color: rgba(100, 150, 255, 0.3) !important;
-    color: #ffffff !important;
-}
-
-.line-element {
-    background: #e0e0e0;
-    border: none;
-    border-radius: 0;
-}
-
-.circle-element {
-    background: #4a4a4a;
-    border: 2px solid #666;
-    border-radius: 50%;
-}
-
-.button-element {
+/* Buttons (generic and element-style) */
+.frame-content button,
+.frame-content .button-element {
     background: #3a3a3a;
     color: #e0e0e0;
     border: 1px solid #555;
@@ -410,317 +51,48 @@ body.shift-selecting {
     font-family: inherit;
 }
 
-.button-element:hover {
+.frame-content button:hover,
+.frame-content .button-element:hover {
     background: #4a4a4a;
 }
 
-/* Input wrapper for resize handle support */
-.input-wrapper {
-    background: #2a2a2a;
-    border: 1px solid #555;
-    border-radius: 4px;
-    padding: 6px 10px;
-    overflow: hidden;
-}
-
-.input-wrapper:focus-within {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.input-element {
+/* Text Elements */
+.frame-content .text-element {
     background: transparent;
-    color: #e0e0e0;
-    border: none;
-    padding: 0;
-    margin: 0;
+    color: inherit;
     font-size: 14px;
+    line-height: 1.4;
+    padding: 4px;
+    border: none;
+    outline: none;
+    resize: none;
     font-family: inherit;
-    outline: none;
 }
 
-.input-element:focus {
-    outline: none;
+/* Line Element */
+.frame-content .line-element {
+    background: #e0e0e0;
+    border: none;
+    border-radius: 0;
 }
 
-/* Element being placed */
-.placing-element {
-    position: fixed;
-    pointer-events: none;
-    z-index: 10002;
-    opacity: 0.8;
-}
-
-/* Mode Toggle */
-#mode-toggle-container {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(26, 26, 26, 0.9);
-    padding: 8px 16px;
-    border-radius: 24px;
-    border: 1px solid #333;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-.mode-label {
-    color: #999;
-    font-size: 13px;
-    font-weight: 500;
-    user-select: none;
-}
-
-[data-canvas-mode="edit"] .mode-label:first-child,
-[data-canvas-mode="interactive"] .mode-label:last-child {
-    color: #e0e0e0;
-}
-
-.mode-toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-}
-
-.mode-toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.mode-toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #4a4a4a;
-    transition: .3s;
-    border-radius: 24px;
-}
-
-.mode-toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #e0e0e0;
-    transition: .3s;
+/* Circle Element */
+.frame-content .circle-element {
+    background: #4a4a4a;
+    border: 2px solid #666;
     border-radius: 50%;
 }
 
-input:checked + .mode-toggle-slider {
-    background-color: #3b82f6;
-}
-
-input:checked + .mode-toggle-slider:before {
-    transform: translateX(20px);
-}
-
-/* Interactive mode styling */
-[data-canvas-mode="interactive"] .resize-handle {
-    display: none !important;
-}
-
-/* Remove selection outline in interactive mode */
-[data-canvas-mode="interactive"] .selected,
-[data-canvas-mode="interactive"] .preview-selected {
-    outline: none !important;
-}
-
-[data-canvas-mode="interactive"] .frame,
-[data-canvas-mode="interactive"] .element-frame,
-[data-canvas-mode="interactive"] .free-floating {
-    cursor: default !important;
-}
-
-[data-canvas-mode="interactive"] .frame-title,
-[data-canvas-mode="interactive"] .frame-content {
-    cursor: default !important;
-}
-
-/* Hide marquee selection in interactive mode */
-[data-canvas-mode="interactive"] #marquee-selection {
-    display: none !important;
-}
-
-/* Code Editor Panel */
-#code-editor-panel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    width: 400px;
-    background: #1a1a1a;
-    border-left: 2px solid #333;
-    display: none;
-    flex-direction: row;
-    z-index: 1000;
-    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
-}
-
-#code-editor-resizer {
-    width: 6px;
-    background: #333;
-    cursor: ew-resize;
-    flex-shrink: 0;
-    transition: background-color 0.2s;
-    position: relative;
-}
-
-#code-editor-resizer:hover {
-    background: #555;
-}
-
-#code-editor-resizer:before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 2px;
-    height: 40px;
-    background: #666;
-    border-radius: 1px;
-}
-
-#code-editor-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: #1a1a1a;
-}
-
-#code-editor-header {
-    background: #2a2a2a;
-    padding: 12px 16px;
-    border-bottom: 1px solid #333;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 13px;
-    font-weight: 500;
-    color: #e0e0e0;
-}
-
-#mode-toggle {
-    display: flex;
-    background: #1a1a1a;
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid #333;
-}
-
-.mode-toggle-btn {
+/* Input Element */
+.frame-content .input-wrapper {
     background: transparent;
-    color: #999;
+    color: inherit;
     border: none;
-    padding: 6px 12px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border-right: 1px solid #333;
-}
-
-.mode-toggle-btn:last-child {
-    border-right: none;
-}
-
-.mode-toggle-btn:hover {
-    background: #333;
-    color: #e0e0e0;
-}
-
-.mode-toggle-btn.active {
-    background: #6366f1;
-    color: #fff;
-}
-
-
-#code-editor-textarea {
-    flex: 1;
-    background: #0f0f0f;
-    color: #e0e0e0;
-    border: none;
-    padding: 16px;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    resize: none;
-    outline: none;
-    tab-size: 2;
-    white-space: pre;
-    overflow-wrap: normal;
-    word-break: normal;
-}
-
-#code-editor-textarea:focus {
-    background: #131313;
-}
-
-#code-editor-textarea:disabled {
-    background: #0a0a0a;
-    color: #666;
-    cursor: not-allowed;
-}
-
-/* Scrollbar styling for the textarea */
-#code-editor-textarea::-webkit-scrollbar {
-    width: 8px;
-}
-
-#code-editor-textarea::-webkit-scrollbar-track {
-    background: #1a1a1a;
-}
-
-#code-editor-textarea::-webkit-scrollbar-thumb {
-    background: #555;
-    border-radius: 4px;
-}
-
-#code-editor-textarea::-webkit-scrollbar-thumb:hover {
-    background: #666;
-}
-
-/* Adjust body padding when code editor is visible */
-body.code-editor-visible {
-    padding-right: 400px;
-}
-
-/* Responsive behavior - hide on very small screens */
-@media (max-width: 800px) {
-    #code-editor-panel {
-        display: none !important;
-    }
-    
-    body.code-editor-visible {
-        padding-right: 0;
-    }
-}
-
-/* Selection highlight in textarea */
-#code-editor-textarea::selection {
-    background: rgba(59, 130, 246, 0.3);
-}
-
-/* Placeholder styling when no element is selected */
-#code-editor-textarea:empty:before {
-    content: "Select an element to view its code...";
-    color: #666;
-    font-style: italic;
-}
-
-/* Preserve spaces in elements being edited */
-.editing {
-    white-space: pre-wrap !important;
-    word-wrap: break-word;
+    padding: 8px;
+    margin: 0;
+    font-size: 14px;
+    font-family: inherit;
+    outline: 1px solid #555;
 }</script>
 </head>
 <body>
