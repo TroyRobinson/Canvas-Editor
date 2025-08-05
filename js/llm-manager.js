@@ -9,10 +9,10 @@
     'use strict';
 
     const OPENROUTER_API_KEY = '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';
-    const OPENROUTER_MODEL = 'qwen/qwen3-coder';
+    const OPENROUTER_MODEL = 'moonshotai/kimi-k2:nitro';
     const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-    const ENHANCEMENT_PROMPT = "You are an expert web software developer, review the attached html code for insights on the user's intended functionality and respond with the full script tag and (if necessary) the style tag to make the code accurate to the user intended functionality";
+    const ENHANCEMENT_PROMPT = "You are an expert web software developer, review the attached html code for insights on the user's intended functionality and respond with the full script tag and (if necessary) the style tag to make the code accurate to the user intended functionality. IMPORTANT CONSTRAINTS: 1) Do NOT use document.addEventListener('DOMContentLoaded', ...) in your scripts because they are executed dynamically after the page has loaded. Execute code immediately or wrap in an IIFE (immediately invoked function expression). 2) Elements with class 'free-floating' have 'transition: none !important' in CSS, so use CSS animations with @keyframes instead of CSS transitions for any animated effects. 3) When creating new elements dynamically, ALWAYS append them to the frame content area, NOT to document.body. Use 'document.currentScript.closest(\".frame-content\")' or find the button's closest frame-content to get the proper container. This ensures new elements stay within the frame. 4) Make scripts work with ALL elements of a type (e.g., ALL buttons), not just specific IDs. Use querySelectorAll and forEach to apply behaviors to multiple elements. Also use MutationObserver to automatically apply behaviors to elements that get dragged into the frame later.";
 
     /**
      * Extract HTML content from a frame, stripping out script and style tag contents
@@ -55,18 +55,33 @@
             style: ''
         };
 
-        // Extract script content using regex
-        const scriptMatch = response.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+        // Extract script content using regex - try complete tags first, then incomplete
+        let scriptMatch = response.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
         if (scriptMatch) {
             result.script = scriptMatch[1].trim();
+        } else {
+            // Try to match incomplete script tag (missing closing tag)
+            scriptMatch = response.match(/<script[^>]*>([\s\S]*?)$/i);
+            if (scriptMatch) {
+                result.script = scriptMatch[1].trim();
+                console.log('Found incomplete script tag, extracted content:', result.script);
+            }
         }
 
-        // Extract style content using regex
-        const styleMatch = response.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+        // Extract style content using regex - try complete tags first, then incomplete
+        let styleMatch = response.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
         if (styleMatch) {
             result.style = styleMatch[1].trim();
+        } else {
+            // Try to match incomplete style tag (missing closing tag)
+            styleMatch = response.match(/<style[^>]*>([\s\S]*?)(?=<script|$)/i);
+            if (styleMatch) {
+                result.style = styleMatch[1].trim();
+                console.log('Found incomplete style tag, extracted content:', result.style);
+            }
         }
 
+        console.log('Parsing result:', result);
         return result;
     }
 
@@ -195,8 +210,8 @@
                         content: `${ENHANCEMENT_PROMPT}\n\nHTML code to analyze:\n\n${htmlContent}`
                     }
                 ],
-                temperature: 0.7,
-                max_tokens: 2000
+                temperature: 0,
+                max_tokens: 10000
             })
         });
 
