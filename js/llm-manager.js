@@ -124,6 +124,10 @@
     function showLoadingSpinner(frame) {
         if (!frame) return null;
 
+        // Find the frame title bar
+        const titleBar = frame.querySelector('.frame-title');
+        if (!titleBar) return null;
+
         // Create spinner element
         const spinner = document.createElement('div');
         spinner.className = 'llm-loading-spinner';
@@ -131,40 +135,40 @@
             <div class="spinner-circle"></div>
         `;
 
-        // Position spinner relative to frame
-        const rect = frame.getBoundingClientRect();
-        const canvasRect = document.getElementById('canvas').getBoundingClientRect();
-        
-        spinner.style.position = 'absolute';
-        spinner.style.left = (rect.right - canvasRect.left + 10) + 'px';
-        spinner.style.top = (rect.top - canvasRect.top) + 'px';
-        spinner.style.zIndex = '10000';
-
         // Add spinner styles if not already present
         if (!document.querySelector('#llm-spinner-styles')) {
             const styles = document.createElement('style');
             styles.id = 'llm-spinner-styles';
             styles.textContent = `
+                .frame-title {
+                    position: relative;
+                }
+                
                 .llm-loading-spinner {
-                    width: 24px;
-                    height: 24px;
+                    position: absolute;
+                    right: 8px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 20px;
+                    height: 20px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: rgba(0, 0, 0, 0.8);
+                    background: rgba(0, 0, 0, 0.6);
                     border-radius: 50%;
+                    z-index: 10;
                 }
                 
                 .spinner-circle {
-                    width: 16px;
-                    height: 16px;
-                    border: 2px solid #333;
+                    width: 12px;
+                    height: 12px;
+                    border: 2px solid #555;
                     border-top: 2px solid #fff;
                     border-radius: 50%;
-                    animation: spin 1s linear infinite;
+                    animation: llm-spin 1s linear infinite;
                 }
                 
-                @keyframes spin {
+                @keyframes llm-spin {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
                 }
@@ -172,8 +176,8 @@
             document.head.appendChild(styles);
         }
 
-        // Add to canvas
-        document.getElementById('canvas').appendChild(spinner);
+        // Add spinner to the title bar
+        titleBar.appendChild(spinner);
 
         return spinner;
     }
