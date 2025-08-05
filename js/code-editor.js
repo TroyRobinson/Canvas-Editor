@@ -266,8 +266,22 @@
         // Show a summary or combined code for multiple elements
         let combinedCode = '<!-- Multiple elements selected -->\n';
         elements.forEach((element, index) => {
-            const cleanElement = cleanElementForSerialization(element);
-            combinedCode += `<!-- Element ${index + 1} -->\n`;
+            let elementToShow = element;
+            
+            // If the element is a frame, show only the frame-content HTML
+            if (element.classList.contains('frame')) {
+                const frameContent = element.querySelector('.frame-content');
+                if (frameContent) {
+                    elementToShow = frameContent;
+                    combinedCode += `<!-- Frame ${index + 1} Content -->\n`;
+                } else {
+                    combinedCode += `<!-- Frame ${index + 1} (no content) -->\n`;
+                }
+            } else {
+                combinedCode += `<!-- Element ${index + 1} -->\n`;
+            }
+            
+            const cleanElement = cleanElementForSerialization(elementToShow);
             combinedCode += formatHTML(cleanElement.outerHTML) + '\n\n';
         });
         
@@ -295,7 +309,19 @@
         isUpdatingFromCanvas = true;
         
         try {
-            const cleanElement = cleanElementForSerialization(currentSelectedElement);
+            let elementToShow = currentSelectedElement;
+            
+            // If the selected element is a frame, show only the frame-content HTML
+            if (currentSelectedElement.classList.contains('frame')) {
+                const frameContent = currentSelectedElement.querySelector('.frame-content');
+                if (frameContent) {
+                    elementToShow = frameContent;
+                } else {
+                    console.warn('Frame selected but no frame-content found');
+                }
+            }
+            
+            const cleanElement = cleanElementForSerialization(elementToShow);
             const formattedHTML = formatHTML(cleanElement.outerHTML);
             
             // Preserve cursor position if user is actively editing
@@ -440,44 +466,100 @@
             
             const newElement = tempContainer.children[0];
             
-            // Preserve the original element's ID to maintain undo system tracking
-            if (currentSelectedElement.id && !newElement.id) {
-                newElement.id = currentSelectedElement.id;
+            // Check if we're editing a frame's content
+            if (currentSelectedElement.classList.contains('frame')) {
+                const frameContent = currentSelectedElement.querySelector('.frame-content');
+                if (frameContent) {
+                    // Replace only the frame-content, not the entire frame
+                    const newFrameContent = newElement;
+                    
+                    // Preserve the frame-content class
+                    if (!newFrameContent.classList.contains('frame-content')) {
+                        newFrameContent.classList.add('frame-content');
+                    }
+                    
+                    // Preserve the original frame-content's ID if it has one
+                    if (frameContent.id && !newFrameContent.id) {
+                        newFrameContent.id = frameContent.id;
+                    }
+                    
+                    // Replace the frame-content
+                    const parent = frameContent.parentNode;
+                    const nextSibling = frameContent.nextSibling;
+                    parent.removeChild(frameContent);
+                    parent.insertBefore(newFrameContent, nextSibling);
+                    
+                    // Ensure all elements are properly processed by the selection system
+                    if (window.makeContainerElementsSelectable) {
+                        window.makeContainerElementsSelectable(newFrameContent);
+                    }
+                    
+                    // Re-setup content tracking and extraction for the new frame content
+                    if (window.ensureAllElementsHaveIds) {
+                        window.ensureAllElementsHaveIds(newFrameContent);
+                    }
+                    
+                    // Make static elements selectable individually
+                    newFrameContent.querySelectorAll('h3, p, button').forEach(element => {
+                        if (window.makeSelectable) {
+                            window.makeSelectable(element);
+                        }
+                    });
+                    
+                    // Activate scripts for the frame (this will include the new content)
+                    if (window.scriptManager && window.scriptManager.activateScripts) {
+                        window.scriptManager.activateScripts(currentSelectedElement);
+                    }
+                    
+                    // Keep the frame selected (not the frame-content)
+                    // The observation remains on the frame, not the content
+                    
+                } else {
+                    console.warn('Frame selected but no frame-content found for editing');
+                    throw new Error('Frame content not found');
+                }
+            } else {
+                // Normal element replacement logic for non-frames
+                
+                // Preserve the original element's ID to maintain undo system tracking
+                if (currentSelectedElement.id && !newElement.id) {
+                    newElement.id = currentSelectedElement.id;
+                }
+                
+                // Preserve the element's position and container
+                const parent = currentSelectedElement.parentNode;
+                const nextSibling = currentSelectedElement.nextSibling;
+                
+                // Replace the element
+                parent.removeChild(currentSelectedElement);
+                parent.insertBefore(newElement, nextSibling);
+                
+                // Update the current reference
+                const oldElement = currentSelectedElement;
+                currentSelectedElement = newElement;
+                
+                // Ensure all elements are properly processed by the selection system first
+                if (window.makeContainerElementsSelectable) {
+                    window.makeContainerElementsSelectable(newElement);
+                }
+                
+                // Re-setup element behaviors
+                setupElementBehaviors(newElement);
+                
+                // Also setup behaviors for child elements that need special treatment
+                setupChildElementBehaviors(newElement);
+                
+                // Update selection to the new element
+                if (window.selectElement) {
+                    window.selectElement(newElement);
+                }
+                
+                // Restart observation on the new element
+                if (mutationObserver) {
+                    mutationObserver.disconnect();
+                }
+                startObservingElement(newElement);
             }
-            
-            // Preserve the element's position and container
-            const parent = currentSelectedElement.parentNode;
-            const nextSibling = currentSelectedElement.nextSibling;
-            
-            // Replace the element
-            parent.removeChild(currentSelectedElement);
-            parent.insertBefore(newElement, nextSibling);
-            
-            // Update the current reference
-            const oldElement = currentSelectedElement;
-            currentSelectedElement = newElement;
-            
-            // Ensure all elements are properly processed by the selection system first
-            if (window.makeContainerElementsSelectable) {
-                window.makeContainerElementsSelectable(newElement);
-            }
-            
-            // Re-setup element behaviors
-            setupElementBehaviors(newElement);
-            
-            // Also setup behaviors for child elements that need special treatment
-            setupChildElementBehaviors(newElement);
-            
-            // Update selection to the new element
-            if (window.selectElement) {
-                window.selectElement(newElement);
-            }
-            
-            // Restart observation on the new element
-            if (mutationObserver) {
-                mutationObserver.disconnect();
-            }
-            startObservingElement(newElement);
             
         } catch (error) {
             console.error('Error applying code changes:', error);
@@ -544,17 +626,38 @@
     // Snapshot system for canvas undo integration
     function takeInitialSnapshot() {
         if (currentSelectedElement && !elementSnapshot) {
+            let elementToSnapshot = currentSelectedElement;
+            
+            // If the selected element is a frame, snapshot the frame-content instead
+            if (currentSelectedElement.classList.contains('frame')) {
+                const frameContent = currentSelectedElement.querySelector('.frame-content');
+                if (frameContent) {
+                    elementToSnapshot = frameContent;
+                }
+            }
+            
             elementSnapshot = {
-                elementId: currentSelectedElement.id,
-                originalHTML: cleanElementForSerialization(currentSelectedElement).outerHTML,
-                timestamp: Date.now()
+                elementId: currentSelectedElement.id, // Always use the frame's ID for tracking
+                originalHTML: cleanElementForSerialization(elementToSnapshot).outerHTML,
+                timestamp: Date.now(),
+                isFrameContent: currentSelectedElement.classList.contains('frame') // Track if this was frame content
             };
         }
     }
     
     function recordFinalSnapshot() {
         if (elementSnapshot && currentSelectedElement && currentSelectedElement.id === elementSnapshot.elementId) {
-            const currentHTML = cleanElementForSerialization(currentSelectedElement).outerHTML;
+            let elementToSnapshot = currentSelectedElement;
+            
+            // If the snapshot was for frame content, compare frame content
+            if (elementSnapshot.isFrameContent && currentSelectedElement.classList.contains('frame')) {
+                const frameContent = currentSelectedElement.querySelector('.frame-content');
+                if (frameContent) {
+                    elementToSnapshot = frameContent;
+                }
+            }
+            
+            const currentHTML = cleanElementForSerialization(elementToSnapshot).outerHTML;
             
             // Only record if there was an actual change
             if (currentHTML !== elementSnapshot.originalHTML) {
