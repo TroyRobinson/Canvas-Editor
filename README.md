@@ -75,6 +75,8 @@ Comprehensive CSS styling defining:
 **Purpose**: Frame and element-frame creation and management
 - `createFrame()` - Creates full HTML frames with title bars and content areas
 - `createElementFrame()` - Creates simple container frames for grouping elements
+- **Default script/style tags**: All frames include empty `<style>` and `<script>` tags at bottom of frame-content
+- **Smart element insertion**: New elements are inserted before script/style tags to maintain code template position
 - Automatic setup of drag, resize, and extraction capabilities
 - **Static element tracking**: MutationObserver assigns unique IDs to all static elements
 - **Content change detection**: Tracks text modifications in static elements (pauses during active editing)
@@ -239,7 +241,7 @@ Comprehensive CSS styling defining:
 #### `js/code-editor.js`
 **Purpose**: Right-side resizable code pane with bi-directional editing for HTML and CSS
 - **HTML/CSS Mode Toggle**: Switch between editing element HTML and global CSS styles
-- **Real-time Code View**: Shows exact HTML of selected elements OR global CSS with live updates
+- **Real-time Code View**: Shows exact HTML of selected elements (frame-content only for frames) OR global CSS with live updates
 - **Automatic Code Application**: Changes apply automatically with 200ms debounce
 - **Bi-directional Sync**: Code changes update canvas, canvas changes update code
 - **CSS Global Editing**: Live CSS editing with immediate visual feedback across all canvas elements
