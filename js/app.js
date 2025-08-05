@@ -102,8 +102,8 @@ window.addEventListener('load', () => {
     
     // Add keyboard shortcut to create new frames
     document.addEventListener('keydown', (e) => {
-        // Mode toggle with Cmd/Ctrl + I
-        if (e.key === 'i' && (e.metaKey || e.ctrlKey)) {
+        // Interactive Mode toggle with Cmd/Ctrl + I
+        if (e.key === 'e' && (e.metaKey || e.ctrlKey)) {
             e.preventDefault();
             if (window.canvasMode) {
                 window.canvasMode.toggleMode();
