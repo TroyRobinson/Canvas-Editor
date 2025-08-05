@@ -231,5 +231,21 @@ window.addEventListener('load', () => {
                 window.undoManager.redo();
             }
         }
+        
+        // AI Enhancement with Cmd/Ctrl + R
+        if (e.key === 'r' && (e.metaKey || e.ctrlKey)) {
+            // Protect situations where user is typing in input fields or code editor
+            if (e.target.tagName === 'INPUT' || 
+                e.target.tagName === 'TEXTAREA' || 
+                e.target.contentEditable === 'true' ||
+                (window.codeEditor && window.codeEditor.isActive())) {
+                return; // Allow normal refresh behavior in text fields
+            }
+            
+            e.preventDefault();
+            if (window.llmManager && window.llmManager.handleAIEnhancementShortcut) {
+                window.llmManager.handleAIEnhancementShortcut();
+            }
+        }
     });
 });
