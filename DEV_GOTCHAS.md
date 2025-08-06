@@ -86,3 +86,9 @@ parent.insertBefore(newFrameContent, nextSibling);
 ```
 
 **Lesson**: All code application processes (AI, manual editing, mode switching) must use complete element replacement to prevent content/handler accumulation
+
+### AI-Generated Script Event Handler Issues
+**Problem**: LLM generating inconsistent data attribute patterns causing broken button handlers
+**Example**: Using `data-cat-click-handler="true"` + `data-duck-handler-attached="true"` but checking `!== 'true'` when HTML already contains `="true"`
+**Solution**: Added constraint #5 to LLM prompt requiring standardized `data-initialized` attribute pattern
+**Pattern**: `function initializeElement(element) { if (element.dataset.initialized) return; /* attach handler */; element.dataset.initialized = 'true'; }`
