@@ -203,15 +203,19 @@ Comprehensive CSS styling defining:
 - **Key relationships**: Orchestrates the other modules and provides entry point
 
 #### `js/mode-manager.js`
-**Purpose**: Canvas mode switching between edit and interactive modes
+**Purpose**: Canvas mode switching between edit and interactive modes with code isolation
 - **Edit Mode**: Default mode for creating, selecting, and manipulating elements
 - **Interactive Mode**: Allows interaction with button onclick handlers and input fields
+- **Code Isolation**: Automatically stores all frame code when entering interactive mode, restores on exit
+- **Proper Cleanup**: Uses element replacement (not innerHTML) to prevent event handler accumulation
 - **Mode Toggle UI**: Checkbox switch in top-right corner for quick mode changes
 - **Visual Feedback**: CSS-driven hiding of selection indicators in interactive mode
 - **Key relationships**: 
   - Modifies canvas container's `data-canvas-mode` attribute
   - CSS rules in styles.css respond to mode changes
-  - Preserves element selection state across mode transitions
+  - Uses script-manager.js for proper script activation after restoration
+  - Calls Canvas behavior setup functions (makeSelectable, setupElementDragging, etc.)
+  - **CRITICAL**: Other modules should never use innerHTML replacement for elements with scripts - use removeChild() + insertBefore() pattern instead
 
 #### `js/css-manager.js`
 **Purpose**: Centralized CSS loading, persistence, application, and recovery

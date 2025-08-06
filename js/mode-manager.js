@@ -2,6 +2,9 @@
 (function() {
     'use strict';
 
+    // Storage for frame code snapshots
+    const frameCodeStorage = new Map();
+
     // Initialize mode state
     window.canvasMode = {
         mode: 'edit', // Default to edit mode
@@ -11,6 +14,15 @@
             
             // Exit any active operations before switching
             this.exitAllActiveOperations();
+            
+            // Handle code storage/restoration based on mode transition
+            if (this.mode === 'edit' && newMode === 'interactive') {
+                // Store all frame code before entering interactive mode
+                this.storeAllFrameCode();
+            } else if (this.mode === 'interactive' && newMode === 'edit') {
+                // Restore all frame code when exiting interactive mode
+                this.restoreAllFrameCode();
+            }
             
             this.mode = newMode;
             document.body.setAttribute('data-canvas-mode', newMode);
@@ -89,6 +101,107 @@
             
             // Insert at the beginning of body
             document.body.insertBefore(toggleContainer, document.body.firstChild);
+        },
+        
+        // Store code copies of all frames when entering interactive mode
+        storeAllFrameCode() {
+            console.log('📋 STORING: Frame code for interactive mode');
+            frameCodeStorage.clear(); // Clear any existing storage
+            
+            // Find all frames
+            const frames = document.querySelectorAll('.frame');
+            frames.forEach(frame => {
+                const frameContent = frame.querySelector('.frame-content');
+                if (frameContent) {
+                    // Store the complete innerHTML of the frame content
+                    frameCodeStorage.set(frame.id, frameContent.innerHTML);
+                    console.log(`💾 STORED: Code for frame ${frame.id}`);
+                }
+            });
+        },
+        
+        // Restore frame code when exiting interactive mode
+        restoreAllFrameCode() {
+            console.log('🔄 RESTORING: Frame code from edit mode');
+            
+            frameCodeStorage.forEach((storedHTML, frameId) => {
+                const frame = document.getElementById(frameId);
+                if (!frame) {
+                    console.warn(`⚠️ RESTORE: Frame ${frameId} not found, skipping`);
+                    return;
+                }
+                
+                const oldFrameContent = frame.querySelector('.frame-content');
+                if (!oldFrameContent) {
+                    console.warn(`⚠️ RESTORE: Frame content not found for ${frameId}, skipping`);
+                    return;
+                }
+                
+                // Create new frame-content element from stored HTML (proper cleanup approach)
+                const newFrameContent = document.createElement('div');
+                newFrameContent.className = 'frame-content';
+                newFrameContent.innerHTML = storedHTML;
+                
+                // Use proper element replacement to strip all old event handlers
+                const parent = oldFrameContent.parentElement;
+                const nextSibling = oldFrameContent.nextSibling;
+                
+                // CRITICAL: Remove old element completely (strips all event handlers)
+                parent.removeChild(oldFrameContent);
+                parent.insertBefore(newFrameContent, nextSibling);
+                
+                console.log(`✅ RESTORED: Code for frame ${frameId} with proper cleanup`);
+                
+                // Re-establish all necessary behaviors after code restoration
+                this.reestablishFrameBehaviors(frame);
+            });
+            
+            // Clear storage after restoration
+            frameCodeStorage.clear();
+        },
+        
+        // Re-establish all Canvas behaviors and script activation after code restoration
+        reestablishFrameBehaviors(frame) {
+            const frameContent = frame.querySelector('.frame-content');
+            if (!frameContent) return;
+            
+            console.log(`🔧 RE-ESTABLISHING: Behaviors for frame ${frame.id}`);
+            
+            // Ensure all elements have IDs for tracking
+            if (window.ensureAllElementsHaveIds) {
+                window.ensureAllElementsHaveIds(frameContent);
+            }
+            
+            // Make static elements selectable
+            frameContent.querySelectorAll('*').forEach(element => {
+                if (!element.classList.contains('free-floating') && 
+                    !element.classList.contains('resize-handle') &&
+                    window.makeSelectable) {
+                    window.makeSelectable(element);
+                }
+            });
+            
+            // Re-establish container behaviors
+            if (window.makeContainerElementsSelectable) {
+                window.makeContainerElementsSelectable(frameContent);
+            }
+            
+            // Setup element extraction for the frame content
+            if (window.setupElementExtraction) {
+                window.setupElementExtraction(frameContent);
+            }
+            
+            // Activate scripts for this frame
+            if (window.scriptManager && window.scriptManager.activateScripts) {
+                window.scriptManager.activateScripts(frame);
+            }
+            
+            // Refresh selection visuals if elements are selected
+            if (window.refreshSelectionVisuals) {
+                window.refreshSelectionVisuals();
+            }
+            
+            console.log(`✨ COMPLETED: Behavior re-establishment for frame ${frame.id}`);
         }
     };
 
