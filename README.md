@@ -357,11 +357,12 @@ Comprehensive CSS styling defining:
 
 ### Script Activation Workflow
 1. **Insert `<script>` tags** in element code → Scripts activate automatically when code is applied
-2. **Container Scoping**: `document.querySelectorAll()` finds elements only within the script's container
-3. **Element Movement**: When elements move OUT of scripted containers → event handlers are cleaned up via cloning
-4. **Element Movement**: When elements move INTO scripted containers → new event handlers are applied automatically
-5. **Advanced Scripts**: `document.currentScript.closest('.frame')` works for container detection
-6. **Canvas Behaviors Preserved**: Drag, resize, and selection behaviors remain intact through all script operations
+2. **Handler Tracking Reset**: All `data-initialized` attributes are cleared before script activation for fresh initialization
+3. **Container Scoping**: `document.querySelectorAll()` finds elements only within the script's container
+4. **Element Movement**: When elements move OUT of scripted containers → event handlers are cleaned up via cloning
+5. **Element Movement**: When elements move INTO scripted containers → new event handlers are applied automatically
+6. **Advanced Scripts**: `document.currentScript.closest('.frame')` works for container detection (capture during initialization, not in event handlers)
+7. **Canvas Behaviors Preserved**: Drag, resize, and selection behaviors remain intact through all script operations
 
 ### Deletion Workflow
 1. Select any element(s) using single-click, shift+click, or marquee selection
