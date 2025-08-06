@@ -90,5 +90,6 @@ parent.insertBefore(newFrameContent, nextSibling);
 ### AI-Generated Script Event Handler Issues
 **Problem**: LLM generating inconsistent data attribute patterns causing broken button handlers
 **Example**: Using `data-cat-click-handler="true"` + `data-duck-handler-attached="true"` but checking `!== 'true'` when HTML already contains `="true"`
-**Solution**: Added constraint #5 to LLM prompt requiring standardized `data-initialized` attribute pattern
-**Pattern**: `function initializeElement(element) { if (element.dataset.initialized) return; /* attach handler */; element.dataset.initialized = 'true'; }`
+**Solution**: Added constraint #5 to LLM prompt requiring standardized `data-initialized` attribute pattern + script-manager.js now clears stale tracking attributes
+**LLM Pattern**: `function initializeElement(element) { if (element.dataset.initialized) return; /* attach handler */; element.dataset.initialized = 'true'; }`
+**System Fix**: `script-manager.js` calls `clearHandlerTrackingAttributes()` before script activation to remove stale `data-initialized` attributes that persist after mode switches/AI regeneration

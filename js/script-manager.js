@@ -20,6 +20,9 @@
             }
         });
         
+        // Clear all handler initialization tracking attributes before script activation
+        clearHandlerTrackingAttributes(element);
+        
         // Clean up any existing script handlers for this container before activating new ones
         cleanupContainerScripts(element);
         
@@ -43,6 +46,34 @@
                 script.dataset.activated = 'true';
             }
         });
+    }
+
+    // Clear all handler initialization tracking attributes to ensure fresh script initialization
+    function clearHandlerTrackingAttributes(element) {
+        // Clear data-initialized attributes from all elements in the container
+        const elementsWithTracking = element.querySelectorAll('[data-initialized]');
+        elementsWithTracking.forEach(el => {
+            delete el.dataset.initialized;
+        });
+        
+        // Also clear other common tracking attributes used by scripts
+        const otherTrackingSelectors = [
+            '[data-handler-attached]',
+            '[data-duck-handler-attached]',
+            '[data-cat-click-handler]',
+            '[data-button-initialized]'
+        ];
+        
+        otherTrackingSelectors.forEach(selector => {
+            const elements = element.querySelectorAll(selector);
+            elements.forEach(el => {
+                // Remove the attribute entirely
+                const attrName = selector.slice(1, -1); // Remove [ and ]
+                el.removeAttribute(attrName);
+            });
+        });
+        
+        console.log(`🔄 CLEARED: Handler tracking attributes for container ${element.id}`);
     }
 
     // Clean up existing script handlers for a container (when scripts are re-activated)

@@ -256,6 +256,8 @@ Comprehensive CSS styling defining:
   - Use `@keyframes` animations instead of CSS transitions (`.free-floating` has `transition: none !important`)
   - Append elements to frame content area, not `document.body`
   - Target ALL elements of type with `querySelectorAll`, use `MutationObserver` for dynamic elements
+  - Use standardized `data-initialized` attribute pattern for event handler tracking
+  - Avoid manipulating Canvas system properties (`contenteditable`, `data-selectable`, etc.)
 - **Key relationships**:
   - Uses script-manager.js for script re-activation
   - Coordinates with selection.js to get selected frames
