@@ -52,3 +52,37 @@ parent.insertBefore(newFrameContent, nextSibling);  // Fresh clean element
 **Pattern**: Always use complete element replacement with `removeChild()` + `insertBefore()`
 **Follow-up**: Re-establish all Canvas behaviors after replacement (selection, drag, resize, scripts)
 **Verification**: Check console for handler cleanup logs to ensure proper cleanup occurred
+
+### AI Enhancement Content Accumulation Issue
+**Problem**: AI-generated scripts creating content that accumulates (cat + duck emojis from different script versions)
+**Root Cause**: `llm-manager.js` was only updating script/style tags but not cleaning existing generated DOM content
+**Symptom**: Multiple emoji types or other generated content appearing from previous AI enhancements
+
+### The AI vs Manual vs Mode Manager Difference
+**AI Enhancement (OLD)**: Only replaced script/style tag content → Old generated content remained in DOM
+**Manual Code Editor**: Complete frame-content replacement → Clean slate for each edit
+**Mode Manager**: Complete frame-content replacement → Clean restoration from storage
+
+### AI Enhancement Proper Cleanup Solution
+**WRONG approach (causes content accumulation):**
+```javascript
+// Only update script tag, leave existing generated content
+scriptTag.textContent = newScript;
+styleTag.textContent = newStyle;
+```
+
+**CORRECT approach (clean slate for each AI enhancement):**
+```javascript
+// Extract clean template (same as sent to AI)
+const cleanHTML = extractCleanHTML(frame);
+const newFrameContent = document.createElement('div');
+newFrameContent.innerHTML = cleanHTML;
+// Update with new AI content
+scriptTag.textContent = newScript;
+styleTag.textContent = newStyle;
+// Complete element replacement
+parent.removeChild(oldFrameContent);
+parent.insertBefore(newFrameContent, nextSibling);
+```
+
+**Lesson**: All code application processes (AI, manual editing, mode switching) must use complete element replacement to prevent content/handler accumulation

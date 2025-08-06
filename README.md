@@ -244,10 +244,11 @@ Comprehensive CSS styling defining:
   - **Design Decision**: Separated from code-editor.js for single responsibility and reusability
 
 #### `js/llm-manager.js`
-**Purpose**: AI-powered code enhancement via OpenRouter API integration
+**Purpose**: AI-powered code enhancement via OpenRouter API integration with proper cleanup
 - **Frame Enhancement**: Analyzes selected frame HTML and generates improved script/style code using AI
 - **API Integration**: Uses OpenRouter for code generation
 - **Smart HTML Processing**: Strips existing script/style content before sending to AI, then parses response
+- **Proper Cleanup**: Uses complete element replacement to prevent content accumulation between AI enhancements
 - **Visual Feedback**: Shows loading spinner in frame title bar that moves with frame
 - **Script Re-activation**: Automatically reactivates scripts after code insertion
 - **Key constraints for AI-generated code**:
@@ -258,6 +259,7 @@ Comprehensive CSS styling defining:
 - **Key relationships**:
   - Uses script-manager.js for script re-activation
   - Coordinates with selection.js to get selected frames
+  - Follows same cleanup pattern as code-editor.js and mode-manager.js (element replacement not innerHTML)
 
 #### `js/code-editor.js`
 **Purpose**: Right-side resizable code pane with bi-directional editing for HTML and CSS

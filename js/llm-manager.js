@@ -86,34 +86,93 @@
     }
 
     /**
-     * Insert parsed script and style content back into frame
+     * Insert AI-generated content into frame with proper cleanup (prevents content accumulation)
      * @param {HTMLElement} frame - The target frame
      * @param {Object} parsedContent - Object with script and style content
      */
     function insertContentIntoFrame(frame, parsedContent) {
         if (!frame) return;
 
-        const frameContent = frame.querySelector('.frame-content');
-        if (!frameContent) return;
+        const oldFrameContent = frame.querySelector('.frame-content');
+        if (!oldFrameContent) return;
 
-        // Find existing script and style tags
-        const scriptTag = frameContent.querySelector('script');
-        const styleTag = frameContent.querySelector('style');
+        // Create clean frame-content from the same template sent to AI
+        const cleanHTML = extractCleanHTML(frame);
+        const newFrameContent = document.createElement('div');
+        newFrameContent.className = 'frame-content';
+        newFrameContent.innerHTML = cleanHTML;
 
-        // Update script content if provided and tag exists
+        // Update the new clean content with AI-generated script and style
+        const scriptTag = newFrameContent.querySelector('script');
+        const styleTag = newFrameContent.querySelector('style');
+
         if (parsedContent.script && scriptTag) {
             scriptTag.textContent = parsedContent.script;
         }
 
-        // Update style content if provided and tag exists
         if (parsedContent.style && styleTag) {
             styleTag.textContent = parsedContent.style;
         }
 
-        // Reactivate scripts for this frame
+        // Use proper element replacement to prevent content accumulation
+        const parent = oldFrameContent.parentElement;
+        const nextSibling = oldFrameContent.nextSibling;
+        
+        // CRITICAL: Complete element replacement strips all old generated content
+        parent.removeChild(oldFrameContent);
+        parent.insertBefore(newFrameContent, nextSibling);
+
+        console.log('🧹 AI CLEANUP: Replaced frame content with clean version for', frame.id);
+
+        // Re-establish Canvas behaviors on the new clean content
+        reestablishFrameBehaviorsAfterAI(frame);
+
+        // Reactivate scripts for this frame on clean content
         if (window.scriptManager && window.scriptManager.activateScripts) {
             window.scriptManager.activateScripts(frame);
         }
+    }
+
+    /**
+     * Re-establish Canvas behaviors after AI content replacement
+     * @param {HTMLElement} frame - The frame that was updated
+     */
+    function reestablishFrameBehaviorsAfterAI(frame) {
+        const frameContent = frame.querySelector('.frame-content');
+        if (!frameContent) return;
+        
+        console.log(`🔧 AI RE-ESTABLISHING: Behaviors for frame ${frame.id}`);
+        
+        // Ensure all elements have IDs for tracking
+        if (window.ensureAllElementsHaveIds) {
+            window.ensureAllElementsHaveIds(frameContent);
+        }
+        
+        // Make static elements selectable
+        frameContent.querySelectorAll('*').forEach(element => {
+            if (!element.classList.contains('free-floating') && 
+                !element.classList.contains('resize-handle') &&
+                window.makeSelectable) {
+                window.makeSelectable(element);
+            }
+        });
+        
+        // Re-establish container behaviors
+        if (window.makeContainerElementsSelectable) {
+            window.makeContainerElementsSelectable(frameContent);
+        }
+        
+        // Setup element extraction for the frame content
+        if (window.setupElementExtraction) {
+            window.setupElementExtraction(frameContent);
+        }
+        
+        // Refresh selection visuals if elements are selected
+        if (window.refreshSelectionVisuals) {
+            window.refreshSelectionVisuals();
+        }
+        
+        console.log(`✨ AI COMPLETED: Behavior re-establishment for frame ${frame.id}`);
     }
 
     /**
