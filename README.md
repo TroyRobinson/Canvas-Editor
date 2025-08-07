@@ -255,8 +255,8 @@ Comprehensive CSS styling defining:
   - No `DOMContentLoaded` events (scripts execute dynamically after page load)
   - Use `@keyframes` animations instead of CSS transitions (`.free-floating` has `transition: none !important`)
   - Append elements to frame content area, not `document.body`
-  - Target ALL elements of type with `querySelectorAll`, use `MutationObserver` for dynamic elements
-  - Use standardized `data-initialized` attribute pattern for event handler tracking
+  - Use container-scoped queries (`frameContent.querySelectorAll`), not `document.getElementById`
+  - Use standardized `data-initialized` attribute pattern (system clears automatically before script execution)
   - Avoid manipulating Canvas system properties (`contenteditable`, `data-selectable`, etc.)
 - **Key relationships**:
   - Uses llm-prompt.js for system/user prompt separation

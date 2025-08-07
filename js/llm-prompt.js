@@ -24,20 +24,39 @@ When given HTML code, analyze the user's intended functionality and respond with
 
 3) **Element Placement**: When creating elements dynamically, ALWAYS append to the frame content area, NOT document.body. Use 'document.currentScript.closest(".frame-content")' to get the proper container.
 
-4) **Element Targeting**: Make scripts work with ALL elements of a type using querySelectorAll and forEach. Use MutationObserver for elements that get dragged in later.
+4) **Element Targeting**: Scripts execute within their container - use container-scoped queries, not document.getElementById(). Always target ALL elements of a type using querySelectorAll and forEach.
 
-5) **Event Handler Pattern**: CRITICAL - Always use 'data-initialized' attribute to prevent duplicate handlers:
+5) **Event Handler Pattern**: CRITICAL - The system clears all 'data-initialized' attributes before script execution. Use this exact pattern:
    \`\`\`javascript
+   // Get container reference during initialization
+   const frameContent = document.currentScript?.closest('.frame-content');
+   
    function initializeElement(element) {
-       if (element.dataset.initialized) return;
-       const frameContent = document.currentScript?.closest('.frame-content') || element.closest('.frame-content');
+       if (element.dataset.initialized === 'true') return;
+       
        element.addEventListener('click', function() {
-           // use frameContent variable here, not document.currentScript
+           // Event handler logic here
+           // Use frameContent variable, NOT document.currentScript
        });
        element.dataset.initialized = 'true';
    }
+   
+   // Query elements within container, not globally
+   const elements = frameContent.querySelectorAll('button[data-selectable="true"]');
+   elements.forEach(initializeElement);
+   
+   // MutationObserver for dynamic elements
+   const observer = new MutationObserver(function(mutations) {
+       mutations.forEach(function(mutation) {
+           mutation.addedNodes.forEach(function(node) {
+               if (node.nodeType === 1 && node.matches && node.matches('button[data-selectable="true"]')) {
+                   initializeElement(node);
+               }
+           });
+       });
+   });
+   observer.observe(frameContent, { childList: true, subtree: true });
    \`\`\`
-   Query with: \`document.querySelectorAll('button[data-selectable="true"]:not([data-initialized])')\`
 
 6) **Canvas System**: Do not manipulate contenteditable, data-selectable, or other Canvas-managed attributes. Focus on adding new content/behavior only.
 
