@@ -142,16 +142,42 @@
         
         console.log(`🔧 AI RE-ESTABLISHING: Behaviors for frame ${frame.id}`);
         
+        // Re-establish frame-level behaviors first
+        if (window.setupFrame) {
+            window.setupFrame(frame);
+        } else {
+            // Fallback: manually setup frame behaviors
+            const titleBar = frame.querySelector('.frame-title');
+            if (titleBar && window.setupFrameDragging) {
+                window.setupFrameDragging(frame, titleBar);
+            }
+            if (window.makeSelectable) {
+                window.makeSelectable(frame);
+            }
+        }
+        
         // Ensure all elements have IDs for tracking
         if (window.ensureAllElementsHaveIds) {
             window.ensureAllElementsHaveIds(frameContent);
         }
         
-        // Make static elements selectable
+        // Re-establish behaviors for all elements
         frameContent.querySelectorAll('*').forEach(element => {
-            if (!element.classList.contains('free-floating') && 
-                !element.classList.contains('resize-handle') &&
-                window.makeSelectable) {
+            // Skip resize handles
+            if (element.classList.contains('resize-handle')) return;
+            
+            // Re-establish behaviors for free-floating elements
+            if (element.classList.contains('free-floating')) {
+                if (window.setupElementDragging) {
+                    window.setupElementDragging(element);
+                }
+                if (window.makeSelectable) {
+                    window.makeSelectable(element);
+                }
+                // Don't call addSelectionAnchors directly - let selection system handle it via events
+            }
+            // Re-establish behaviors for static elements
+            else if (window.makeSelectable) {
                 window.makeSelectable(element);
             }
         });
@@ -166,12 +192,28 @@
             window.setupElementExtraction(frameContent);
         }
         
-        // Refresh selection visuals if elements are selected
-        if (window.refreshSelectionVisuals) {
-            window.refreshSelectionVisuals();
-        }
-        
         console.log(`✨ AI COMPLETED: Behavior re-establishment for frame ${frame.id}`);
+    }
+
+    /**
+     * Restore selection state after AI generation
+     * @param {string[]} selectedElementIds - Array of element IDs that were selected
+     */
+    function restoreSelectionState(selectedElementIds) {
+        if (!selectedElementIds.length || !window.selectElement || !window.clearSelection) return;
+        
+        // Clear current selection first
+        window.clearSelection();
+        
+        // Re-select elements by ID
+        selectedElementIds.forEach(elementId => {
+            const element = document.getElementById(elementId);
+            if (element) {
+                window.selectElement(element);
+            }
+        });
+        
+        console.log(`🎯 SELECTION RESTORED: ${selectedElementIds.length} elements re-selected`);
     }
 
     /**
@@ -305,6 +347,10 @@
         }
 
         const spinner = showLoadingSpinner(frame);
+        
+        // Capture selection state before AI generation 
+        const selectedElementIds = window.getSelectedElements ? 
+            window.getSelectedElements().map(el => el.id).filter(id => id) : [];
 
         try {
             // Extract clean HTML
@@ -321,6 +367,9 @@
 
             // Insert content back into frame
             insertContentIntoFrame(frame, parsedContent);
+            
+            // Restore selection state after AI generation
+            restoreSelectionState(selectedElementIds);
 
             console.log('AI enhancement completed successfully');
 

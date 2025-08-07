@@ -131,14 +131,15 @@ Comprehensive CSS styling defining:
   - Integrates with text-editing.js to determine if an element is a text element for the resize-to-fit-content feature.
 
 #### `js/selection.js`
-**Purpose**: Multi-element selection and visual feedback
-- Single and multi-selection (Shift+click)
-- Resize handle management for selected elements
-- Visual selection indicators
-- Automatic selection setup for new elements via MutationObserver
+**Purpose**: Multi-element selection and visual feedback with automatic resize handle management
+- **Selection Management**: Single and multi-selection (Shift+click) with automatic resize handle display
+- **Auto-Handle System**: Listens to `selectionChanged` events and automatically shows/hides resize handles in edit mode
+- **Visual Feedback**: Consistent selection indicators across all canvas operations
+- **Element Setup**: Automatic selection setup for new elements via MutationObserver
 - **Key relationships**: Core system used by drag.js, resize.js, and marquee-selection.js
-  - Via a double click on corner event, calls window.resizeTextElementToFitContent (from resize.js) and window.textEditing.isTextLikeElement (from text-editing.js) to resize text elements easily.
-  - Provides `window.refreshSelectionVisuals()`, which ensures all currently selected elements have up-to-date selection overlays (resize handles). This function removes any duplicate or stale handles and re-applies them as needed. It is designed to be called after DOM mutations, undo/redo, or text editing to keep selection visuals in sync.
+  - **Auto-refresh system**: `selectionChanged` events trigger automatic resize handle updates
+  - **Manual refresh**: `window.refreshSelectionVisuals()` for DOM mutations, undo/redo, text editing
+  - **Text element integration**: Double-click corners calls resize-to-fit functionality
 
 #### `js/text-editing.js`
 **Purpose**: Inline text editing for all text elements
@@ -251,6 +252,7 @@ Comprehensive CSS styling defining:
 - **Proper Cleanup**: Uses complete element replacement to prevent content accumulation between AI enhancements
 - **Visual Feedback**: Shows loading spinner in frame title bar that moves with frame
 - **Script Re-activation**: Automatically reactivates scripts after code insertion
+- **Free-floating Element Recovery**: Re-establishes drag/resize/selection behaviors for extracted elements after AI generation
 - **Key constraints for AI-generated code**:
   - No `DOMContentLoaded` events (scripts execute dynamically after page load)
   - Use `@keyframes` animations instead of CSS transitions (`.free-floating` has `transition: none !important`)

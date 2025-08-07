@@ -149,6 +149,14 @@ function refreshSelectionVisuals() {
 }
 window.refreshSelectionVisuals = refreshSelectionVisuals;
 
+// Auto-refresh selection visuals whenever selection changes
+window.addEventListener('selectionChanged', () => {
+    // Only refresh in edit mode
+    if (window.canvasMode && window.canvasMode.isEditMode()) {
+        refreshSelectionVisuals();
+    }
+});
+
 // Canvas click handling is now managed by marquee-selection.js
 // to properly coordinate between marquee selection and selection clearing
 

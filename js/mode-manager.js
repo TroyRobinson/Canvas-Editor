@@ -124,6 +124,10 @@
         restoreAllFrameCode() {
             console.log('🔄 RESTORING: Frame code from edit mode');
             
+            // Capture selection state before restoration
+            const selectedElementIds = window.getSelectedElements ? 
+                window.getSelectedElements().map(el => el.id).filter(id => id) : [];
+            
             frameCodeStorage.forEach((storedHTML, frameId) => {
                 const frame = document.getElementById(frameId);
                 if (!frame) {
@@ -156,6 +160,9 @@
                 this.reestablishFrameBehaviors(frame);
             });
             
+            // Restore selection state after mode switching
+            this.restoreSelectionState(selectedElementIds);
+            
             // Clear storage after restoration
             frameCodeStorage.clear();
         },
@@ -167,16 +174,42 @@
             
             console.log(`🔧 RE-ESTABLISHING: Behaviors for frame ${frame.id}`);
             
+            // Re-establish frame-level behaviors first
+            if (window.setupFrame) {
+                window.setupFrame(frame);
+            } else {
+                // Fallback: manually setup frame behaviors
+                const titleBar = frame.querySelector('.frame-title');
+                if (titleBar && window.setupFrameDragging) {
+                    window.setupFrameDragging(frame, titleBar);
+                }
+                if (window.makeSelectable) {
+                    window.makeSelectable(frame);
+                }
+            }
+            
             // Ensure all elements have IDs for tracking
             if (window.ensureAllElementsHaveIds) {
                 window.ensureAllElementsHaveIds(frameContent);
             }
             
-            // Make static elements selectable
+            // Re-establish behaviors for all elements
             frameContent.querySelectorAll('*').forEach(element => {
-                if (!element.classList.contains('free-floating') && 
-                    !element.classList.contains('resize-handle') &&
-                    window.makeSelectable) {
+                // Skip resize handles
+                if (element.classList.contains('resize-handle')) return;
+                
+                // Re-establish behaviors for free-floating elements
+                if (element.classList.contains('free-floating')) {
+                    if (window.setupElementDragging) {
+                        window.setupElementDragging(element);
+                    }
+                    if (window.makeSelectable) {
+                        window.makeSelectable(element);
+                    }
+                    // Don't call addSelectionAnchors directly - let selection system handle it via events
+                }
+                // Re-establish behaviors for static elements
+                else if (window.makeSelectable) {
                     window.makeSelectable(element);
                 }
             });
@@ -196,12 +229,25 @@
                 window.scriptManager.activateScripts(frame);
             }
             
-            // Refresh selection visuals if elements are selected
-            if (window.refreshSelectionVisuals) {
-                window.refreshSelectionVisuals();
-            }
-            
             console.log(`✨ COMPLETED: Behavior re-establishment for frame ${frame.id}`);
+        },
+        
+        // Restore selection state after mode switching
+        restoreSelectionState(selectedElementIds) {
+            if (!selectedElementIds.length || !window.selectElement || !window.clearSelection) return;
+            
+            // Clear current selection first
+            window.clearSelection();
+            
+            // Re-select elements by ID
+            selectedElementIds.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    window.selectElement(element);
+                }
+            });
+            
+            console.log(`🎯 MODE SELECTION RESTORED: ${selectedElementIds.length} elements re-selected`);
         }
     };
 
