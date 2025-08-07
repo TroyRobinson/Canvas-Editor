@@ -189,6 +189,15 @@ document.addEventListener('mouseup', (e) => {
                 }
             }
             
+            // Mark element as manually resized to disable auto-resize behavior
+            if (resizeTarget && window.textEditing && window.textEditing.isTextLikeElement(resizeTarget)) {
+                resizeTarget.dataset.manuallyResized = 'true';
+                // Also clear explicit auto-fit mode
+                if (resizeTarget.dataset.autoFit === 'true') {
+                    delete resizeTarget.dataset.autoFit;
+                }
+            }
+            
             resizeTarget.classList.remove('resizing');
         } catch (error) {
             console.error('Error during resize cleanup:', error);
@@ -368,6 +377,12 @@ function resizeTextElementToFitContent(element) {
     // Set the element's size to fit content
     element.style.width = (rect.width / zoom) + 'px';
     element.style.height = (rect.height / zoom) + 'px';
+    // Mark element as auto-fit mode for auto-resize behavior
+    element.dataset.autoFit = 'true';
+    // Clear manual resize flag since corner double-click resets to auto-fit
+    if (element.dataset.manuallyResized === 'true') {
+        delete element.dataset.manuallyResized;
+    }
     // Optionally, record resize for undo
     if (window.recordResize && element.id) {
         window.recordResize(

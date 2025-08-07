@@ -27,7 +27,7 @@
         if (textElement && !isEditing(textElement)) {
             e.preventDefault();
             e.stopPropagation();
-            enterEditMode(textElement);
+            enterEditMode(textElement, e.clientX, e.clientY);
         }
     }
 
@@ -46,6 +46,16 @@
         }
         
         return null;
+    }
+
+    // Helper function to position cursor at the end of text
+    function positionCursorAtEnd(element) {
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.selectNodeContents(element);
+        range.collapse(false); // Collapse to end
+        selection.removeAllRanges();
+        selection.addRange(range);
     }
 
     // Check if an element should be treated as editable text
@@ -91,7 +101,7 @@
     }
 
     // Enter edit mode for a text element
-    function enterEditMode(element) {
+    function enterEditMode(element, clickX, clickY) {
         // Exit any current edit mode
         if (currentlyEditingElement && currentlyEditingElement !== element) {
             exitEditMode(currentlyEditingElement);
@@ -122,15 +132,33 @@
         // Apply white-space preservation style to maintain spaces
         element.style.whiteSpace = 'pre-wrap';
         
-        // Focus and select all text
+        // Focus the element
         element.focus();
         
-        // Select all text for easy replacement
-        const range = document.createRange();
-        range.selectNodeContents(element);
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
+        // Position cursor at click location if coordinates provided
+        if (clickX !== undefined && clickY !== undefined) {
+            try {
+                const range = document.caretRangeFromPoint(clickX, clickY);
+                if (range && element.contains(range.startContainer)) {
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    // Fallback: position at end of text
+                    positionCursorAtEnd(element);
+                }
+            } catch (e) {
+                // Fallback: position at end of text
+                positionCursorAtEnd(element);
+            }
+        } else {
+            // No click coordinates, select all text (backward compatibility)
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
         
         // Prevent drag while editing
         element.dataset.originalDraggable = element.draggable;
@@ -138,6 +166,11 @@
         
         // Handle enter key to exit edit mode
         element.addEventListener('keydown', handleKeyDown);
+        
+        // Handle auto-resize for elements that should auto-resize
+        if (shouldAutoResize(element)) {
+            element.addEventListener('input', handleAutoResize);
+        }
     }
 
     // Exit edit mode for a text element
@@ -171,8 +204,9 @@
         }
         delete element.dataset.originalDraggable;
         
-        // Remove event listener
+        // Remove event listeners
         element.removeEventListener('keydown', handleKeyDown);
+        element.removeEventListener('input', handleAutoResize);
         
         // Clear text selection
         const selection = window.getSelection();
@@ -201,6 +235,40 @@
     function handleGlobalClick(e) {
         if (currentlyEditingElement && !currentlyEditingElement.contains(e.target)) {
             exitEditMode(currentlyEditingElement);
+        }
+    }
+
+    // Check if element should auto-resize (free-floating and not manually resized, or explicitly auto-fit)
+    function shouldAutoResize(element) {
+        // Explicit auto-fit mode always takes precedence
+        if (element.dataset.autoFit === 'true') {
+            return true;
+        }
+        
+        // Free-floating elements auto-resize by default, unless manually resized or too long
+        const style = window.getComputedStyle(element);
+        const isFreeFloating = style.position === 'absolute' && element.classList.contains('free-floating');
+        const hasBeenManuallyResized = element.dataset.manuallyResized === 'true';
+        const textContent = element.textContent || '';
+        const isShortText = textContent.length < 30;
+        
+        return isFreeFloating && !hasBeenManuallyResized && isShortText;
+    }
+
+    // Handle auto-resize for text elements that should auto-resize
+    function handleAutoResize(e) {
+        const element = e.target;
+        if (shouldAutoResize(element) && window.resizeTextElementToFitContent) {
+            // Use requestAnimationFrame to avoid layout thrashing during typing
+            if (element._resizeTimeout) {
+                cancelAnimationFrame(element._resizeTimeout);
+            }
+            element._resizeTimeout = requestAnimationFrame(() => {
+                if (shouldAutoResize(element)) { // Check again in case it changed
+                    window.resizeTextElementToFitContent(element);
+                }
+                element._resizeTimeout = null;
+            });
         }
     }
 
