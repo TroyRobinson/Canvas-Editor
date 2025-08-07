@@ -246,7 +246,7 @@ Comprehensive CSS styling defining:
 #### `js/llm-manager.js`
 **Purpose**: AI-powered code enhancement via OpenRouter API integration with proper cleanup
 - **Frame Enhancement**: Analyzes selected frame HTML and generates improved script/style code using AI
-- **API Integration**: Uses OpenRouter for code generation
+- **API Integration**: Uses OpenRouter with proper system/user message structure for token efficiency
 - **Smart HTML Processing**: Strips existing script/style content before sending to AI, then parses response
 - **Proper Cleanup**: Uses complete element replacement to prevent content accumulation between AI enhancements
 - **Visual Feedback**: Shows loading spinner in frame title bar that moves with frame
@@ -259,6 +259,7 @@ Comprehensive CSS styling defining:
   - Use standardized `data-initialized` attribute pattern for event handler tracking
   - Avoid manipulating Canvas system properties (`contenteditable`, `data-selectable`, etc.)
 - **Key relationships**:
+  - Uses llm-prompt.js for system/user prompt separation
   - Uses script-manager.js for script re-activation
   - Coordinates with selection.js to get selected frames
   - Follows same cleanup pattern as code-editor.js and mode-manager.js (element replacement not innerHTML)

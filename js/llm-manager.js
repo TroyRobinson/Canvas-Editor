@@ -12,7 +12,6 @@
     const OPENROUTER_MODEL = 'qwen/qwen3-coder:nitro';
     const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-    const ENHANCEMENT_PROMPT = "You are an expert web software developer, review the attached html code for insights on the user's intended functionality and respond with the full script tag and (if necessary) the style tag to make the code accurate to the user intended functionality. IMPORTANT CONSTRAINTS: 1) Do NOT use document.addEventListener('DOMContentLoaded', ...) in your scripts because they are executed dynamically after the page has loaded. Execute code immediately or wrap in an IIFE (immediately invoked function expression). 2) Elements with class 'free-floating' have 'transition: none !important' in CSS, so use CSS animations with @keyframes instead of CSS transitions for any animated effects. 3) When creating new elements dynamically, ALWAYS append them to the frame content area, NOT to document.body. Use 'document.currentScript.closest(\".frame-content\")' or find the button's closest frame-content to get the proper container. This ensures new elements stay within the frame. 4) Make scripts work with ALL elements of a type (e.g., ALL buttons), not just specific IDs. Use querySelectorAll and forEach to apply behaviors to multiple elements. Also use MutationObserver to automatically apply behaviors to elements that get dragged into the frame later. 5) CRITICAL EVENT HANDLER PATTERN: Always use 'data-initialized' attribute to track whether event handlers have been attached. NEVER use document.currentScript inside event handlers - it will be null. Capture frameContent reference during initialization. Use this exact pattern: function initializeElement(element) { if (element.dataset.initialized) return; const frameContent = document.currentScript?.closest('.frame-content') || element.closest('.frame-content'); element.addEventListener('click', function() { /* use frameContent variable here, not document.currentScript */ }); element.dataset.initialized = 'true'; }. Then query elements with: document.querySelectorAll('button[data-selectable=\"true\"]:not([data-initialized])') and use MutationObserver to catch new elements. This prevents duplicate event handlers and ensures reliable functionality. 6) AVOID CANVAS SYSTEM PROPERTIES: Do not make assumptions about or manipulate contenteditable, data-selectable, or other Canvas-managed attributes. Focus only on adding new content/behavior. Use simple element.textContent or element.innerHTML to modify content, and create new DOM elements for visual effects rather than trying to integrate with Canvas editing systems.";
 
     /**
      * Extract HTML content from a frame, stripping out script and style tag contents
@@ -269,8 +268,12 @@
                 model: OPENROUTER_MODEL,
                 messages: [
                     {
+                        role: 'system',
+                        content: window.llmPrompt.getSystemPrompt()
+                    },
+                    {
                         role: 'user',
-                        content: `${ENHANCEMENT_PROMPT}\n\nHTML code to analyze:\n\n${htmlContent}`
+                        content: window.llmPrompt.getUserPrompt(htmlContent)
                     }
                 ],
                 temperature: 0,
