@@ -52,7 +52,7 @@ body.panning {
     min-width: 200px;
     min-height: 150px;
     overflow: visible;
-    cursor: move;
+    cursor: default;
 }
 
 /* Element-frames: Special divs that act as containers */
@@ -62,7 +62,7 @@ body.panning {
     border: 2px dashed #999;
     border-radius: 6px;
     overflow: visible;
-    cursor: move;
+    cursor: default;
     padding: 8px;
 }
 
@@ -81,12 +81,12 @@ body.panning {
     height: calc(100% - 41px);
     overflow: visible;
     position: relative;
-    cursor: move;
+    cursor: default;
 }
 
 .free-floating {
     position: absolute !important;
-    cursor: move;
+    cursor: default;
     z-index: 100;
     transition: none !important;
 }
@@ -263,7 +263,7 @@ body.shift-selecting {
 }
 
 .frame-content .free-floating {
-    cursor: move;
+    cursor: default;
 }
 
 .frame-content button {
@@ -385,7 +385,7 @@ body.shift-selecting {
     background: rgba(255, 255, 255, 0.05);
     outline: 2px solid rgba(100, 150, 255, 0.5);
     outline-offset: -1px;
-    cursor: text;
+    cursor: default;
     padding: 6px 10px;
     font-size: 14px;
     color: #e0e0e0;
@@ -466,6 +466,7 @@ body.shift-selecting {
     border-radius: 4px;
     padding: 6px 10px;
     overflow: hidden;
+    cursor: default;
 }
 
 .input-wrapper:focus-within {
@@ -482,6 +483,7 @@ body.shift-selecting {
     font-size: 14px;
     font-family: inherit;
     outline: none;
+    cursor: default;
 }
 
 .input-element:focus {
