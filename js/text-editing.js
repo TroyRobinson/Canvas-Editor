@@ -27,8 +27,48 @@
         return span;
     }
 
+    // Check if element is an input wrapper
+    function isInputWrapper(element) {
+        return element && element.classList && element.classList.contains('input-wrapper');
+    }
+
+    // Create placeholder editing overlay for input elements
+    function createPlaceholderOverlay(inputWrapper) {
+        const inputElement = inputWrapper.querySelector('.input-element');
+        if (!inputElement) return null;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'placeholder-edit-overlay';
+        overlay.contentEditable = true;  // Set as boolean, it will become string "true"
+        overlay.textContent = inputElement.placeholder || 'Type here...';
+        
+        // Position overlay exactly over the input wrapper content area
+        overlay.style.position = 'absolute';
+        overlay.style.left = '0';
+        overlay.style.top = '0';
+        overlay.style.right = '0';
+        overlay.style.bottom = '0';
+        overlay.style.zIndex = '1000';
+        overlay.dataset.originalPlaceholder = inputElement.placeholder;
+        
+        // Handle keyboard events
+        overlay.addEventListener('keydown', (e) => {
+            e.stopPropagation(); // Prevent event from bubbling up to canvas shortcuts
+        });
+        
+        // Ensure it can receive focus
+        overlay.tabIndex = 0;
+        
+        return overlay;
+    }
+
     // Resolve edit host (element that participates in canvas ops) and the DOM node that will be contentEditable
     function resolveHostAndEditNode(element) {
+        if (isInputWrapper(element)) {
+            const host = element;
+            const editNode = createPlaceholderOverlay(element);
+            return { host, editNode, isPlaceholderEdit: true };
+        }
         if (isButtonElement(element)) {
             const host = element;
             const editNode = ensureButtonLabelSpan(element);
@@ -66,6 +106,12 @@
 
     // Find if the target or its closest parent is an editable text element
     function findEditableTextElement(target) {
+        // Check for input wrapper for placeholder editing
+        const inputWrapper = target.closest('.input-wrapper');
+        if (inputWrapper) {
+            return inputWrapper; // Return wrapper as the editable host
+        }
+        
         // Check if the target itself is a text-like element
         if (isTextLikeElement(target)) {
             return target;
@@ -147,7 +193,7 @@
 
     // Enter edit mode for a text element
     function enterEditMode(element, clickX, clickY) {
-        const { host, editNode } = resolveHostAndEditNode(element);
+        const { host, editNode, isPlaceholderEdit } = resolveHostAndEditNode(element);
 
         // Exit any current edit mode
         if (currentlyEditingElement && currentlyEditingElement !== host) {
@@ -162,50 +208,104 @@
         // Set this host as currently editing
         currentlyEditingElement = host;
 
-        // Store the original content for undo tracking (use host text)
-        host.dataset.originalContent = host.textContent;
+        if (isPlaceholderEdit) {
+            // Special handling for input placeholder editing
+            const inputElement = host.querySelector('.input-element');
+            
+            // Store original placeholder for undo tracking
+            host.dataset.originalContent = inputElement.placeholder;
+            
+            // Mark host as editing first
+            host.dataset.editing = 'true';
+            host.dataset.placeholderEdit = 'true';
+            host.classList.add('editing');
+            editNode.classList.add('editing');
+            
+            // Clear any conflicting body classes that might prevent contentEditable
+            document.body.classList.remove('shift-selecting');
+            
+            // Set positioning context
+            host.style.position = 'relative';
+            
+            // Add overlay to DOM
+            host.appendChild(editNode);
+            
+            // Dim the actual input during editing
+            inputElement.style.opacity = '0.3';
+            
+            // Focus and select all text in overlay with proper timing
+            requestAnimationFrame(() => {
+                editNode.focus();
+                
+                // Another frame to ensure focus is stable
+                requestAnimationFrame(() => {
+                    if (document.activeElement === editNode) {
+                        const range = document.createRange();
+                        range.selectNodeContents(editNode);
+                        const selection = window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    } else {
+                        editNode.focus();
+                        const range = document.createRange();
+                        range.selectNodeContents(editNode);
+                        const selection = window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                });
+            });
+            
+        } else {
+            // Standard text editing logic
+            // Store the original content for undo tracking (use host text)
+            host.dataset.originalContent = host.textContent;
 
-        // Normalize whitespace on edit node - trim excess but preserve intentional spaces
-        const normalizedText = editNode.textContent.replace(/\n\s*/g, ' ').trim();
-        editNode.textContent = normalizedText;
+            // Normalize whitespace on edit node - trim excess but preserve intentional spaces
+            const normalizedText = editNode.textContent.replace(/\n\s*/g, ' ').trim();
+            editNode.textContent = normalizedText;
 
-        // Enable contentEditable on the actual edit node; mark host as editing
-        editNode.contentEditable = 'true';
-        host.dataset.editing = 'true';
+            // Enable contentEditable on the actual edit node; mark host as editing
+            editNode.contentEditable = 'true';
+            host.dataset.editing = 'true';
 
-        // Visual feedback on both for clarity
-        host.classList.add('editing');
-        editNode.classList.add('editing');
+            // Visual feedback on both for clarity
+            host.classList.add('editing');
+            editNode.classList.add('editing');
 
-        // Preserve whitespace on the edit node and keep label on one line by default
-        editNode.style.whiteSpace = 'nowrap';
+            // Preserve whitespace on the edit node and keep label on one line by default
+            editNode.style.whiteSpace = 'nowrap';
 
-        // Do not alter height of host or edit node here; vertical centering is handled by CSS on the host.
-        // If multi-line behavior is ever needed, this can be toggled to 'pre-wrap'
+            // Focus the edit node
+            editNode.focus();
 
-        // Focus the edit node
-        editNode.focus();
-
-        // Position cursor at click location if coordinates provided
-        if (clickX !== undefined && clickY !== undefined) {
-            try {
-                const range = document.caretRangeFromPoint(clickX, clickY);
-                if (range && editNode.contains(range.startContainer)) {
-                    const selection = window.getSelection();
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                } else {
+            // Position cursor at click location if coordinates provided
+            if (clickX !== undefined && clickY !== undefined) {
+                try {
+                    const range = document.caretRangeFromPoint(clickX, clickY);
+                    if (range && editNode.contains(range.startContainer)) {
+                        const selection = window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    } else {
+                        positionCursorAtEnd(editNode);
+                    }
+                } catch (e) {
                     positionCursorAtEnd(editNode);
                 }
-            } catch (e) {
-                positionCursorAtEnd(editNode);
+            } else {
+                const range = document.createRange();
+                range.selectNodeContents(editNode);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
             }
-        } else {
-            const range = document.createRange();
-            range.selectNodeContents(editNode);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
+
+            // Force an initial measurement to sync width immediately upon entering edit
+            if (window.resizeTextElementToFitContent) {
+                const targetForSize = host.classList.contains('free-floating') ? host : editNode;
+                window.resizeTextElementToFitContent(targetForSize);
+            }
         }
 
         // Prevent drag while editing on the host element
@@ -215,14 +315,9 @@
         // Handle enter/escape on the edit node, not the host
         editNode.addEventListener('keydown', handleKeyDown);
 
-        // Handle auto-resize for elements that should auto-resize
-        // Attach to edit node; handler will resolve the correct resize target
-        editNode.addEventListener('input', handleAutoResize);
-
-        // Force an initial measurement to sync width immediately upon entering edit
-        if (window.resizeTextElementToFitContent) {
-            const targetForSize = host.classList.contains('free-floating') ? host : editNode;
-            window.resizeTextElementToFitContent(targetForSize);
+        // Handle auto-resize for elements that should auto-resize (skip for placeholder editing)
+        if (!isPlaceholderEdit) {
+            editNode.addEventListener('input', handleAutoResize);
         }
     }
 
@@ -231,45 +326,69 @@
         if (!element || !isEditing(element)) return;
 
         const host = element;
+        const isPlaceholderEdit = host.dataset.placeholderEdit === 'true';
         const labelSpan = isButtonElement(host) ? host.querySelector('span[data-button-label="true"]') : null;
+        const overlay = host.querySelector('.placeholder-edit-overlay');
 
-        // Determine current content from host text
-        const originalContent = host.dataset.originalContent;
-        const currentContent = host.textContent;
+        // Handle placeholder editing cleanup
+        if (isPlaceholderEdit && overlay) {
+            const inputElement = host.querySelector('.input-element');
+            const originalContent = host.dataset.originalContent;
+            const currentContent = overlay.textContent.trim() || 'Type here...';
 
-        if (originalContent !== currentContent && window.recordContentChange && host.id) {
-            window.recordContentChange(host.id, originalContent, currentContent);
+            // Update the input's placeholder
+            inputElement.placeholder = currentContent;
+
+            // Record change for undo if content changed
+            if (originalContent !== currentContent && window.recordContentChange && host.id) {
+                window.recordContentChange(host.id, originalContent, currentContent);
+            }
+
+            // Clean up overlay
+            overlay.removeEventListener('keydown', handleKeyDown);
+            overlay.remove();
+            
+            // Restore input visibility
+            inputElement.style.opacity = '';
+            host.style.position = '';
+
+            // Remove placeholder edit flags
+            delete host.dataset.placeholderEdit;
+        } else {
+            // Standard text editing cleanup
+            const originalContent = host.dataset.originalContent;
+            const currentContent = host.textContent;
+
+            if (originalContent !== currentContent && window.recordContentChange && host.id) {
+                window.recordContentChange(host.id, originalContent, currentContent);
+            }
+
+            // If a label span was used, clean it up
+            if (labelSpan) {
+                labelSpan.contentEditable = 'false';
+                labelSpan.classList.remove('editing');
+                labelSpan.style.whiteSpace = '';
+                labelSpan.removeEventListener('keydown', handleKeyDown);
+                labelSpan.removeEventListener('input', handleAutoResize);
+            } else {
+                // Non-button flow: disable contentEditable and cleanup directly on the element
+                host.contentEditable = 'false';
+                host.style.whiteSpace = '';
+                host.removeEventListener('keydown', handleKeyDown);
+                host.removeEventListener('input', handleAutoResize);
+            }
         }
 
-        // Clean up the original content data
+        // Clean up common state
         delete host.dataset.originalContent;
-
-        // Remove editing flags
         delete host.dataset.editing;
         host.classList.remove('editing');
-
-        // If a label span was used, clean it up
-        if (labelSpan) {
-            labelSpan.contentEditable = 'false';
-            labelSpan.classList.remove('editing');
-            labelSpan.style.whiteSpace = '';
-            labelSpan.removeEventListener('keydown', handleKeyDown);
-            labelSpan.removeEventListener('input', handleAutoResize);
-        } else {
-            // Non-button flow: disable contentEditable and cleanup directly on the element
-            host.contentEditable = 'false';
-            host.style.whiteSpace = '';
-            host.removeEventListener('keydown', handleKeyDown);
-            host.removeEventListener('input', handleAutoResize);
-        }
 
         // Restore draggable if it was set on the host
         if (host.dataset.originalDraggable === 'true') {
             host.draggable = true;
         }
         delete host.dataset.originalDraggable;
-
-        // No inline flex overrides; styling handled by CSS
 
         // Clear text selection
         const selection = window.getSelection();
@@ -281,7 +400,9 @@
         }
 
         // Blur the active element to close editing visuals
-        if (labelSpan && document.activeElement === labelSpan) {
+        if (overlay && document.activeElement === overlay) {
+            overlay.blur();
+        } else if (labelSpan && document.activeElement === labelSpan) {
             labelSpan.blur();
         } else if (document.activeElement === host) {
             host.blur();
@@ -350,13 +471,15 @@
         // Exit edit mode on Escape
         if (e.key === 'Escape') {
             e.preventDefault();
-            const host = e.target.closest('button') || e.target;
+            // Find the correct host element
+            const host = e.target.closest('.input-wrapper') || e.target.closest('button') || e.target;
             exitEditMode(host);
         }
         // Prevent enter from creating new lines (optional - remove if multi-line is desired)
         else if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            const host = e.target.closest('button') || e.target;
+            // Find the correct host element
+            const host = e.target.closest('.input-wrapper') || e.target.closest('button') || e.target;
             exitEditMode(host);
         }
         // Handle spacebar for buttons - prevent default button behavior

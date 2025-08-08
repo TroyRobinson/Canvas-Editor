@@ -428,7 +428,14 @@ document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || 
         e.target.tagName === 'TEXTAREA' || 
         e.target.contentEditable === 'true' ||
-        (window.codeEditor && window.codeEditor.isActive())) return;
+        (window.codeEditor && window.codeEditor.isActive())) {
+        return;
+    }
+    
+    // Also check if we're currently editing something
+    if (window.textEditing && window.textEditing.getCurrentlyEditingElement()) {
+        return;
+    }
     
     // Don't trigger if already placing an element
     if (placementMode) return;
