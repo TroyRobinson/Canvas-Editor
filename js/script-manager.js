@@ -183,10 +183,11 @@
             window.setupElementFrame(element);
         }
         
+        // Resize handles now managed automatically by edge detection system when selected
         // Re-establish resize handles (this is usually handled by selection system)
-        if (window.addResizeHandles && (element.classList.contains('free-floating') || element.classList.contains('frame') || element.classList.contains('element-frame'))) {
-            window.addResizeHandles(element);
-        }
+        // if (window.addResizeHandles && (element.classList.contains('free-floating') || element.classList.contains('frame') || element.classList.contains('element-frame'))) {
+        //     window.addResizeHandles(element);
+        // }
         
         // Ensure the element is marked as selectable
         if (!element.dataset.selectable) {

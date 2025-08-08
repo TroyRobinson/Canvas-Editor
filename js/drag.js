@@ -55,6 +55,12 @@ function setupFrameDragging(frame, titleBar) {
             return;
         }
         
+        // CHECK FOR EDGE DETECTION FIRST - before starting drag
+        if (window.handleElementMouseDown && window.handleElementMouseDown(frame, e)) {
+            // Edge detection handled the event (started resize) - don't drag
+            return;
+        }
+        
         // Handle alt+drag for duplication
         if (isAltPressed || e.altKey) {
             // Make sure frame is selected before duplicating
@@ -101,6 +107,7 @@ function setupFrameDragging(frame, titleBar) {
         // Check if we're starting a multi-selection drag
         if (window.getSelectedElements) {
             const updatedSelectedElements = window.getSelectedElements();
+            console.log(`👍 PERF: Starting FRAME drag with ${updatedSelectedElements.length} selected elements`);
             if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(currentDragging)) {
                 isMultiDragging = true;
                 setupMultiDragOffsets(currentDragging, updatedSelectedElements);
@@ -170,6 +177,13 @@ function setupElementDragging(element) {
         }
         
         e.stopPropagation();
+        
+        // CHECK FOR EDGE DETECTION FIRST - before blocking other handlers
+        if (window.handleElementMouseDown && window.handleElementMouseDown(element, e)) {
+            // Edge detection handled the event (started resize) - don't drag
+            return;
+        }
+        
         e.stopImmediatePropagation(); // Prevent any other handlers from firing
         
         // Handle alt+drag for duplication
@@ -218,6 +232,7 @@ function setupElementDragging(element) {
         // Check if we're starting a multi-selection drag
         if (window.getSelectedElements) {
             const updatedSelectedElements = window.getSelectedElements();
+            console.log(`👍 PERF: Starting ELEMENT drag with ${updatedSelectedElements.length} selected elements`);
             if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(currentDragging)) {
                 isMultiDragging = true;
                 setupMultiDragOffsets(currentDragging, updatedSelectedElements);
@@ -324,9 +339,10 @@ function duplicateElement(element, shouldExtract = false) {
         
         // Set up dragging and resize for this new free-floating element
         setupElementDragging(duplicate);
-        if (window.addSelectionAnchors) {
-            window.addSelectionAnchors(duplicate);
-        }
+        // Resize handles now managed automatically by edge detection system when selected
+        // if (window.addSelectionAnchors) {
+        //     window.addSelectionAnchors(duplicate);
+        // }
         if (window.makeSelectable) {
             window.makeSelectable(duplicate);
         }
@@ -355,20 +371,22 @@ function duplicateElement(element, shouldExtract = false) {
             if (window.makeSelectable) {
                 window.makeSelectable(duplicate);
             }
+            // Resize handles now managed automatically by edge detection system when selected
             // Set up resize
-            if (window.addSelectionAnchors) {
-                window.addSelectionAnchors(duplicate);
-            }
+            // if (window.addSelectionAnchors) {
+            //     window.addSelectionAnchors(duplicate);
+            // }
         } else if (duplicate.classList.contains('free-floating')) {
             setupElementDragging(duplicate);
             // Make selectable
             if (window.makeSelectable) {
                 window.makeSelectable(duplicate);
             }
+            // Resize handles now managed automatically by edge detection system when selected
             // Set up resize
-            if (window.addSelectionAnchors) {
-                window.addSelectionAnchors(duplicate);
-            }
+            // if (window.addSelectionAnchors) {
+            //     window.addSelectionAnchors(duplicate);
+            // }
         }
     }
     

@@ -77,8 +77,8 @@ function createFrame(x, y, title) {
     frame.appendChild(content);
     
     
-    // Add resize handles
-    addResizeHandles(frame);
+    // Resize functionality now uses edge detection on element borders
+    // addResizeHandles(frame); // DEPRECATED
     
     canvas.appendChild(frame);
     
@@ -100,7 +100,9 @@ function createFrame(x, y, title) {
     }
     
     // Make static elements selectable individually
-    content.querySelectorAll('h3, p, button').forEach(element => {
+    const staticElements = content.querySelectorAll('h3, p, button');
+    console.log(`🇫 PERF: Making ${staticElements.length} static elements selectable in frame`);
+    staticElements.forEach(element => {
         if (window.makeSelectable) {
             window.makeSelectable(element);
         }
@@ -124,8 +126,8 @@ function createElementFrame(x, y, width = 150, height = 100, parent = canvas) {
     elementFrame.style.width = width + 'px';
     elementFrame.style.height = height + 'px';
     
-    // Add resize handles
-    addResizeHandles(elementFrame);
+    // Resize functionality now uses edge detection on element borders
+    // addResizeHandles(elementFrame); // DEPRECATED
     
     parent.appendChild(elementFrame);
     
@@ -163,17 +165,20 @@ window.setupFrame = function(frame) {
         });
     }
     
-    addResizeHandles(frame);
+    // Resize functionality now uses edge detection on element borders
+    // addResizeHandles(frame); // DEPRECATED
 };
 
 window.setupElementFrame = function(elementFrame) {
-    addResizeHandles(elementFrame);
+    // Resize functionality now uses edge detection on element borders
+    // addResizeHandles(elementFrame); // DEPRECATED
     setupElementDragging(elementFrame);
     setupElementExtraction(elementFrame);
 };
 
 window.setupFreeFloatingElement = function(element) {
-    addResizeHandles(element);
+    // Resize functionality now uses edge detection on element borders
+    // addResizeHandles(element); // DEPRECATED
     setupElementDragging(element);
     
     // Make selectable
@@ -247,6 +252,7 @@ function setupContentTracking(frameContent) {
     if (!window.undoManager) return;
     
     const observer = new MutationObserver((mutations) => {
+        console.log(`🇫 PERF: Frame content MutationObserver triggered with ${mutations.length} mutations for frame ${frameContent.closest('.frame')?.id || 'unknown'}`);
         mutations.forEach(mutation => {
             if (window.undoManager.isExecuting) return; // Don't track during undo/redo
             

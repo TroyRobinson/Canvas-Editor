@@ -53,55 +53,16 @@ function getSelectedElements() {
     return [...selectedElements];
 }
 
-// Add selection anchors (resize handles) to elements
+// Enhanced selection with edge detection for resizing
 function addSelectionAnchors(element) {
-    const positions = ['nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w'];
-    positions.forEach(pos => {
-        const handle = document.createElement('div');
-        handle.className = `resize-handle ${pos}`;
-        element.appendChild(handle);
-        
-        handle.addEventListener('mousedown', (e) => {
-            // Check if in placement mode - let placement system handle events
-            if (window.isInPlacementMode && window.isInPlacementMode()) {
-                return;
-            }
-            
-            e.preventDefault();
-            e.stopPropagation();
-            // Trigger resize functionality if available
-            if (window.startResize) {
-                window.startResize(e, element, pos);
-            }
-        });
-        // Add double-click event for corner handles only
-        if (["nw", "ne", "sw", "se"].includes(pos)) {
-            handle.addEventListener('dblclick', (e) => {
-                // Check if in placement mode - let placement system handle events
-                if (window.isInPlacementMode && window.isInPlacementMode()) {
-                    return;
-                }
-                
-                e.preventDefault();
-                e.stopPropagation();
-                // Only trigger if this element is selected and is a text element
-                if (window.getSelectedElements && window.textEditing && window.textEditing.isTextLikeElement) {
-                    const selected = window.getSelectedElements();
-                    if (selected.includes(element) && window.textEditing.isTextLikeElement(element)) {
-                        if (window.resizeTextElementToSingleLineFit) {
-                            window.resizeTextElementToSingleLineFit(element);
-                        } else if (window.resizeTextElementToFitContent) {
-                            window.resizeTextElementToFitContent(element);
-                        }
-                    }
-                }
-            });
-        }
-    });
+    // Set up edge detection and dynamic cursor
+    if (window.edgeDetection && window.edgeDetection.setupDynamicCursor) {
+        window.edgeDetection.setupDynamicCursor(element);
+    }
     
-    // Add click handler for selection
+    // Add enhanced click handler with edge detection
     element.addEventListener('mousedown', (e) => {
-        // Don't select if clicking on a resize handle
+        // Don't select if clicking on a resize handle (backward compatibility)
         if (e.target.classList.contains('resize-handle')) return;
         
         // Check if in placement mode - let placement system handle events
@@ -113,6 +74,12 @@ function addSelectionAnchors(element) {
         if (window.isPanning) return;
         
         e.stopPropagation();
+        
+        // Try edge detection first for resize operations
+        if (window.handleElementMouseDown && window.handleElementMouseDown(element, e)) {
+            // Edge detection handled the event (started resize)
+            return;
+        }
         
         // Check if shift key is pressed for multi-selection
         const addToSelection = e.shiftKey;
@@ -138,25 +105,50 @@ function isStaticElementInFrame(element) {
     return true;
 }
 
-// --- Add this function for modular selection overlay refresh ---
+// --- Pure CSS visual refresh with edge detection ---
 function refreshSelectionVisuals() {
+    const startTime = performance.now();
     const selected = getSelectedElements();
+    console.log(`🔄 PERF: refreshSelectionVisuals() called for ${selected.length} elements`);
+    
+    // Clean up any old resize handles that might still exist
+    document.querySelectorAll('.resize-handle').forEach(handle => handle.remove());
+    
+    // Set up edge detection for all selected elements
     selected.forEach(element => {
-        // Remove any existing resize handles to avoid duplicates
-        const handles = element.querySelectorAll('.resize-handle');
-        handles.forEach(handle => handle.remove());
-        // Skip overlays for static elements inside frames
+        // Skip static elements inside frames - they don't need resize
         if (isStaticElementInFrame(element)) return;
-        // Re-add anchors
-        addSelectionAnchors(element);
+        
+        // Set up edge detection and dynamic cursor
+        if (window.edgeDetection && window.edgeDetection.setupDynamicCursor) {
+            window.edgeDetection.setupDynamicCursor(element);
+        }
+        
+        // Add visual selection indicator class
+        element.classList.add('edge-resizable');
     });
+    
+    // Remove edge detection from unselected elements
+    document.querySelectorAll('.edge-resizable').forEach(element => {
+        if (!selectedElements.includes(element)) {
+            element.classList.remove('edge-resizable');
+            if (window.edgeDetection && window.edgeDetection.removeDynamicCursor) {
+                window.edgeDetection.removeDynamicCursor(element);
+            }
+        }
+    });
+    
+    const endTime = performance.now();
+    console.log(`🔄 PERF: refreshSelectionVisuals() completed in ${(endTime - startTime).toFixed(2)}ms`);
 }
 window.refreshSelectionVisuals = refreshSelectionVisuals;
 
 // Auto-refresh selection visuals whenever selection changes
-window.addEventListener('selectionChanged', () => {
+window.addEventListener('selectionChanged', (e) => {
+    console.log(`📡 PERF: selectionChanged event fired with ${e.detail.selectedElements.length} elements`);
     // Only refresh in edit mode
     if (window.canvasMode && window.canvasMode.isEditMode()) {
+        // Edge detection setup is very lightweight, no need for RAF
         refreshSelectionVisuals();
     }
 });
@@ -164,9 +156,14 @@ window.addEventListener('selectionChanged', () => {
 // Canvas click handling is now managed by marquee-selection.js
 // to properly coordinate between marquee selection and selection clearing
 
-// Make any element selectable (without resize handles)
+// Make any element selectable with edge detection support
 function makeSelectable(element) {
-    // Add click handler for selection
+    // Set up edge detection for resizable elements
+    if (window.edgeDetection && window.edgeDetection.isResizable && window.edgeDetection.isResizable(element)) {
+        window.edgeDetection.setupDynamicCursor(element);
+    }
+    
+    // Add enhanced click handler with edge detection
     element.addEventListener('mousedown', (e) => {
         // Check if in placement mode - let placement system handle events
         if (window.isInPlacementMode && window.isInPlacementMode()) {
@@ -186,6 +183,12 @@ function makeSelectable(element) {
             (window.codeEditor && window.codeEditor.isActive())) return;
         
         e.stopPropagation();
+        
+        // Try edge detection first for resize operations
+        if (window.handleElementMouseDown && window.handleElementMouseDown(element, e)) {
+            // Edge detection handled the event (started resize)
+            return;
+        }
         
         // Check if shift key is pressed for multi-selection
         const addToSelection = e.shiftKey;
@@ -250,6 +253,7 @@ window.initializeSelection = initializeSelection;
 
 // Watch for new elements being added
 const observer = new MutationObserver((mutations) => {
+    console.log(`👁️ PERF: Selection MutationObserver triggered with ${mutations.length} mutations`);
     mutations.forEach(mutation => {
         mutation.addedNodes.forEach(node => {
             if (node.nodeType === 1) { // Element node

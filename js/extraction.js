@@ -78,8 +78,8 @@ function makeElementFreeFloating(element, mouseX, mouseY) {
     element.style.width = (elementRect.width / zoom) + 'px';
     element.style.height = (elementRect.height / zoom) + 'px';
     
-    // Add resize handles to the new free-floating element
-    addResizeHandles(element);
+    // Resize handles now managed automatically by edge detection system when selected
+    // addResizeHandles(element); // DEPRECATED
     
     // Setup dragging for this element
     setupElementDragging(element);

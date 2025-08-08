@@ -97,88 +97,60 @@ body.panning {
 }
 
 
-/* Resize handles */
+/* Legacy resize handles - disabled for edge detection system */
 .resize-handle {
+    display: none !important; /* Hide all old-style handles */
+}
+
+/* Edge Detection System - CSS-only visual feedback */
+
+/* Clean selection outline for all selected elements */
+.selected {
+    outline: 2px solid #6366f1 !important;
+    outline-offset: -1px;
+}
+
+/* Simple corner indicators - clean and functional approach */
+.selected.edge-resizable::before {
+    content: '';
     position: absolute;
+    top: -5px;
+    left: -5px;
+    width: 6px;
+    height: 6px;
     background: #6366f1;
     border: 1px solid #4338ca;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity 0.2s;
+    border-radius: 1px;
+    pointer-events: none;
+    z-index: 100;
 }
 
-/* Corner handles - larger for easier clicking */
-.resize-handle.nw,
-.resize-handle.ne,
-.resize-handle.sw,
-.resize-handle.se {
-    width: 12px;
-    height: 12px;
-    z-index: 2;
-}
-
-/* Edge handles - fill entire sides */
-.resize-handle.n,
-.resize-handle.s {
-    width: 100%;
-    height: 6px;
-    left: 0;
-}
-
-.resize-handle.e,
-.resize-handle.w {
+.selected.edge-resizable::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
     width: 6px;
-    height: 100%;
-    top: 0;
+    height: 6px;
+    background: #6366f1;
+    border: 1px solid #4338ca;
+    border-radius: 1px;
+    pointer-events: none;
+    z-index: 100;
 }
 
-.frame.selected .resize-handle,
-.element-frame.selected .resize-handle,
-.free-floating.selected .resize-handle,
-.resizing .resize-handle,
-.dragging .resize-handle {
-    opacity: 1;
+/* Hover effects for discoverability */
+.frame:not(.selected):hover,
+.element-frame:not(.selected):hover,
+.free-floating:not(.selected):hover {
+    outline: 1px dashed rgba(99, 102, 241, 0.4);
+    outline-offset: -1px;
 }
 
-/* Hide resize handles on non-selected children when parent frame/element-frame is selected */
-.frame.selected .frame:not(.selected) .resize-handle,
-.frame.selected .element-frame:not(.selected) .resize-handle,
-.frame.selected .free-floating:not(.selected) .resize-handle,
-.element-frame.selected .frame:not(.selected) .resize-handle,
-.element-frame.selected .element-frame:not(.selected) .resize-handle,
-.element-frame.selected .free-floating:not(.selected) .resize-handle {
-    opacity: 0 !important;
+/* Subtle resize zone indicators */
+.selected.edge-resizable:hover {
+    outline-color: #818cf8;
 }
-
-/* Ensure selected children show their resize handles even when parent is selected */
-.frame.selected .frame.selected .resize-handle,
-.frame.selected .element-frame.selected .resize-handle,
-.frame.selected .free-floating.selected .resize-handle,
-.element-frame.selected .frame.selected .resize-handle,
-.element-frame.selected .element-frame.selected .resize-handle,
-.element-frame.selected .free-floating.selected .resize-handle {
-    opacity: 1 !important;
-}
-
-/* Positioning for handles */
-.resize-handle.nw { top: -6px; left: -6px; }
-.resize-handle.ne { top: -6px; right: -6px; }
-.resize-handle.sw { bottom: -6px; left: -6px; }
-.resize-handle.se { bottom: -6px; right: -6px; }
-.resize-handle.n { top: -3px; }
-.resize-handle.s { bottom: -3px; }
-.resize-handle.e { right: -3px; }
-.resize-handle.w { left: -3px; }
-
-/* Cursor states only when element is selected */
-.selected .resize-handle.nw { cursor: nw-resize; }
-.selected .resize-handle.ne { cursor: ne-resize; }
-.selected .resize-handle.sw { cursor: sw-resize; }
-.selected .resize-handle.se { cursor: se-resize; }
-.selected .resize-handle.n { cursor: n-resize; }
-.selected .resize-handle.s { cursor: s-resize; }
-.selected .resize-handle.e { cursor: e-resize; }
-.selected .resize-handle.w { cursor: w-resize; }
 
 .resizing {
     opacity: 0.9;
@@ -224,12 +196,12 @@ body.panning {
     opacity: 0.7;
 }
 
-/* Preview selection for elements with resize handles */
-.preview-selected.frame .resize-handle,
-.preview-selected.element-frame .resize-handle,
-.preview-selected.free-floating .resize-handle {
-    opacity: 0.5;
-    border-color: #6366f1;
+/* Preview selection for marquee selection */
+.preview-selected.frame,
+.preview-selected.element-frame,
+.preview-selected.free-floating {
+    outline: 1px solid rgba(99, 102, 241, 0.6);
+    outline-offset: -1px;
 }
 
 /* Prevent text selection during shift+click multi-selection */
@@ -571,7 +543,16 @@ input:checked + .mode-toggle-slider:before {
     transform: translateX(20px);
 }
 
-/* Interactive mode styling */
+/* Interactive mode - hide all selection indicators */
+[data-canvas-mode="interactive"] .selected {
+    outline: none !important;
+}
+
+[data-canvas-mode="interactive"] .selected::before,
+[data-canvas-mode="interactive"] .selected::after {
+    display: none !important;
+}
+
 [data-canvas-mode="interactive"] .resize-handle {
     display: none !important;
 }

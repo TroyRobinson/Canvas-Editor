@@ -14,9 +14,12 @@ window.isResizing = () => resizing;
 window.startResize = startResize;
 
 function addResizeHandles(element) {
-    // Use the selection module's anchor function
-    if (window.addSelectionAnchors) {
-        window.addSelectionAnchors(element);
+    // DEPRECATED: Resize functionality now uses edge detection system
+    console.warn('⚠️ addResizeHandles() is deprecated - resize now uses edge detection on element borders');
+    
+    // Ensure element is properly set up for selection which will trigger handle management
+    if (window.makeSelectable) {
+        window.makeSelectable(element);
     }
 }
 
@@ -157,8 +160,10 @@ document.addEventListener('mousemove', (e) => {
     
     // Check for element containment if resizing a frame or element-frame
     if (resizeTarget.classList.contains('frame')) {
+        console.log(`📝 PERF: checkElementContainment() called during frame resize`);
         checkElementContainment(resizeTarget);
     } else if (resizeTarget.classList.contains('element-frame')) {
+        console.log(`📝 PERF: checkElementFrameContainment() called during element-frame resize`);
         checkElementFrameContainment(resizeTarget);
     }
 });
@@ -213,11 +218,13 @@ document.addEventListener('mouseup', (e) => {
 });
 
 function checkElementContainment(frame) {
+    const startTime = performance.now();
     const frameContent = frame.querySelector('.frame-content');
     const frameRect = frameContent.getBoundingClientRect();
     
     // Check all free-floating elements in this frame
     const elementsInFrame = frameContent.querySelectorAll('.free-floating');
+    console.log(`📝 PERF: checkElementContainment() checking ${elementsInFrame.length} elements`);
     elementsInFrame.forEach(element => {
         const elementRect = element.getBoundingClientRect();
         const elementCenter = {
@@ -291,6 +298,9 @@ function checkElementContainment(frame) {
             element.style.top = newTop + 'px';
         }
     });
+    
+    const endTime = performance.now();
+    console.log(`📝 PERF: checkElementContainment() completed in ${(endTime - startTime).toFixed(2)}ms`);
 }
 
 function checkElementFrameContainment(elementFrame) {

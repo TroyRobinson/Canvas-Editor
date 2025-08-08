@@ -337,8 +337,8 @@ function placeElement(mouseX, mouseY) {
             canvas.appendChild(placingElement);
         }
         
-        // Add resize handles
-        addResizeHandles(placingElement);
+        // Resize functionality now uses edge detection on element borders
+        // addResizeHandles(placingElement); // DEPRECATED
         
         // Make frame draggable
         const titleBar = placingElement.querySelector('.frame-title');
@@ -356,7 +356,8 @@ function placeElement(mouseX, mouseY) {
         }
     } else {
         // For other elements, add normal functionality
-        addResizeHandles(placingElement);
+        // Resize functionality now uses edge detection on element borders
+        // addResizeHandles(placingElement); // DEPRECATED
         setupElementDragging(placingElement);
         
         // If it's an element-frame, setup extraction
