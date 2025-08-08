@@ -4,6 +4,39 @@
 
     let currentlyEditingElement = null;
 
+    // Utility: determine if element is a button
+    function isButtonElement(element) {
+        return element && element.tagName && element.tagName.toLowerCase() === 'button';
+    }
+
+    // Ensure a dedicated span exists to hold the button's label and return it
+    function ensureButtonLabelSpan(button) {
+        if (!isButtonElement(button)) return null;
+
+        // Prefer an explicit data-marked span if present
+        let span = button.querySelector('span[data-button-label="true"]');
+        if (span) return span;
+
+        // Wrap existing children in a dedicated span to serve as the editable label
+        span = document.createElement('span');
+        span.dataset.buttonLabel = 'true';
+        // Move all current children into the span to preserve structure and listeners
+        const children = Array.from(button.childNodes);
+        children.forEach(child => span.appendChild(child));
+        button.appendChild(span);
+        return span;
+    }
+
+    // Resolve edit host (element that participates in canvas ops) and the DOM node that will be contentEditable
+    function resolveHostAndEditNode(element) {
+        if (isButtonElement(element)) {
+            const host = element;
+            const editNode = ensureButtonLabelSpan(element);
+            return { host, editNode };
+        }
+        return { host: element, editNode: element };
+    }
+
     // Initialize text editing functionality
     function initTextEditing() {
         // Use event delegation for double-click on text elements
@@ -39,11 +72,23 @@
         }
         
         // Check if we're inside a text-like element (for nested scenarios)
-        const textElement = target.closest('h1, h2, h3, h4, h5, h6, p, span, div.text-element, li, td, th, dt, dd, blockquote, figcaption');
-        
-        if (textElement && isTextLikeElement(textElement)) {
+        let textElement = target.closest('h1, h2, h3, h4, h5, h6, p, span, button, div.text-element, li, td, th, dt, dd, blockquote, figcaption');
+
+        // Special-case: if the match is a span inside a button, prefer the button as the editable host
+        if (textElement && textElement.tagName && textElement.tagName.toLowerCase() === 'span') {
+            const buttonAncestor = textElement.closest('button');
+            if (buttonAncestor) {
+                textElement = buttonAncestor;
+            }
+        }
+
+        if (textElement && (isTextLikeElement(textElement) || isButtonElement(textElement))) {
             return textElement;
         }
+        
+        // Fallback: if anywhere inside a button, edit the button
+        const buttonFallback = target.closest('button');
+        if (buttonFallback) return buttonFallback;
         
         return null;
     }
@@ -87,8 +132,8 @@
             return true;
         }
         
-        // Exclude interactive elements
-        if (['button', 'input', 'textarea', 'select', 'a'].includes(tagName)) {
+        // Exclude interactive elements (allow buttons to be treated as text-like for sizing/edit host resolution)
+        if (['input', 'textarea', 'select', 'a'].includes(tagName)) {
             return false;
         }
         
@@ -102,123 +147,145 @@
 
     // Enter edit mode for a text element
     function enterEditMode(element, clickX, clickY) {
+        const { host, editNode } = resolveHostAndEditNode(element);
+
         // Exit any current edit mode
-        if (currentlyEditingElement && currentlyEditingElement !== element) {
+        if (currentlyEditingElement && currentlyEditingElement !== host) {
             exitEditMode(currentlyEditingElement);
         }
 
-        // Ensure element has an ID for undo tracking
-        if (!element.id && window.ensureElementHasId) {
-            window.ensureElementHasId(element);
+        // Ensure host has an ID for undo tracking
+        if (!host.id && window.ensureElementHasId) {
+            window.ensureElementHasId(host);
         }
 
-        // Set this element as currently editing
-        currentlyEditingElement = element;
-        
-        // Store the original content for undo tracking
-        element.dataset.originalContent = element.textContent;
-        
-        // Normalize whitespace - trim excess but preserve intentional spaces
-        const normalizedText = element.textContent.replace(/\n\s*/g, ' ').trim();
-        element.textContent = normalizedText;
-        
-        // Enable contentEditable
-        element.contentEditable = 'true';
-        element.dataset.editing = 'true';
-        
-        // Add editing class for visual feedback
-        element.classList.add('editing');
-        
-        // Apply white-space preservation style to maintain spaces
-        element.style.whiteSpace = 'pre-wrap';
-        
-        // Focus the element
-        element.focus();
-        
+        // Set this host as currently editing
+        currentlyEditingElement = host;
+
+        // Store the original content for undo tracking (use host text)
+        host.dataset.originalContent = host.textContent;
+
+        // Normalize whitespace on edit node - trim excess but preserve intentional spaces
+        const normalizedText = editNode.textContent.replace(/\n\s*/g, ' ').trim();
+        editNode.textContent = normalizedText;
+
+        // Enable contentEditable on the actual edit node; mark host as editing
+        editNode.contentEditable = 'true';
+        host.dataset.editing = 'true';
+
+        // Visual feedback on both for clarity
+        host.classList.add('editing');
+        editNode.classList.add('editing');
+
+        // Preserve whitespace on the edit node and keep label on one line by default
+        editNode.style.whiteSpace = 'nowrap';
+
+        // Do not alter height of host or edit node here; vertical centering is handled by CSS on the host.
+        // If multi-line behavior is ever needed, this can be toggled to 'pre-wrap'
+
+        // Focus the edit node
+        editNode.focus();
+
         // Position cursor at click location if coordinates provided
         if (clickX !== undefined && clickY !== undefined) {
             try {
                 const range = document.caretRangeFromPoint(clickX, clickY);
-                if (range && element.contains(range.startContainer)) {
+                if (range && editNode.contains(range.startContainer)) {
                     const selection = window.getSelection();
                     selection.removeAllRanges();
                     selection.addRange(range);
                 } else {
-                    // Fallback: position at end of text
-                    positionCursorAtEnd(element);
+                    positionCursorAtEnd(editNode);
                 }
             } catch (e) {
-                // Fallback: position at end of text
-                positionCursorAtEnd(element);
+                positionCursorAtEnd(editNode);
             }
         } else {
-            // No click coordinates, select all text (backward compatibility)
             const range = document.createRange();
-            range.selectNodeContents(element);
+            range.selectNodeContents(editNode);
             const selection = window.getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
         }
-        
-        // Prevent drag while editing
-        element.dataset.originalDraggable = element.draggable;
-        element.draggable = false;
-        
-        // Handle enter key to exit edit mode
-        element.addEventListener('keydown', handleKeyDown);
-        
+
+        // Prevent drag while editing on the host element
+        host.dataset.originalDraggable = host.draggable;
+        host.draggable = false;
+
+        // Handle enter/escape on the edit node, not the host
+        editNode.addEventListener('keydown', handleKeyDown);
+
         // Handle auto-resize for elements that should auto-resize
-        if (shouldAutoResize(element)) {
-            element.addEventListener('input', handleAutoResize);
+        // Attach to edit node; handler will resolve the correct resize target
+        editNode.addEventListener('input', handleAutoResize);
+
+        // Force an initial measurement to sync width immediately upon entering edit
+        if (window.resizeTextElementToFitContent) {
+            const targetForSize = host.classList.contains('free-floating') ? host : editNode;
+            window.resizeTextElementToFitContent(targetForSize);
         }
     }
 
     // Exit edit mode for a text element
     function exitEditMode(element) {
         if (!element || !isEditing(element)) return;
-        
-        // Check if content changed and record for undo
-        const originalContent = element.dataset.originalContent;
-        const currentContent = element.textContent;
-        
-        if (originalContent !== currentContent && window.recordContentChange && element.id) {
-            window.recordContentChange(element.id, originalContent, currentContent);
+
+        const host = element;
+        const labelSpan = isButtonElement(host) ? host.querySelector('span[data-button-label="true"]') : null;
+
+        // Determine current content from host text
+        const originalContent = host.dataset.originalContent;
+        const currentContent = host.textContent;
+
+        if (originalContent !== currentContent && window.recordContentChange && host.id) {
+            window.recordContentChange(host.id, originalContent, currentContent);
         }
-        
+
         // Clean up the original content data
-        delete element.dataset.originalContent;
-        
-        // Remove contentEditable
-        element.contentEditable = 'false';
-        delete element.dataset.editing;
-        
-        // Remove editing class
-        element.classList.remove('editing');
-        
-        // Remove white-space style (let CSS handle it normally)
-        element.style.whiteSpace = '';
-        
-        // Restore draggable if it was set
-        if (element.dataset.originalDraggable === 'true') {
-            element.draggable = true;
+        delete host.dataset.originalContent;
+
+        // Remove editing flags
+        delete host.dataset.editing;
+        host.classList.remove('editing');
+
+        // If a label span was used, clean it up
+        if (labelSpan) {
+            labelSpan.contentEditable = 'false';
+            labelSpan.classList.remove('editing');
+            labelSpan.style.whiteSpace = '';
+            labelSpan.removeEventListener('keydown', handleKeyDown);
+            labelSpan.removeEventListener('input', handleAutoResize);
+        } else {
+            // Non-button flow: disable contentEditable and cleanup directly on the element
+            host.contentEditable = 'false';
+            host.style.whiteSpace = '';
+            host.removeEventListener('keydown', handleKeyDown);
+            host.removeEventListener('input', handleAutoResize);
         }
-        delete element.dataset.originalDraggable;
-        
-        // Remove event listeners
-        element.removeEventListener('keydown', handleKeyDown);
-        element.removeEventListener('input', handleAutoResize);
-        
+
+        // Restore draggable if it was set on the host
+        if (host.dataset.originalDraggable === 'true') {
+            host.draggable = true;
+        }
+        delete host.dataset.originalDraggable;
+
+        // No inline flex overrides; styling handled by CSS
+
         // Clear text selection
         const selection = window.getSelection();
         selection.removeAllRanges();
-        
+
         // Clear currently editing reference
-        if (currentlyEditingElement === element) {
+        if (currentlyEditingElement === host) {
             currentlyEditingElement = null;
         }
-        
-        // Blur the element
-        element.blur();
+
+        // Blur the active element to close editing visuals
+        if (labelSpan && document.activeElement === labelSpan) {
+            labelSpan.blur();
+        } else if (document.activeElement === host) {
+            host.blur();
+        }
 
         // Refresh selection visuals if available (restores anchors if still selected)
         if (window.refreshSelectionVisuals) {
@@ -233,8 +300,13 @@
 
     // Handle global clicks to exit edit mode when clicking outside
     function handleGlobalClick(e) {
-        if (currentlyEditingElement && !currentlyEditingElement.contains(e.target)) {
-            exitEditMode(currentlyEditingElement);
+        if (currentlyEditingElement) {
+            const host = currentlyEditingElement;
+            const labelSpan = isButtonElement(host) ? host.querySelector('span[data-button-label="true"]') : null;
+            const clickedInside = host.contains(e.target) || (labelSpan && labelSpan.contains(e.target));
+            if (!clickedInside) {
+                exitEditMode(host);
+            }
         }
     }
 
@@ -257,17 +329,18 @@
 
     // Handle auto-resize for text elements that should auto-resize
     function handleAutoResize(e) {
-        const element = e.target;
-        if (shouldAutoResize(element) && window.resizeTextElementToFitContent) {
+        // Resolve the element that should actually be resized: the nearest free-floating ancestor or the target itself
+        let resizeTarget = e.target.closest('.free-floating') || e.target;
+        if (shouldAutoResize(resizeTarget) && window.resizeTextElementToFitContent) {
             // Use requestAnimationFrame to avoid layout thrashing during typing
-            if (element._resizeTimeout) {
-                cancelAnimationFrame(element._resizeTimeout);
+            if (resizeTarget._resizeTimeout) {
+                cancelAnimationFrame(resizeTarget._resizeTimeout);
             }
-            element._resizeTimeout = requestAnimationFrame(() => {
-                if (shouldAutoResize(element)) { // Check again in case it changed
-                    window.resizeTextElementToFitContent(element);
+            resizeTarget._resizeTimeout = requestAnimationFrame(() => {
+                if (shouldAutoResize(resizeTarget)) { // Check again in case it changed
+                    window.resizeTextElementToFitContent(resizeTarget);
                 }
-                element._resizeTimeout = null;
+                resizeTarget._resizeTimeout = null;
             });
         }
     }
@@ -277,15 +350,17 @@
         // Exit edit mode on Escape
         if (e.key === 'Escape') {
             e.preventDefault();
-            exitEditMode(e.target);
+            const host = e.target.closest('button') || e.target;
+            exitEditMode(host);
         }
         // Prevent enter from creating new lines (optional - remove if multi-line is desired)
         else if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            exitEditMode(e.target);
+            const host = e.target.closest('button') || e.target;
+            exitEditMode(host);
         }
         // Handle spacebar for buttons - prevent default button behavior
-        else if (e.key === ' ' && e.target.tagName.toLowerCase() === 'button') {
+        else if (e.key === ' ' && (e.target.tagName.toLowerCase() === 'button' || !!e.target.closest('button'))) {
             e.preventDefault();
             e.stopPropagation();
             

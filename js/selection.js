@@ -87,8 +87,12 @@ function addSelectionAnchors(element) {
                 // Only trigger if this element is selected and is a text element
                 if (window.getSelectedElements && window.textEditing && window.textEditing.isTextLikeElement) {
                     const selected = window.getSelectedElements();
-                    if (selected.includes(element) && window.textEditing.isTextLikeElement(element) && window.resizeTextElementToFitContent) {
-                        window.resizeTextElementToFitContent(element);
+                    if (selected.includes(element) && window.textEditing.isTextLikeElement(element)) {
+                        if (window.resizeTextElementToSingleLineFit) {
+                            window.resizeTextElementToSingleLineFit(element);
+                        } else if (window.resizeTextElementToFitContent) {
+                            window.resizeTextElementToFitContent(element);
+                        }
                     }
                 }
             });

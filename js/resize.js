@@ -351,38 +351,70 @@ function checkElementFrameContainment(elementFrame) {
 // Resize a text element to fit its content
 function resizeTextElementToFitContent(element) {
     if (!window.textEditing || !window.textEditing.isTextLikeElement(element)) return;
-    // Create a clone for measurement
-    const clone = element.cloneNode(true);
-    clone.style.position = 'absolute';
-    clone.style.visibility = 'hidden';
-    clone.style.height = 'auto';
-    clone.style.width = 'auto';
-    clone.style.whiteSpace = 'pre-wrap';
-    clone.style.left = '-9999px';
-    clone.style.top = '-9999px';
-    clone.style.zIndex = '-1';
-    // Remove any fixed width/height
-    clone.style.maxWidth = 'none';
-    clone.style.maxHeight = 'none';
-    clone.style.minWidth = '0';
-    clone.style.minHeight = '0';
-    // Append to body for measurement
-    document.body.appendChild(clone);
-    // Get computed size
-    const rect = clone.getBoundingClientRect();
-    // Remove the clone
-    document.body.removeChild(clone);
-    // Account for zoom
+
+    const tag = element.tagName ? element.tagName.toLowerCase() : '';
     const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
-    // Set the element's size to fit content
-    element.style.width = (rect.width / zoom) + 'px';
-    element.style.height = (rect.height / zoom) + 'px';
+
+    // Helper to measure a node's intrinsic rect by cloning it
+    function measureNode(node, forceInlineBlock = false, whiteSpace = 'pre-wrap') {
+        const clone = node.cloneNode(true);
+        clone.style.position = 'absolute';
+        clone.style.visibility = 'hidden';
+        clone.style.height = 'auto';
+        clone.style.width = 'auto';
+        clone.style.whiteSpace = whiteSpace;
+        if (forceInlineBlock) {
+            clone.style.display = 'inline-block';
+        }
+        clone.style.left = '-9999px';
+        clone.style.top = '-9999px';
+        clone.style.zIndex = '-1';
+        clone.style.maxWidth = 'none';
+        clone.style.maxHeight = 'none';
+        clone.style.minWidth = '0';
+        clone.style.minHeight = '0';
+        document.body.appendChild(clone);
+        const rect = clone.getBoundingClientRect();
+        document.body.removeChild(clone);
+        return rect;
+    }
+
+    if (tag === 'button') {
+        // For buttons: adjust width to fit content, but respect user-defined height
+        const label = element.querySelector('span[data-button-label="true"]') || element;
+        const useNowrap = element.dataset.autoFit === 'true';
+        const labelRect = measureNode(label, true, useNowrap ? 'nowrap' : 'pre-wrap');
+
+        const cs = window.getComputedStyle(element);
+        const paddingX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const paddingY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const borderX = parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+        const borderY = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+
+        const newWidth = (labelRect.width + paddingX + borderX) / zoom;
+        const contentHeight = (labelRect.height + paddingY + borderY) / zoom;
+
+        // Preserve explicit manual height if present; otherwise, use content height
+        const hasManualHeight = element.dataset.manuallyResized === 'true' && !!element.style.height;
+        if (!hasManualHeight) {
+            element.style.height = Math.max(1, contentHeight) + 'px';
+        }
+        element.style.width = Math.max(1, newWidth) + 'px';
+    } else {
+        // Default path for non-button text elements
+        const useNowrap = element.dataset.autoFit === 'true';
+        const rect = measureNode(element, false, useNowrap ? 'nowrap' : 'pre-wrap');
+        // If element has been manually resized, preserve width; only adjust height to content
+        const preserveWidth = element.dataset.manuallyResized === 'true' && !!element.style.width;
+        if (!preserveWidth) {
+            element.style.width = (rect.width / zoom) + 'px';
+        }
+        element.style.height = (rect.height / zoom) + 'px';
+    }
     // Mark element as auto-fit mode for auto-resize behavior
     element.dataset.autoFit = 'true';
-    // Clear manual resize flag since corner double-click resets to auto-fit
-    if (element.dataset.manuallyResized === 'true') {
-        delete element.dataset.manuallyResized;
-    }
+    // Do not clear manuallyResized here; callers that want to reset manual
+    // sizing (e.g., explicit resize-to-fit) should clear it themselves upstream.
     // Optionally, record resize for undo
     if (window.recordResize && element.id) {
         window.recordResize(
@@ -397,3 +429,69 @@ function resizeTextElementToFitContent(element) {
     }
 }
 window.resizeTextElementToFitContent = resizeTextElementToFitContent;
+
+// Explicit single-line fit used by corner handle double-click
+function resizeTextElementToSingleLineFit(element) {
+    if (!window.textEditing || !window.textEditing.isTextLikeElement(element)) return;
+
+    const tag = element.tagName ? element.tagName.toLowerCase() : '';
+    const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+
+    function measureNodeNowrap(node, forceInlineBlock = false) {
+        const clone = node.cloneNode(true);
+        clone.style.position = 'absolute';
+        clone.style.visibility = 'hidden';
+        clone.style.height = 'auto';
+        clone.style.width = 'auto';
+        clone.style.whiteSpace = 'nowrap';
+        if (forceInlineBlock) clone.style.display = 'inline-block';
+        clone.style.left = '-9999px';
+        clone.style.top = '-9999px';
+        clone.style.zIndex = '-1';
+        clone.style.maxWidth = 'none';
+        clone.style.maxHeight = 'none';
+        clone.style.minWidth = '0';
+        clone.style.minHeight = '0';
+        document.body.appendChild(clone);
+        const rect = clone.getBoundingClientRect();
+        document.body.removeChild(clone);
+        return rect;
+    }
+
+    if (tag === 'button') {
+        const label = element.querySelector('span[data-button-label="true"]') || element;
+        const labelRect = measureNodeNowrap(label, true);
+        const cs = window.getComputedStyle(element);
+        const paddingX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const paddingY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const borderX = parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+        const borderY = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+        element.style.width = Math.max(1, (labelRect.width + paddingX + borderX) / zoom) + 'px';
+        element.style.height = Math.max(1, (labelRect.height + paddingY + borderY) / zoom) + 'px';
+    } else {
+        const rect = measureNodeNowrap(element, false);
+        element.style.whiteSpace = 'nowrap';
+        element.style.width = (rect.width / zoom) + 'px';
+        element.style.height = (rect.height / zoom) + 'px';
+    }
+
+    // Enable auto-fit mode and clear manual flag to allow dynamic width during editing
+    element.dataset.autoFit = 'true';
+    if (element.dataset.manuallyResized === 'true') {
+        delete element.dataset.manuallyResized;
+    }
+
+    // Optionally, record resize for undo consistency
+    if (window.recordResize && element.id) {
+        window.recordResize(
+            element.id,
+            { width: '', height: '' },
+            { width: element.style.width, height: element.style.height },
+            { left: element.style.left, top: element.style.top },
+            { left: element.style.left, top: element.style.top },
+            element.parentElement?.id || 'canvas',
+            element.parentElement?.id || 'canvas'
+        );
+    }
+}
+window.resizeTextElementToSingleLineFit = resizeTextElementToSingleLineFit;

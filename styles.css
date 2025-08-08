@@ -401,6 +401,11 @@ body.shift-selecting {
     cursor: pointer;
     font-size: 14px;
     font-family: inherit;
+    line-height: normal; /* allow natural text sizing */
+    /* Keep label vertically centered regardless of edit state */
+    display: inline-flex; /* ensures width/height work with flex centering */
+    align-items: center;
+    justify-content: center;
 }
 
 .button-element:hover {
