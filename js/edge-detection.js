@@ -259,7 +259,16 @@
         const resizePosition = detectResizePosition(element, e.clientX, e.clientY);
         
         if (resizePosition) {
+            // Check if element is already selected - only allow resize on selected elements
+            const selectedElements = window.getSelectedElements ? window.getSelectedElements() : [];
+            const isElementSelected = selectedElements.includes(element);
             
+            if (!isElementSelected) {
+                // Element not selected - select it first instead of resizing
+                return false; // Let selection logic handle this click
+            }
+            
+            // Element is selected - proceed with resize
             // Prevent default selection behavior
             e.preventDefault();
             e.stopPropagation();
