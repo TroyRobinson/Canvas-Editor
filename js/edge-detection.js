@@ -64,16 +64,9 @@
         const nearTopCorner = relativeY <= adjustedCornerThreshold;
         const nearBottomCorner = relativeY >= (extendedRect.height - adjustedCornerThreshold);
         
-        // For debugging - less verbose now
+        // Debug mode for troubleshooting detection issues
         if (window.edgeDetectionDebug) {
-            console.log(`🎯 Extended detection:`, {
-                originalRect: { width: rect.width, height: rect.height },
-                extendedRect: { width: extendedRect.width, height: extendedRect.height },
-                clickPos: { x: clientX, y: clientY },
-                relativePos: { x: relativeX, y: relativeY },
-                thresholds: { edge: adjustedEdgeThreshold, corner: adjustedCornerThreshold, external: externalZone },
-                flags: { nearLeft, nearRight, nearTop, nearBottom, nearLeftCorner, nearRightCorner, nearTopCorner, nearBottomCorner }
-            });
+            console.log(`🎯 Edge detection:`, { position: relativeX < adjustedEdgeThreshold ? 'left' : relativeX > extendedRect.width - adjustedEdgeThreshold ? 'right' : relativeY < adjustedEdgeThreshold ? 'top' : 'bottom' });
         }
         
         // Corner detection (higher priority)
@@ -266,7 +259,6 @@
         const resizePosition = detectResizePosition(element, e.clientX, e.clientY);
         
         if (resizePosition) {
-            console.log(`🎯 Extended edge detection: Starting ${resizePosition} resize on ${element.id || element.className}`);
             
             // Prevent default selection behavior
             e.preventDefault();
@@ -323,12 +315,8 @@
             
             // Check if this is indeed an external zone click (outside actual element)
             if (isInExternalZoneOnly(currentExtendedElement, e.clientX, e.clientY)) {
-                console.log(`🎯 Global external zone click detected on ${currentExtendedElement.id}`);
-                
                 // Handle the external zone click
                 if (window.handleElementMouseDown && window.handleElementMouseDown(currentExtendedElement, e)) {
-                    // Resize was initiated from external zone
-                    console.log(`🎯 External zone resize initiated successfully`);
                     e.preventDefault();
                     e.stopPropagation();
                 }
@@ -367,6 +355,5 @@
         console.log(`🎯 Edge detection debug: ${window.edgeDetectionDebug ? 'ON' : 'OFF'}`);
     };
 
-    console.log('🎯 Edge detection system initialized with extended hit zones');
 
 })();

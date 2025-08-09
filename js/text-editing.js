@@ -504,7 +504,6 @@
     // Set up observer for new text elements
     function setupTextElementObserver() {
         const observer = new MutationObserver((mutations) => {
-            console.log(`📝 PERF: Text editing MutationObserver triggered with ${mutations.length} mutations`);
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === Node.ELEMENT_NODE) {

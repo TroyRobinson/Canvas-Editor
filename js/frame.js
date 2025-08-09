@@ -101,7 +101,6 @@ function createFrame(x, y, title) {
     
     // Make static elements selectable individually
     const staticElements = content.querySelectorAll('h3, p, button');
-    console.log(`🇫 PERF: Making ${staticElements.length} static elements selectable in frame`);
     staticElements.forEach(element => {
         if (window.makeSelectable) {
             window.makeSelectable(element);
@@ -252,7 +251,6 @@ function setupContentTracking(frameContent) {
     if (!window.undoManager) return;
     
     const observer = new MutationObserver((mutations) => {
-        console.log(`🇫 PERF: Frame content MutationObserver triggered with ${mutations.length} mutations for frame ${frameContent.closest('.frame')?.id || 'unknown'}`);
         mutations.forEach(mutation => {
             if (window.undoManager.isExecuting) return; // Don't track during undo/redo
             

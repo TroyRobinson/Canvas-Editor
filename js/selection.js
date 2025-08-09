@@ -109,8 +109,6 @@ function isStaticElementInFrame(element) {
 function refreshSelectionVisuals() {
     const startTime = performance.now();
     const selected = getSelectedElements();
-    console.log(`🔄 PERF: refreshSelectionVisuals() called for ${selected.length} elements`);
-    
     // Clean up any old resize handles that might still exist
     document.querySelectorAll('.resize-handle').forEach(handle => handle.remove());
     
@@ -137,15 +135,11 @@ function refreshSelectionVisuals() {
             }
         }
     });
-    
-    const endTime = performance.now();
-    console.log(`🔄 PERF: refreshSelectionVisuals() completed in ${(endTime - startTime).toFixed(2)}ms`);
 }
 window.refreshSelectionVisuals = refreshSelectionVisuals;
 
 // Auto-refresh selection visuals whenever selection changes
 window.addEventListener('selectionChanged', (e) => {
-    console.log(`📡 PERF: selectionChanged event fired with ${e.detail.selectedElements.length} elements`);
     // Only refresh in edit mode
     if (window.canvasMode && window.canvasMode.isEditMode()) {
         // Edge detection setup is very lightweight, no need for RAF
@@ -253,7 +247,6 @@ window.initializeSelection = initializeSelection;
 
 // Watch for new elements being added
 const observer = new MutationObserver((mutations) => {
-    console.log(`👁️ PERF: Selection MutationObserver triggered with ${mutations.length} mutations`);
     mutations.forEach(mutation => {
         mutation.addedNodes.forEach(node => {
             if (node.nodeType === 1) { // Element node

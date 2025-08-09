@@ -160,10 +160,8 @@ document.addEventListener('mousemove', (e) => {
     
     // Check for element containment if resizing a frame or element-frame
     if (resizeTarget.classList.contains('frame')) {
-        console.log(`📝 PERF: checkElementContainment() called during frame resize`);
         checkElementContainment(resizeTarget);
     } else if (resizeTarget.classList.contains('element-frame')) {
-        console.log(`📝 PERF: checkElementFrameContainment() called during element-frame resize`);
         checkElementFrameContainment(resizeTarget);
     }
 });
@@ -218,13 +216,11 @@ document.addEventListener('mouseup', (e) => {
 });
 
 function checkElementContainment(frame) {
-    const startTime = performance.now();
     const frameContent = frame.querySelector('.frame-content');
     const frameRect = frameContent.getBoundingClientRect();
     
     // Check all free-floating elements in this frame
     const elementsInFrame = frameContent.querySelectorAll('.free-floating');
-    console.log(`📝 PERF: checkElementContainment() checking ${elementsInFrame.length} elements`);
     elementsInFrame.forEach(element => {
         const elementRect = element.getBoundingClientRect();
         const elementCenter = {
@@ -300,7 +296,6 @@ function checkElementContainment(frame) {
     });
     
     const endTime = performance.now();
-    console.log(`📝 PERF: checkElementContainment() completed in ${(endTime - startTime).toFixed(2)}ms`);
 }
 
 function checkElementFrameContainment(elementFrame) {

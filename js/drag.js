@@ -107,7 +107,7 @@ function setupFrameDragging(frame, titleBar) {
         // Check if we're starting a multi-selection drag
         if (window.getSelectedElements) {
             const updatedSelectedElements = window.getSelectedElements();
-            console.log(`👍 PERF: Starting FRAME drag with ${updatedSelectedElements.length} selected elements`);
+            // Starting multi-element frame drag
             if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(currentDragging)) {
                 isMultiDragging = true;
                 setupMultiDragOffsets(currentDragging, updatedSelectedElements);
@@ -232,7 +232,7 @@ function setupElementDragging(element) {
         // Check if we're starting a multi-selection drag
         if (window.getSelectedElements) {
             const updatedSelectedElements = window.getSelectedElements();
-            console.log(`👍 PERF: Starting ELEMENT drag with ${updatedSelectedElements.length} selected elements`);
+            // Starting multi-element drag
             if (updatedSelectedElements.length > 1 && updatedSelectedElements.includes(currentDragging)) {
                 isMultiDragging = true;
                 setupMultiDragOffsets(currentDragging, updatedSelectedElements);
