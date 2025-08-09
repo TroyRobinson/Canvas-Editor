@@ -76,8 +76,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Preview</title>
     <style>
-        /* Inject global CSS */
-        ${globalCSS}
         
         /* Iframe-specific styles - override any global styles */
         body {
@@ -86,6 +84,41 @@
             background: transparent !important;
             overflow: hidden !important; /* Prevent scrollbars */
             box-sizing: border-box !important;
+        }
+
+        /* Reset headings */
+        h1, h2, h3, h4, h5, h6 {
+        margin: 0;
+        padding: 0;
+        }
+
+        /* Reset links */
+        a {
+        color: inherit;
+        text-decoration: none;
+        }
+
+        /* Reset images and media */
+        img, video, canvas, svg {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        }
+
+        /* Reset paragraphs and lists */
+        p, ul, ol, dl {
+        margin: 0;
+        padding: 0;
+        }
+
+        /* Reset lists */
+        ul, ol {
+        list-style: none;
+        }
+
+        /* Force box-sizing inheritance */
+        *, *::before, *::after {
+        box-sizing: inherit;
         }
         
         /* Match frame-content styling exactly */
@@ -111,6 +144,9 @@
         [style*="position: absolute"], [style*="position:absolute"] {
             position: absolute !important;
         }
+
+        /* Inject global CSS */
+        ${globalCSS}
     </style>
 </head>
 <body>
