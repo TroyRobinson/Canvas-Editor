@@ -60,6 +60,8 @@ When given HTML code, analyze the user's intended functionality and respond with
 
 6) **Canvas System**: Do not manipulate contenteditable, data-selectable, or other Canvas-managed attributes. Focus on adding new content/behavior only.
 
+7) INTEGRATE: Wherever possible integrate your JS and UI creation/utilization with the existing DOM elements. (free-floating means absolutely positioned)
+
 # STYLING:
 - Maintain dark theme (white text on dark backgrounds)
 - Ensure visual consistency with the Canvas Builder interface`;

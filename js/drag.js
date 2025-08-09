@@ -55,7 +55,7 @@ function setupFrameDragging(frame, titleBar) {
             return;
         }
         
-        // CHECK FOR EDGE DETECTION FIRST - before starting drag
+        // CHECK FOR EDGE DETECTION FIRST - before starting drag (includes extended zones)
         if (window.handleElementMouseDown && window.handleElementMouseDown(frame, e)) {
             // Edge detection handled the event (started resize) - don't drag
             return;
@@ -178,7 +178,7 @@ function setupElementDragging(element) {
         
         e.stopPropagation();
         
-        // CHECK FOR EDGE DETECTION FIRST - before blocking other handlers
+        // CHECK FOR EDGE DETECTION FIRST - before blocking other handlers (includes extended zones)
         if (window.handleElementMouseDown && window.handleElementMouseDown(element, e)) {
             // Edge detection handled the event (started resize) - don't drag
             return;
