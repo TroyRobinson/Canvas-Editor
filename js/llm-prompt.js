@@ -18,53 +18,37 @@ When given HTML code, analyze the user's intended functionality and respond with
 
 # CANVAS FRAMEWORK CONSTRAINTS:
 
-1) **No DOMContentLoaded**: Do NOT use document.addEventListener('DOMContentLoaded', ...) because scripts execute dynamically after page load. Execute code immediately or wrap in IIFE.
+1) **Script Execution Context**: Scripts are designed for editing in EDIT MODE but execute in isolated INTERACTIVE MODE iframes. Write scripts that work in both contexts.
 
 2) **Animation Rules**: Elements with class 'free-floating' have 'transition: none !important', so use CSS @keyframes animations instead of transitions.
 
-3) **Element Placement**: When creating elements dynamically, ALWAYS append to the frame content area, NOT document.body. Use 'document.currentScript.closest(".frame-content")' to get the proper container.
+3) **Element Placement**: When creating elements dynamically, ALWAYS append to the frame content area. Use simple DOM queries since scripts run in isolated iframe context.
 
-4) **Element Targeting**: Scripts execute within their container - use container-scoped queries, not document.getElementById(). Always target ALL elements of a type using querySelectorAll and forEach.
+4) **Element Targeting**: Use standard DOM queries. In edit mode, scripts don't execute. In interactive mode, scripts run in iframe with frame content as the document root.
 
-5) **Event Handler Pattern**: CRITICAL - The system clears all 'data-initialized' attributes before script execution. Use this exact pattern:
+5) **Event Handler Pattern**: Use simple, standard event handling:
    \`\`\`javascript
-   // Get container reference during initialization
-   const frameContent = document.currentScript?.closest('.frame-content');
-   
-   function initializeElement(element) {
-       if (element.dataset.initialized === 'true') return;
-       
-       element.addEventListener('click', function() {
+   // Simple iframe-compatible pattern
+   const buttons = document.querySelectorAll('button');
+   buttons.forEach(button => {
+       button.addEventListener('click', function() {
            // Event handler logic here
-           // Use frameContent variable, NOT document.currentScript
-       });
-       element.dataset.initialized = 'true';
-   }
-   
-   // Query elements within container, not globally
-   const elements = frameContent.querySelectorAll('button[data-selectable="true"]');
-   elements.forEach(initializeElement);
-   
-   // MutationObserver for dynamic elements
-   const observer = new MutationObserver(function(mutations) {
-       mutations.forEach(function(mutation) {
-           mutation.addedNodes.forEach(function(node) {
-               if (node.nodeType === 1 && node.matches && node.matches('button[data-selectable="true"]')) {
-                   initializeElement(node);
-               }
-           });
+           button.classList.add('flash');
+           setTimeout(() => button.classList.remove('flash'), 300);
        });
    });
-   observer.observe(frameContent, { childList: true, subtree: true });
    \`\`\`
 
 6) **Canvas System**: Do not manipulate contenteditable, data-selectable, or other Canvas-managed attributes. Focus on adding new content/behavior only.
 
-7) INTEGRATE: Wherever possible integrate your JS and UI creation/utilization with the existing DOM elements. (free-floating means absolutely positioned)
+7) **Element Integration**: Wherever possible integrate with existing DOM elements. 'free-floating' class means absolutely positioned elements.
+
+8) **Iframe Isolation**: Scripts will execute in isolated iframe context during interactive mode, so avoid relying on parent document or Canvas system APIs.
 
 # STYLING:
 - Maintain dark theme (white text on dark backgrounds)
-- Ensure visual consistency with the Canvas Builder interface`;
+- Ensure visual consistency with the Canvas Builder interface
+- Use @keyframes for animations (not CSS transitions on free-floating elements)`;
 
     /**
      * User prompt template that provides the specific task and HTML content.

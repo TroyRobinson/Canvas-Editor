@@ -507,9 +507,8 @@
                     });
                     
                     // Activate scripts for the frame (this will include the new content)
-                    if (window.scriptManager && window.scriptManager.activateScripts) {
-                        window.scriptManager.activateScripts(currentSelectedElement);
-                    }
+                    // Scripts will be activated when entering interactive mode via iframe
+                    console.log('💡 CODE EDITOR: Scripts will activate in interactive mode iframe');
                     
                     // Keep the frame selected (not the frame-content)
                     // The observation remains on the frame, not the content
@@ -607,7 +606,8 @@
         
         // Activate any scripts within the element
         if (window.scriptManager) {
-            window.scriptManager.activateScripts(element);
+            // Scripts will be activated when entering interactive mode via iframe
+            console.log('💡 CODE EDITOR: Scripts will activate in interactive mode iframe');
         }
     }
 

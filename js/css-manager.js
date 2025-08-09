@@ -159,6 +159,28 @@
         return isInitialized;
     }
 
+    /**
+     * Inject current CSS into an iframe document
+     * @param {Document} iframeDocument - The iframe's document object
+     */
+    function injectIntoIframe(iframeDocument) {
+        ensureInitialized();
+        
+        try {
+            // Create style element in iframe
+            const styleElement = iframeDocument.createElement('style');
+            styleElement.id = 'injected-css';
+            styleElement.textContent = getCurrentCSS();
+            
+            // Insert into iframe head
+            iframeDocument.head.appendChild(styleElement);
+            
+            console.log('💉 CSS: Injected into iframe');
+        } catch (error) {
+            console.error('Error injecting CSS into iframe:', error);
+        }
+    }
+
     // Expose public API
     window.cssManager = {
         // Core operations
@@ -174,7 +196,8 @@
         // Integration helpers
         ensureInitialized,
         getStyleElement,
-        getInitializationStatus
+        getInitializationStatus,
+        injectIntoIframe
     };
 
 

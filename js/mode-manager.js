@@ -1,9 +1,6 @@
-// Mode Manager - Handles switching between edit and interactive modes
+// Mode Manager - Handles switching between edit and interactive modes using iframe previews
 (function() {
     'use strict';
-
-    // Storage for frame code snapshots
-    const frameCodeStorage = new Map();
 
     // Initialize mode state
     window.canvasMode = {
@@ -15,13 +12,13 @@
             // Exit any active operations before switching
             this.exitAllActiveOperations();
             
-            // Handle code storage/restoration based on mode transition
+            // Handle iframe-based mode transition
             if (this.mode === 'edit' && newMode === 'interactive') {
-                // Store all frame code before entering interactive mode
-                this.storeAllFrameCode();
+                // Create iframe previews for all frames
+                this.enterInteractiveMode();
             } else if (this.mode === 'interactive' && newMode === 'edit') {
-                // Restore all frame code when exiting interactive mode
-                this.restoreAllFrameCode();
+                // Destroy iframe previews, return to edit mode
+                this.enterEditMode();
             }
             
             this.mode = newMode;
@@ -103,151 +100,52 @@
             document.body.insertBefore(toggleContainer, document.body.firstChild);
         },
         
-        // Store code copies of all frames when entering interactive mode
-        storeAllFrameCode() {
-            console.log('📋 STORING: Frame code for interactive mode');
-            frameCodeStorage.clear(); // Clear any existing storage
+        // Enter interactive mode by creating iframe previews for all frames
+        enterInteractiveMode() {
+            console.log('🎮 INTERACTIVE MODE: Creating iframe previews with latest frame content');
             
-            // Find all frames
+            const frames = document.querySelectorAll('.frame');
+            frames.forEach(frame => {
+                const frameContent = frame.querySelector('.frame-content');
+                if (frameContent && window.iframeManager) {
+                    try {
+                        // IMPORTANT: Always destroy existing iframe first to ensure fresh content
+                        window.iframeManager.destroyIframe(frame.id);
+                        
+                        // Get CURRENT frame content (includes any recent edits/moves)
+                        const htmlContent = frameContent.innerHTML;
+                        const cssContent = window.cssManager ? window.cssManager.getCurrentCSS() : '';
+                        
+                        console.log(`📄 Current HTML for ${frame.id}:`, htmlContent.substring(0, 100));
+                        
+                        // Create iframe preview with current content
+                        window.iframeManager.createPreviewIframe(frame, htmlContent, cssContent);
+                        window.iframeManager.showIframe(frame.id);
+                        
+                        console.log(`🎮 Created fresh iframe preview for ${frame.id}`);
+                    } catch (error) {
+                        console.error(`❌ Failed to create iframe for ${frame.id}:`, error);
+                    }
+                }
+            });
+        },
+        
+        // Enter edit mode by destroying iframe previews
+        enterEditMode() {
+            console.log('✏️  EDIT MODE: Destroying iframe previews');
+            
+            if (window.iframeManager) {
+                window.iframeManager.destroyAllIframes();
+            }
+            
+            // Ensure all frame content is visible
             const frames = document.querySelectorAll('.frame');
             frames.forEach(frame => {
                 const frameContent = frame.querySelector('.frame-content');
                 if (frameContent) {
-                    // Store the complete innerHTML of the frame content
-                    frameCodeStorage.set(frame.id, frameContent.innerHTML);
-                    console.log(`💾 STORED: Code for frame ${frame.id}`);
+                    frameContent.style.display = 'block';
                 }
             });
-        },
-        
-        // Restore frame code when exiting interactive mode
-        restoreAllFrameCode() {
-            console.log('🔄 RESTORING: Frame code from edit mode');
-            
-            // Capture selection state before restoration
-            const selectedElementIds = window.getSelectedElements ? 
-                window.getSelectedElements().map(el => el.id).filter(id => id) : [];
-            
-            frameCodeStorage.forEach((storedHTML, frameId) => {
-                const frame = document.getElementById(frameId);
-                if (!frame) {
-                    console.warn(`⚠️ RESTORE: Frame ${frameId} not found, skipping`);
-                    return;
-                }
-                
-                const oldFrameContent = frame.querySelector('.frame-content');
-                if (!oldFrameContent) {
-                    console.warn(`⚠️ RESTORE: Frame content not found for ${frameId}, skipping`);
-                    return;
-                }
-                
-                // Create new frame-content element from stored HTML (proper cleanup approach)
-                const newFrameContent = document.createElement('div');
-                newFrameContent.className = 'frame-content';
-                newFrameContent.innerHTML = storedHTML;
-                
-                // Use proper element replacement to strip all old event handlers
-                const parent = oldFrameContent.parentElement;
-                const nextSibling = oldFrameContent.nextSibling;
-                
-                // CRITICAL: Remove old element completely (strips all event handlers)
-                parent.removeChild(oldFrameContent);
-                parent.insertBefore(newFrameContent, nextSibling);
-                
-                console.log(`✅ RESTORED: Code for frame ${frameId} with proper cleanup`);
-                
-                // Re-establish all necessary behaviors after code restoration
-                this.reestablishFrameBehaviors(frame);
-            });
-            
-            // Restore selection state after mode switching
-            this.restoreSelectionState(selectedElementIds);
-            
-            // Clear storage after restoration
-            frameCodeStorage.clear();
-        },
-        
-        // Re-establish all Canvas behaviors and script activation after code restoration
-        reestablishFrameBehaviors(frame) {
-            const frameContent = frame.querySelector('.frame-content');
-            if (!frameContent) return;
-            
-            console.log(`🔧 RE-ESTABLISHING: Behaviors for frame ${frame.id}`);
-            
-            // Re-establish frame-level behaviors first
-            if (window.setupFrame) {
-                window.setupFrame(frame);
-            } else {
-                // Fallback: manually setup frame behaviors
-                const titleBar = frame.querySelector('.frame-title');
-                if (titleBar && window.setupFrameDragging) {
-                    window.setupFrameDragging(frame, titleBar);
-                }
-                if (window.makeSelectable) {
-                    window.makeSelectable(frame);
-                }
-            }
-            
-            // Ensure all elements have IDs for tracking
-            if (window.ensureAllElementsHaveIds) {
-                window.ensureAllElementsHaveIds(frameContent);
-            }
-            
-            // Re-establish behaviors for all elements
-            frameContent.querySelectorAll('*').forEach(element => {
-                // Skip resize handles
-                if (element.classList.contains('resize-handle')) return;
-                
-                // Re-establish behaviors for free-floating elements
-                if (element.classList.contains('free-floating')) {
-                    if (window.setupElementDragging) {
-                        window.setupElementDragging(element);
-                    }
-                    if (window.makeSelectable) {
-                        window.makeSelectable(element);
-                    }
-                    // Don't call addSelectionAnchors directly - let selection system handle it via events
-                }
-                // Re-establish behaviors for static elements
-                else if (window.makeSelectable) {
-                    window.makeSelectable(element);
-                }
-            });
-            
-            // Re-establish container behaviors
-            if (window.makeContainerElementsSelectable) {
-                window.makeContainerElementsSelectable(frameContent);
-            }
-            
-            // Setup element extraction for the frame content
-            if (window.setupElementExtraction) {
-                window.setupElementExtraction(frameContent);
-            }
-            
-            // Activate scripts for this frame
-            if (window.scriptManager && window.scriptManager.activateScripts) {
-                window.scriptManager.activateScripts(frame);
-            }
-            
-            console.log(`✨ COMPLETED: Behavior re-establishment for frame ${frame.id}`);
-        },
-        
-        // Restore selection state after mode switching
-        restoreSelectionState(selectedElementIds) {
-            if (!selectedElementIds.length || !window.selectElement || !window.clearSelection) return;
-            
-            // Clear current selection first
-            window.clearSelection();
-            
-            // Re-select elements by ID
-            selectedElementIds.forEach(elementId => {
-                const element = document.getElementById(elementId);
-                if (element) {
-                    window.selectElement(element);
-                }
-            });
-            
-            console.log(`🎯 MODE SELECTION RESTORED: ${selectedElementIds.length} elements re-selected`);
         }
     };
 

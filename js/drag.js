@@ -697,32 +697,19 @@ function moveElementToContainer(element, newParent, mouseX, mouseY) {
     const oldParent = element.parentElement;
     const oldContainerId = oldParent?.id || 'canvas';
     
-    // Clean up script handlers from the old container by cloning
-    // Only clean up if moving FROM a scripted container (frame or element-frame)
-    let cleanElement = element;
-    if (window.scriptManager && window.scriptManager.cleanupElementHandlers && 
-        oldParent && (oldParent.classList.contains('frame') || 
-                     oldParent.classList.contains('element-frame') ||
-                     oldParent.classList.contains('frame-content'))) {
-        cleanElement = window.scriptManager.cleanupElementHandlers(element, oldContainerId);
-    }
-    
-    // Move the clean element to new parent
-    // Use helper function to insert before script/style tags if in frame-content
+    // No script cleanup needed - iframe isolation handles script separation
+    // Move element to new parent 
     if (window.insertElementIntoFrameContent) {
-        window.insertElementIntoFrameContent(newParent, cleanElement);
+        window.insertElementIntoFrameContent(newParent, element);
     } else {
-        newParent.appendChild(cleanElement);
+        newParent.appendChild(element);
     }
     
-    // Update position on the clean element
-    cleanElement.style.left = newLeft + 'px';
-    cleanElement.style.top = newTop + 'px';
+    // Update position
+    element.style.left = newLeft + 'px';
+    element.style.top = newTop + 'px';
     
-    // Re-activate scripts in the new parent container to include the moved element
-    if (window.scriptManager && window.scriptManager.reactivateContainerScripts) {
-        window.scriptManager.reactivateContainerScripts(newParent);
-    }
+    console.log(`🚚 DRAG: Element moved to new container (no script cleanup needed)`);
     
     console.log(`Element moved to ${newParent.id || newParent.className || 'container'}`);
 }
@@ -842,32 +829,19 @@ function handleMultiSelectionContainerChanges(e) {
                 const oldParent = element.parentElement;
                 const oldContainerId = oldParent?.id || 'canvas';
                 
-                // Clean up script handlers from the old container by cloning
-                // Only clean up if moving FROM a scripted container (frame or element-frame)
-                let cleanElement = element;
-                if (window.scriptManager && window.scriptManager.cleanupElementHandlers && 
-                    oldParent && (oldParent.classList.contains('frame') || 
-                                 oldParent.classList.contains('element-frame') ||
-                                 oldParent.classList.contains('frame-content'))) {
-                    cleanElement = window.scriptManager.cleanupElementHandlers(element, oldContainerId);
-                }
-                
-                // Move the clean element to new parent
-                // Use helper function to insert before script/style tags if in frame-content
+                // No script cleanup needed - iframe isolation handles script separation
+                // Move element to new parent
                 if (window.insertElementIntoFrameContent) {
-                    window.insertElementIntoFrameContent(newParent, cleanElement);
+                    window.insertElementIntoFrameContent(newParent, element);
                 } else {
-                    newParent.appendChild(cleanElement);
+                    newParent.appendChild(element);
                 }
                 
-                // Update position on the clean element
-                cleanElement.style.left = newLeft + 'px';
-                cleanElement.style.top = newTop + 'px';
+                // Update position
+                element.style.left = newLeft + 'px';
+                element.style.top = newTop + 'px';
                 
-                // Re-activate scripts in the new parent container to include the moved element
-                if (window.scriptManager && window.scriptManager.reactivateContainerScripts) {
-                    window.scriptManager.reactivateContainerScripts(newParent);
-                }
+                console.log(`🚚 MULTI-DRAG: Element moved to new container (no script cleanup needed)`);
                 
                 console.log(`Multi-selected element moved to ${newParent.id || newParent.className || 'container'}`);
             }

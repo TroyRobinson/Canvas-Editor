@@ -108,9 +108,8 @@ function createFrame(x, y, title) {
     });
     
     // Activate scripts for this frame
-    if (window.scriptManager && window.scriptManager.activateScripts) {
-        window.scriptManager.activateScripts(frame);
-    }
+    // Scripts will be activated when entering interactive mode via iframe
+    console.log('💡 FRAME CREATED: Scripts will activate in interactive mode iframe');
     
     return frame;
 }

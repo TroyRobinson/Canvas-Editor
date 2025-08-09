@@ -126,10 +126,8 @@
         // Re-establish Canvas behaviors on the new clean content
         reestablishFrameBehaviorsAfterAI(frame);
 
-        // Reactivate scripts for this frame on clean content
-        if (window.scriptManager && window.scriptManager.activateScripts) {
-            window.scriptManager.activateScripts(frame);
-        }
+        // Scripts will be activated when entering interactive mode via iframe
+        console.log('💡 AI CONTENT: Scripts will activate in interactive mode iframe');
     }
 
     /**

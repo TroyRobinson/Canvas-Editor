@@ -27,6 +27,18 @@ Comprehensive CSS styling defining:
 
 ### Core Modules
 
+#### `js/iframe-manager.js` (New)
+**Purpose**: Iframe-based interactive mode previews with script isolation
+- **Preview Creation**: Creates same-origin iframes for frame content during interactive mode
+- **Perfect Positioning**: Positions iframes to overlay frame content areas exactly
+- **CSS Injection**: Injects global CSS into iframe documents for consistent styling
+- **Script Activation**: Manual script activation in iframe context with fallback handling
+- **Lifecycle Management**: Complete iframe creation, positioning, show/hide, and cleanup
+- **Key relationships**:
+  - Used by mode-manager.js for interactive mode implementation
+  - Uses css-manager.js for CSS injection into iframes
+  - Eliminates need for complex script cleanup in other modules
+
 #### `js/canvas.js`
 **Purpose**: Core canvas initialization and z-index management
 - Initializes the canvas with default frames
@@ -221,45 +233,35 @@ Comprehensive CSS styling defining:
 - **Key relationships**: Orchestrates the other modules and provides entry point
 
 #### `js/mode-manager.js`
-**Purpose**: Canvas mode switching between edit and interactive modes with code isolation
-- **Edit Mode**: Default mode for creating, selecting, and manipulating elements
-- **Interactive Mode**: Allows interaction with button onclick handlers and input fields
-- **Code Isolation**: Automatically stores all frame code when entering interactive mode, restores on exit
-- **Proper Cleanup**: Uses element replacement (not innerHTML) to prevent event handler accumulation
+**Purpose**: Canvas mode switching between edit and interactive modes using iframe isolation
+- **Edit Mode**: Default mode for creating, selecting, and manipulating elements (no script execution)
+- **Interactive Mode**: Creates isolated iframe previews where scripts execute safely
+- **Iframe Isolation**: Complete separation - scripts run only in iframes, never in edit mode
+- **Visual Continuity**: Frame title bars and borders remain visible during interactive mode
 - **Mode Toggle UI**: Checkbox switch in top-right corner for quick mode changes
-- **Visual Feedback**: CSS-driven hiding of selection indicators in interactive mode
 - **Key relationships**: 
+  - Uses iframe-manager.js for iframe creation and positioning
+  - Uses css-manager.js for injecting styles into iframes
   - Modifies canvas container's `data-canvas-mode` attribute
-  - CSS rules in styles.css respond to mode changes
-  - Uses script-manager.js for proper script activation after restoration
-  - Calls Canvas behavior setup functions (makeSelectable, setupElementDragging, etc.)
-  - **CRITICAL**: Other modules should never use innerHTML replacement for elements with scripts - use removeChild() + insertBefore() pattern instead
 
 #### `js/css-manager.js`
-**Purpose**: Centralized CSS loading, persistence, application, and recovery
+**Purpose**: Centralized CSS loading, persistence, application, and iframe injection
 - **CSS State Management**: Manages global CSS content, edit state, and dynamic style element
 - **Embedded CSS Loading**: Loads initial CSS from embedded script tag to avoid CORS issues
 - **Live CSS Application**: Real-time CSS updates via dynamic `<style>` element
-- **Edit Tracking**: Prevents accidental overwrites of user CSS modifications
-- **Recovery System**: Smart fallback when CSS content goes missing
-- **Initialization Control**: Safe initialization with fallback CSS manager if needed
+- **Iframe CSS Injection**: Injects global CSS into iframe documents for interactive mode
 - **Key relationships**:
-  - Used exclusively by code-editor.js for all CSS operations
-  - Operates independently of other canvas modules
-  - **Design Decision**: Abstracted from code-editor.js for single responsibility and testability
+  - Used by code-editor.js for CSS operations
+  - Used by iframe-manager.js for injecting CSS into iframe previews
 
-#### `js/script-manager.js`
-**Purpose**: User script execution, activation, and cleanup management
-- **Container-Scoped Execution**: Scripts run with `querySelectorAll` scoped to their container
-- **Event Handler Cleanup**: Elements moving between containers lose old script handlers and gain new ones
-- **Element Cloning Approach**: Uses cloning to strip event listeners while preserving element attributes
-- **Canvas Behavior Restoration**: Maintains drag/resize/selection behaviors after cleanup
-- **currentScript Support**: Provides mock `document.currentScript` for advanced scripts
+#### `js/script-manager.js` (Simplified)
+**Purpose**: Minimal script activation for edit mode (CSS only)
+- **Edit Mode**: Scripts disabled - only CSS styles activated for visual editing
+- **Interactive Mode**: Scripts execute in iframe isolation (handled by iframe-manager.js)
+- **Elimination**: Removed complex event handler cleanup, element cloning, and cross-container reactivation
 - **Key relationships**:
-  - Called by code-editor.js when scripts are edited
-  - Called by drag.js and resize.js when elements move between containers
-  - Coordinates with Canvas behavior setup functions (makeSelectable, setupElementDragging, etc.)
-  - **Design Decision**: Separated from code-editor.js for single responsibility and reusability
+  - No longer called by drag.js or resize.js (no cleanup needed)
+  - Minimal activation for CSS-only editing experience
 
 #### `js/llm-manager.js`
 **Purpose**: AI-powered code enhancement via OpenRouter API integration with proper cleanup
@@ -279,7 +281,7 @@ Comprehensive CSS styling defining:
   - Avoid manipulating Canvas system properties (`contenteditable`, `data-selectable`, etc.)
 - **Key relationships**:
   - Uses llm-prompt.js for system/user prompt separation
-  - Uses script-manager.js for script re-activation
+  - Scripts execute in iframe isolation during interactive mode
   - Coordinates with selection.js to get selected frames
   - Follows same cleanup pattern as code-editor.js and mode-manager.js (element replacement not innerHTML)
 
@@ -320,16 +322,17 @@ Comprehensive CSS styling defining:
 
 ## Key Interaction Patterns
 
-### Mode Switching
-1. **Edit Mode** (default): Full canvas editing capabilities
+### Mode Switching (Iframe-Based)
+1. **Edit Mode** (default): Clean content editing without script execution
    - Element creation, selection, dragging, resizing
-   - All keyboard shortcuts active
+   - All keyboard shortcuts active  
    - Selection indicators visible (blue outlines, resize handles)
-2. **Interactive Mode**: Test interactive elements
-   - Button onclick handlers execute
-   - Input fields accept focus and text
-   - Selection indicators hidden for clean interaction
-   - Toggle via checkbox in top-right corner
+   - Scripts disabled to prevent event handler conflicts
+2. **Interactive Mode**: Isolated script testing via iframe previews
+   - Scripts execute in iframe isolation
+   - Frame title bars remain visible for context
+   - Iframe positioned to overlay frame content exactly
+   - Toggle via checkbox in top-right corner or Ctrl/Cmd+E
 
 ### Creation Workflow
 1. Press keyboard shortcut (F, R, T, etc.) to enter placement mode
@@ -375,14 +378,13 @@ Comprehensive CSS styling defining:
 8. **Escape key** → Closes code panel and clears selection
 9. **Drag panel border** → Resize code editor width (persisted)
 
-### Script Activation Workflow
-1. **Insert `<script>` tags** in element code → Scripts activate automatically when code is applied
-2. **Handler Tracking Reset**: All `data-initialized` attributes are cleared before script activation for fresh initialization
-3. **Container Scoping**: `document.querySelectorAll()` finds elements only within the script's container
-4. **Element Movement**: When elements move OUT of scripted containers → event handlers are cleaned up via cloning
-5. **Element Movement**: When elements move INTO scripted containers → new event handlers are applied automatically
-6. **Advanced Scripts**: `document.currentScript.closest('.frame')` works for container detection (capture during initialization, not in event handlers)
-7. **Canvas Behaviors Preserved**: Drag, resize, and selection behaviors remain intact through all script operations
+### Script Activation Workflow (Iframe-Based)
+1. **Edit Mode**: Scripts are **not executed** - pure content editing without script interference
+2. **Interactive Mode**: Scripts execute **only in iframe isolation** for safe testing
+3. **Mode Switching**: Iframe creation uses current frame HTML with injected global CSS
+4. **Script Isolation**: All user scripts run in iframe context, completely separated from Canvas editor
+5. **Natural Cleanup**: Iframe destruction automatically cleans up all script event handlers
+6. **Visual Continuity**: Frame title bars and borders remain visible during interactive preview
 
 ### Deletion Workflow
 1. Select any element(s) using single-click, shift+click, or marquee selection
@@ -400,6 +402,7 @@ Comprehensive CSS styling defining:
 - **Event capture and delegation** for efficient event handling
 - **Coordinate caching** during drag operations
 - **Mutation observers** for automatic element setup without manual registration
+- **Iframe isolation** eliminates complex script event handler cleanup (~350 lines removed)
 
 ## Global State Management
 
@@ -414,7 +417,8 @@ The application uses a distributed state management approach where each module e
 - `window.textEditing` - Text editing state and utilities (isEditing, getCurrentlyEditingElement)
 - `window.canvasMode` - Current mode state ('edit' or 'interactive')
 - `window.codeEditor` - Code editor API (show, hide, isActive, updateCodeView, showCSSEditor)
-- `window.cssManager` - CSS management API (getCurrentCSS, updateCSS, hasBeenEdited, initialize)
+- `window.cssManager` - CSS management API (getCurrentCSS, updateCSS, hasBeenEdited, initialize, injectIntoIframe)
+- `window.iframeManager` - Iframe preview API (createPreviewIframe, showIframe, hideIframe, destroyIframe, positionIframe)
 
 This architecture allows modules to coordinate without tight coupling while maintaining clear separation of concerns.
 

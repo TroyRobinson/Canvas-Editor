@@ -247,23 +247,12 @@ function checkElementContainment(frame) {
                 const oldContainerId = oldParent?.id || 'canvas';
                 
                 // Clean up script handlers from the old container by cloning
-                // Only clean up if moving FROM a scripted container (frame or element-frame)
-                let cleanElement = element;
-                if (window.scriptManager && window.scriptManager.cleanupElementHandlers && 
-                    oldParent && (oldParent.classList.contains('frame') || 
-                                 oldParent.classList.contains('element-frame') ||
-                                 oldParent.classList.contains('frame-content'))) {
-                    cleanElement = window.scriptManager.cleanupElementHandlers(element, oldContainerId);
-                }
+                // No script cleanup needed - iframe isolation handles script separation
+                newParent.appendChild(element);
+                element.style.left = newLeft + 'px';
+                element.style.top = newTop + 'px';
                 
-                newParent.appendChild(cleanElement);
-                cleanElement.style.left = newLeft + 'px';
-                cleanElement.style.top = newTop + 'px';
-                
-                // Re-activate scripts in the new parent container to include the moved element
-                if (window.scriptManager && window.scriptManager.reactivateContainerScripts) {
-                    window.scriptManager.reactivateContainerScripts(newParent);
-                }
+                console.log(`📦 RESIZE: Element moved to new container (no script cleanup needed)`);
             }
         }
     });
@@ -331,23 +320,12 @@ function checkElementFrameContainment(elementFrame) {
                 const oldContainerId = oldParent?.id || 'canvas';
                 
                 // Clean up script handlers from the old container by cloning
-                // Only clean up if moving FROM a scripted container (frame or element-frame)
-                let cleanElement = element;
-                if (window.scriptManager && window.scriptManager.cleanupElementHandlers && 
-                    oldParent && (oldParent.classList.contains('frame') || 
-                                 oldParent.classList.contains('element-frame') ||
-                                 oldParent.classList.contains('frame-content'))) {
-                    cleanElement = window.scriptManager.cleanupElementHandlers(element, oldContainerId);
-                }
+                // No script cleanup needed - iframe isolation handles script separation
+                newParent.appendChild(element);
+                element.style.left = newLeft + 'px';
+                element.style.top = newTop + 'px';
                 
-                newParent.appendChild(cleanElement);
-                cleanElement.style.left = newLeft + 'px';
-                cleanElement.style.top = newTop + 'px';
-                
-                // Re-activate scripts in the new parent container to include the moved element
-                if (window.scriptManager && window.scriptManager.reactivateContainerScripts) {
-                    window.scriptManager.reactivateContainerScripts(newParent);
-                }
+                console.log(`📦 RESIZE: Element moved to new container (no script cleanup needed)`);
             }
         }
     });
