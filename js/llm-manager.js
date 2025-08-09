@@ -320,7 +320,7 @@
                 ],
                 temperature: 0,
                 "reasoning": {
-                    "effort": "low"  // Allocates approximately 20% of max_tokens for reasoning
+                    "effort": "low"  // Allocates approximately 20% of max_tokens for reasoning.
                   },
                 max_tokens: 10000
             })
