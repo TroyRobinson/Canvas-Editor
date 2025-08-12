@@ -104,14 +104,15 @@ body.panning {
 
 /* Edge Detection System - CSS-only visual feedback */
 
-/* Clean selection outline for all selected elements */
-.selected {
+/* Clean selection outline for all selected elements (canvas only) */
+#canvas .selected {
     outline: 2px solid #6366f1 !important;
     outline-offset: -1px;
 }
 
+
 /* Simple corner indicators - clean and functional approach */
-.selected.edge-resizable::before {
+#canvas .selected.edge-resizable::before {
     content: '';
     position: absolute;
     top: -5px;
@@ -125,7 +126,7 @@ body.panning {
     z-index: 100;
 }
 
-.selected.edge-resizable::after {
+#canvas .selected.edge-resizable::after {
     content: '';
     position: absolute;
     bottom: -5px;
@@ -140,15 +141,15 @@ body.panning {
 }
 
 /* Hover effects for discoverability */
-.frame:not(.selected):hover,
-.element-frame:not(.selected):hover,
-.free-floating:not(.selected):hover {
+#canvas .frame:not(.selected):hover,
+#canvas .element-frame:not(.selected):hover,
+#canvas .free-floating:not(.selected):hover {
     outline: 1px dashed rgba(99, 102, 241, 0.4);
     outline-offset: -1px;
 }
 
 /* Subtle resize zone indicators */
-.selected.edge-resizable:hover {
+#canvas .selected.edge-resizable:hover {
     outline-color: #818cf8;
 }
 
@@ -180,7 +181,7 @@ body.panning {
 }
 
 /* Selection outline for non-free-floating elements */
-.selected:not(.frame):not(.element-frame):not(.free-floating) {
+#canvas .selected:not(.frame):not(.element-frame):not(.free-floating) {
     outline: 2px solid #6366f1;
     outline-offset: 2px;
     position: relative;
@@ -188,7 +189,7 @@ body.panning {
 }
 
 /* Preview selection during marquee drag */
-.preview-selected:not(.frame):not(.element-frame):not(.free-floating) {
+#canvas .preview-selected:not(.frame):not(.element-frame):not(.free-floating) {
     outline: 2px dashed #6366f1;
     outline-offset: 2px;
     position: relative;
@@ -197,9 +198,9 @@ body.panning {
 }
 
 /* Preview selection for marquee selection */
-.preview-selected.frame,
-.preview-selected.element-frame,
-.preview-selected.free-floating {
+#canvas .preview-selected.frame,
+#canvas .preview-selected.element-frame,
+#canvas .preview-selected.free-floating {
     outline: 1px solid rgba(99, 102, 241, 0.6);
     outline-offset: -1px;
 }
@@ -579,8 +580,8 @@ input:checked + .mode-toggle-slider:before {
     display: none !important;
 }
 
-/* Code Editor Panel */
-#code-editor-panel {
+/* Right Pane Panel */
+#right-pane-panel {
     position: fixed;
     top: 0;
     right: 0;
@@ -594,7 +595,7 @@ input:checked + .mode-toggle-slider:before {
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
 }
 
-#code-editor-resizer {
+#right-pane-resizer {
     width: 6px;
     background: #333;
     cursor: ew-resize;
@@ -603,11 +604,11 @@ input:checked + .mode-toggle-slider:before {
     position: relative;
 }
 
-#code-editor-resizer:hover {
+#right-pane-resizer:hover {
     background: #555;
 }
 
-#code-editor-resizer:before {
+#right-pane-resizer:before {
     content: '';
     position: absolute;
     left: 50%;
@@ -619,14 +620,72 @@ input:checked + .mode-toggle-slider:before {
     border-radius: 1px;
 }
 
-#code-editor-content {
+#right-pane-content-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
     background: #1a1a1a;
 }
 
-#code-editor-header {
+#right-pane-header {
+    background: #2a2a2a;
+    border-bottom: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+}
+
+#right-pane-tabs {
+    display: flex;
+    overflow-x: auto;
+    background: #2a2a2a;
+}
+
+.tab-button {
+    background: transparent;
+    color: #999;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    min-width: 80px;
+}
+
+.tab-button:hover {
+    background: #333;
+    color: #e0e0e0;
+}
+
+.tab-button.tab-active {
+    background: #1a1a1a;
+    color: #fff;
+    border-bottom: 2px solid #6366f1;
+}
+
+#right-pane-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.tab-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #1a1a1a;
+}
+
+/* Code Editor Tab Specific Styles */
+.tab-content[data-tab="code-editor"] {
+    display: flex;
+    flex-direction: column;
+}
+
+.code-editor-header {
     background: #2a2a2a;
     padding: 12px 16px;
     border-bottom: 1px solid #333;
@@ -638,7 +697,7 @@ input:checked + .mode-toggle-slider:before {
     color: #e0e0e0;
 }
 
-#mode-toggle {
+.mode-toggle {
     display: flex;
     background: #1a1a1a;
     border-radius: 4px;
@@ -666,13 +725,12 @@ input:checked + .mode-toggle-slider:before {
     color: #e0e0e0;
 }
 
-.mode-toggle-btn.active {
+.mode-toggle-btn.mode-active {
     background: #6366f1;
     color: #fff;
 }
 
-
-#code-editor-textarea {
+.code-editor-textarea {
     flex: 1;
     background: #0f0f0f;
     color: #e0e0e0;
@@ -689,60 +747,64 @@ input:checked + .mode-toggle-slider:before {
     word-break: normal;
 }
 
-#code-editor-textarea:focus {
+.code-editor-textarea:focus {
     background: #131313;
 }
 
-#code-editor-textarea:disabled {
+.code-editor-textarea:disabled {
     background: #0a0a0a;
     color: #666;
     cursor: not-allowed;
 }
 
-/* Scrollbar styling for the textarea */
-#code-editor-textarea::-webkit-scrollbar {
+/* Scrollbar styling for textareas */
+.code-editor-textarea::-webkit-scrollbar {
     width: 8px;
 }
 
-#code-editor-textarea::-webkit-scrollbar-track {
+.code-editor-textarea::-webkit-scrollbar-track {
     background: #1a1a1a;
 }
 
-#code-editor-textarea::-webkit-scrollbar-thumb {
+.code-editor-textarea::-webkit-scrollbar-thumb {
     background: #555;
     border-radius: 4px;
 }
 
-#code-editor-textarea::-webkit-scrollbar-thumb:hover {
+.code-editor-textarea::-webkit-scrollbar-thumb:hover {
     background: #666;
 }
 
-/* Adjust body padding when code editor is visible */
-body.code-editor-visible {
-    padding-right: 400px;
-}
-
-/* Responsive behavior - hide on very small screens */
-@media (max-width: 800px) {
-    #code-editor-panel {
-        display: none !important;
-    }
-    
-    body.code-editor-visible {
-        padding-right: 0;
-    }
-}
-
 /* Selection highlight in textarea */
-#code-editor-textarea::selection {
+.code-editor-textarea::selection {
     background: rgba(59, 130, 246, 0.3);
 }
 
 /* Placeholder styling when no element is selected */
-#code-editor-textarea:empty:before {
+.code-editor-textarea:empty:before {
     content: "Select an element to view its code...";
     color: #666;
     font-style: italic;
+}
+
+/* Chat/History Tab Specific Styles */
+.tab-content[data-tab="chat-history"] {
+    padding: 16px;
+    color: #e0e0e0;
+    text-align: center;
+}
+
+.tab-content[data-tab="chat-history"] .placeholder {
+    color: #666;
+    font-style: italic;
+    margin-top: 50px;
+}
+
+/* Responsive behavior - hide on very small screens */
+@media (max-width: 800px) {
+    #right-pane-panel {
+        display: none !important;
+    }
 }
 
 /* Preserve spaces in elements being edited */

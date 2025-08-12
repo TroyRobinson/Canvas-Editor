@@ -1,8 +1,8 @@
 /**
- * Code Editor Module
+ * Code Editor Tab Module
  * 
- * Provides a right-side resizable code pane that shows the exact code of selected elements
- * and supports bi-directional editing between code and canvas.
+ * Provides code editing functionality as a tab in the right pane.
+ * Handles HTML/CSS mode switching, content synchronization, and validation.
  */
 
 (function() {
@@ -13,8 +13,6 @@
     let mutationObserver = null;
     let isUpdatingFromCode = false;
     let isUpdatingFromCanvas = false;
-    let panelWidth = localStorage.getItem('codeEditorWidth') || '400px';
-    let isDragging = false;
     
     // CSS mode state
     let currentMode = 'html'; // 'html' or 'css'
@@ -24,52 +22,61 @@
     let snapshotTimer = null;
 
     // DOM elements
-    let panel = null;
-    let resizer = null;
+    let tabContent = null;
     let textarea = null;
     let modeToggleHtml = null;
     let modeToggleCss = null;
+    let headerSpan = null;
 
-    // Initialize the code editor when the DOM is ready
+    // Initialize the code editor tab
     function init() {
-        panel = document.getElementById('code-editor-panel');
-        resizer = document.getElementById('code-editor-resizer');
-        textarea = document.getElementById('code-editor-textarea');
-        modeToggleHtml = document.getElementById('mode-toggle-html');
-        modeToggleCss = document.getElementById('mode-toggle-css');
-
-        if (!panel || !resizer || !textarea || !modeToggleHtml || !modeToggleCss) {
-            console.error('Code editor elements not found in DOM');
+        if (!window.rightPaneManager) {
+            console.error('Right Pane Manager not available');
             return;
         }
 
-        setupPanel();
-        setupResizer();
+        // Register with the right pane manager
+        tabContent = window.rightPaneManager.registerTab('code-editor', {
+            title: 'Code Editor',
+            onInit: initializeTab,
+            onShow: onTabShow,
+            onHide: onTabHide
+        });
+    }
+
+    // Initialize tab content when first created
+    function initializeTab(container) {
+        // Create the tab content structure
+        container.innerHTML = `
+            <div class="code-editor-header">
+                <span>HTML View</span>
+                <div class="mode-toggle">
+                    <button class="mode-toggle-btn mode-active" data-mode="html" data-selectable="false">HTML</button>
+                    <button class="mode-toggle-btn" data-mode="css" data-selectable="false">Global CSS</button>
+                </div>
+            </div>
+            <textarea class="code-editor-textarea" spellcheck="false"></textarea>
+        `;
+
+        // Get DOM references
+        textarea = container.querySelector('.code-editor-textarea');
+        modeToggleHtml = container.querySelector('[data-mode="html"]');
+        modeToggleCss = container.querySelector('[data-mode="css"]');
+        headerSpan = container.querySelector('.code-editor-header span');
+
+        if (!textarea || !modeToggleHtml || !modeToggleCss || !headerSpan) {
+            console.error('Code editor tab elements not found');
+            return;
+        }
+
         setupEventListeners();
         setupModeToggle();
         
         // Initialize CSS Manager - ensure it's available
         initializeCSSManager();
         
-        // Initially hide the panel
-        hidePanel();
-    }
-
-    // Setup initial panel state
-    function setupPanel() {
-        panel.style.width = panelWidth;
-        panel.style.right = '0';
-        panel.style.top = '0';
-        panel.style.height = '100vh';
-        panel.style.position = 'fixed';
-        panel.style.zIndex = '1000';
-    }
-
-    // Setup resize functionality
-    function setupResizer() {
-        resizer.addEventListener('mousedown', startResize);
-        document.addEventListener('mousemove', handleResize);
-        document.addEventListener('mouseup', stopResize);
+        // Initially disable textarea
+        textarea.disabled = true;
     }
 
     // Setup event listeners
@@ -100,6 +107,20 @@
         
         // Set initial state
         updateModeUI();
+    }
+
+    // Called when tab becomes visible
+    function onTabShow() {
+        // Update the code view if there's a selected element
+        if (currentSelectedElement) {
+            updateCodeView();
+        }
+    }
+
+    // Called when tab becomes hidden
+    function onTabHide() {
+        // Record final snapshot when hiding
+        recordFinalSnapshot();
     }
 
     // Switch between HTML and CSS modes
@@ -139,13 +160,13 @@
     // Update mode toggle UI
     function updateModeUI() {
         if (currentMode === 'html') {
-            modeToggleHtml.classList.add('active');
-            modeToggleCss.classList.remove('active');
-            document.getElementById('code-editor-header').querySelector('span').textContent = 'HTML View';
+            modeToggleHtml.classList.add('mode-active');
+            modeToggleCss.classList.remove('mode-active');
+            headerSpan.textContent = 'HTML View';
         } else {
-            modeToggleHtml.classList.remove('active');
-            modeToggleCss.classList.add('active');
-            document.getElementById('code-editor-header').querySelector('span').textContent = 'CSS View';
+            modeToggleHtml.classList.remove('mode-active');
+            modeToggleCss.classList.add('mode-active');
+            headerSpan.textContent = 'CSS View';
         }
     }
 
@@ -195,15 +216,6 @@
             hasBeenEdited: () => true,
             ensureInitialized: () => {}
         };
-        
-    }
-
-    // CSS loading is now handled by CSS Manager
-    // This function is kept for backward compatibility but delegates to CSS Manager
-    function loadCSSContent() {
-        if (window.cssManager) {
-            window.cssManager.ensureInitialized();
-        }
     }
 
     // Handle selection changes from the main selection system
@@ -219,18 +231,20 @@
                 // Switch to HTML mode when selecting an element
                 switchMode('html');
                 setSelectedElement(element);
-                showPanel();
+                // Show the right pane and switch to code editor tab
+                window.rightPaneManager.switchToTab('code-editor');
             }
         } else if (selectedElements.length > 1) {
             // Multiple selection - show combined code or a summary
             // Switch to HTML mode for multiple selection
             switchMode('html');
             setMultipleSelection(selectedElements);
-            showPanel();
+            // Show the right pane and switch to code editor tab
+            window.rightPaneManager.switchToTab('code-editor');
         } else {
             // No selection
             clearSelection();
-            hidePanel();
+            // Don't hide the entire pane, just clear the content
         }
     }
 
@@ -621,8 +635,6 @@
         });
     }
 
-
-
     // Snapshot system for canvas undo integration
     function takeInitialSnapshot() {
         if (currentSelectedElement && !elementSnapshot) {
@@ -690,71 +702,17 @@
         }
     }
 
-    // Validate HTML syntax without applying changes
-    function validateHTML(html) {
-        try {
-            const tempContainer = document.createElement('div');
-            tempContainer.innerHTML = html;
-            return tempContainer.children.length === 1;
-        } catch (error) {
-            return false;
-        }
-    }
-
     // Handle keyboard shortcuts in textarea
     function handleKeyDown(event) {
         // Escape to close panel
         if (event.key === 'Escape') {
             event.preventDefault();
-            hidePanel();
+            window.rightPaneManager.hide();
             // Clear selection
             if (window.clearSelection) {
                 window.clearSelection();
             }
         }
-    }
-
-    // Panel visibility controls
-    function showPanel() {
-        panel.style.display = 'flex';
-        document.body.style.paddingRight = panelWidth;
-    }
-
-    function hidePanel() {
-        // Record final snapshot when hiding panel
-        recordFinalSnapshot();
-        
-        panel.style.display = 'none';
-        document.body.style.paddingRight = '0';
-    }
-
-    // Resize functionality
-    function startResize(event) {
-        isDragging = true;
-        document.body.style.cursor = 'ew-resize';
-        event.preventDefault();
-    }
-
-    function handleResize(event) {
-        if (!isDragging) return;
-
-        const newWidth = window.innerWidth - event.clientX;
-        const minWidth = 200;
-        const maxWidth = window.innerWidth * 0.8;
-        
-        const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-        panelWidth = constrainedWidth + 'px';
-        
-        panel.style.width = panelWidth;
-        document.body.style.paddingRight = panelWidth;
-        
-        // Save to localStorage
-        localStorage.setItem('codeEditorWidth', panelWidth);
-    }
-
-    function stopResize() {
-        isDragging = false;
-        document.body.style.cursor = '';
     }
 
     // Utility function for debouncing
@@ -775,7 +733,6 @@
         return textarea && document.activeElement === textarea && !textarea.disabled;
     }
 
-
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
@@ -783,12 +740,12 @@
         init();
     }
 
-    // Expose public API
+    // Expose public API (for backward compatibility)
     window.codeEditor = {
-        show: showPanel,
-        hide: hidePanel,
+        show: () => window.rightPaneManager.switchToTab('code-editor'),
+        hide: () => window.rightPaneManager.hide(),
         updateCodeView: updateCodeView,
-        isVisible: () => panel && panel.style.display !== 'none',
+        isVisible: () => window.rightPaneManager.isVisible() && window.rightPaneManager.getActiveTab() === 'code-editor',
         // Snapshot management for external use
         takeSnapshot: takeInitialSnapshot,
         recordSnapshot: recordFinalSnapshot,
@@ -805,7 +762,7 @@
             }
             
             switchMode('css');
-            showPanel();
+            window.rightPaneManager.switchToTab('code-editor');
             
             // Force update textarea even if already in CSS mode
             if (currentMode === 'css' && window.cssManager) {

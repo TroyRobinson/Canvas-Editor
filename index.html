@@ -98,18 +98,14 @@
 <body>
     <div id="canvas"></div>
     
-    <!-- Code Editor Panel -->
-    <div id="code-editor-panel">
-        <div id="code-editor-resizer"></div>
-        <div id="code-editor-content">
-            <div id="code-editor-header">
-                <span>HTML View</span>
-                <div id="mode-toggle">
-                    <button id="mode-toggle-html" class="mode-toggle-btn active">HTML</button>
-                    <button id="mode-toggle-css" class="mode-toggle-btn">Global CSS</button>
-                </div>
+    <!-- Right Pane Panel -->
+    <div id="right-pane-panel">
+        <div id="right-pane-resizer"></div>
+        <div id="right-pane-content-wrapper">
+            <div id="right-pane-header">
+                <div id="right-pane-tabs"></div>
             </div>
-            <textarea id="code-editor-textarea" spellcheck="false"></textarea>
+            <div id="right-pane-content"></div>
         </div>
     </div>
     
@@ -151,7 +147,9 @@
     <script src="js/script-manager.js"></script>
     <script src="js/llm-prompt.js"></script>
     <script src="js/llm-manager.js"></script>
+    <script src="js/right-pane-manager.js"></script>
     <script src="js/code-editor.js"></script>
+    <script src="js/chat-history-tab.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
