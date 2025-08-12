@@ -106,6 +106,11 @@
 
     // Find if the target or its closest parent is an editable text element
     function findEditableTextElement(target) {
+        // Exclude mode toggle UI elements
+        if (target.closest('#mode-toggle-container')) {
+            return null;
+        }
+        
         // Check for input wrapper for placeholder editing
         const inputWrapper = target.closest('.input-wrapper');
         if (inputWrapper) {
