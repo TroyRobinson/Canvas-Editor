@@ -580,6 +580,33 @@ input:checked + .mode-toggle-slider:before {
     display: none !important;
 }
 
+/* Right Pane Toggle Button */
+#right-pane-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: #2a2a2a;
+    border: 2px solid #333;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 999;
+    color: #e0e0e0;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+#right-pane-toggle:hover {
+    background: #333;
+    border-color: #555;
+    color: #fff;
+    transform: scale(1.05);
+}
+
 /* Right Pane Panel */
 #right-pane-panel {
     position: fixed;
@@ -631,13 +658,33 @@ input:checked + .mode-toggle-slider:before {
     background: #2a2a2a;
     border-bottom: 1px solid #333;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: stretch;
 }
 
 #right-pane-tabs {
     display: flex;
     overflow-x: auto;
     background: #2a2a2a;
+    flex: 1;
+}
+
+#right-pane-close {
+    background: transparent;
+    border: none;
+    color: #999;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid #333;
+}
+
+#right-pane-close:hover {
+    background: #333;
+    color: #e0e0e0;
 }
 
 .tab-button {

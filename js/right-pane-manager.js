@@ -19,6 +19,8 @@
     let resizer = null;
     let tabContainer = null;
     let contentContainer = null;
+    let toggleButton = null;
+    let closeButton = null;
 
     // Initialize the right pane when the DOM is ready
     function init() {
@@ -26,8 +28,10 @@
         resizer = document.getElementById('right-pane-resizer');
         tabContainer = document.getElementById('right-pane-tabs');
         contentContainer = document.getElementById('right-pane-content');
+        toggleButton = document.getElementById('right-pane-toggle');
+        closeButton = document.getElementById('right-pane-close');
 
-        if (!panel || !resizer || !tabContainer || !contentContainer) {
+        if (!panel || !resizer || !tabContainer || !contentContainer || !toggleButton || !closeButton) {
             console.error('Right pane elements not found in DOM');
             return;
         }
@@ -36,8 +40,9 @@
         setupResizer();
         setupEventListeners();
         
-        // Initially hide the panel
+        // Initially hide the panel and show toggle button
         hidePanel();
+        showToggleButton();
     }
 
     // Setup initial panel state
@@ -61,6 +66,12 @@
     function setupEventListeners() {
         // Tab click handling
         tabContainer.addEventListener('click', handleTabClick);
+        
+        // Toggle button click
+        toggleButton.addEventListener('click', showPanel);
+        
+        // Close button click
+        closeButton.addEventListener('click', hidePanel);
         
         // Keyboard shortcuts
         document.addEventListener('keydown', handleKeyDown);
@@ -170,6 +181,7 @@
     function showPanel() {
         panel.style.display = 'flex';
         document.body.style.paddingRight = panelWidth;
+        hideToggleButton();
     }
 
     function hidePanel() {
@@ -183,6 +195,16 @@
         
         panel.style.display = 'none';
         document.body.style.paddingRight = '0';
+        showToggleButton();
+    }
+
+    // Toggle button visibility controls
+    function showToggleButton() {
+        toggleButton.style.display = 'flex';
+    }
+
+    function hideToggleButton() {
+        toggleButton.style.display = 'none';
     }
 
     function isVisible() {

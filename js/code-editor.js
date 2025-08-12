@@ -231,16 +231,20 @@
                 // Switch to HTML mode when selecting an element
                 switchMode('html');
                 setSelectedElement(element);
-                // Show the right pane and switch to code editor tab
-                window.rightPaneManager.switchToTab('code-editor');
+                // Only switch to code editor tab if panel is already visible
+                if (window.rightPaneManager.isVisible()) {
+                    window.rightPaneManager.switchToTab('code-editor');
+                }
             }
         } else if (selectedElements.length > 1) {
             // Multiple selection - show combined code or a summary
             // Switch to HTML mode for multiple selection
             switchMode('html');
             setMultipleSelection(selectedElements);
-            // Show the right pane and switch to code editor tab
-            window.rightPaneManager.switchToTab('code-editor');
+            // Only switch to code editor tab if panel is already visible
+            if (window.rightPaneManager.isVisible()) {
+                window.rightPaneManager.switchToTab('code-editor');
+            }
         } else {
             // No selection
             clearSelection();
@@ -742,7 +746,10 @@
 
     // Expose public API (for backward compatibility)
     window.codeEditor = {
-        show: () => window.rightPaneManager.switchToTab('code-editor'),
+        show: () => {
+            window.rightPaneManager.show();
+            window.rightPaneManager.switchToTab('code-editor');
+        },
         hide: () => window.rightPaneManager.hide(),
         updateCodeView: updateCodeView,
         isVisible: () => window.rightPaneManager.isVisible() && window.rightPaneManager.getActiveTab() === 'code-editor',
@@ -762,6 +769,7 @@
             }
             
             switchMode('css');
+            window.rightPaneManager.show();
             window.rightPaneManager.switchToTab('code-editor');
             
             // Force update textarea even if already in CSS mode
