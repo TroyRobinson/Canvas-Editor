@@ -71,6 +71,22 @@
     }
 
     /**
+     * Extract HTML content from a frame, keeping existing script and style tag contents for editing
+     * @param {HTMLElement} frame - The frame element to process
+     * @returns {string} - HTML with existing script/style contents intact
+     */
+    function extractHTMLWithExistingCode(frame) {
+        if (!frame) return '';
+
+        // Get the frame-content element
+        const frameContent = frame.querySelector('.frame-content');
+        if (!frameContent) return '';
+
+        // Return the full innerHTML including existing scripts and styles
+        return frameContent.innerHTML;
+    }
+
+    /**
      * Parse AI response to extract script and style content
      * @param {string} response - AI response text
      * @returns {Object} - Object containing script and style content
@@ -508,11 +524,355 @@
         enhanceFrameWithAI(targetFrame);
     }
 
+    /**
+     * Enhanced function to handle custom user messages
+     * @param {HTMLElement} frame - The frame to enhance
+     * @param {string} userMessage - Custom message from user
+     */
+    async function enhanceFrameWithCustomMessage(frame, userMessage) {
+        if (!frame) {
+            console.error('No frame provided for AI enhancement');
+            return;
+        }
+
+        if (!userMessage || !userMessage.trim()) {
+            console.error('No user message provided for custom enhancement');
+            return;
+        }
+
+        const requestId = Date.now() + Math.random().toString(36).substr(2, 9);
+        const timestamp = new Date();
+        
+        // Get frame title for display
+        const frameTitle = frame.querySelector('.frame-title')?.textContent || 'Untitled Frame';
+        
+        // Emit enhancement started event
+        const startEvent = new CustomEvent('enhancementStarted', {
+            detail: {
+                id: requestId,
+                frameId: frame.id,
+                frameTitle: frameTitle,
+                timestamp: timestamp,
+                status: 'processing',
+                customMessage: userMessage
+            }
+        });
+        document.dispatchEvent(startEvent);
+
+        const spinner = showLoadingSpinner(frame);
+        
+        // Capture selection state before AI generation 
+        const selectedElementIds = window.getSelectedElements ? 
+            window.getSelectedElements().map(el => el.id).filter(id => id) : [];
+
+        try {
+            // Extract clean HTML
+            const cleanHTML = extractCleanHTML(frame);
+            console.log('Extracted HTML for AI analysis:', cleanHTML);
+
+            // Call OpenRouter API with custom message
+            const aiResponse = await callOpenRouterWithMessage(cleanHTML, userMessage);
+            console.log('AI Response:', aiResponse);
+
+            // Parse the response
+            const parsedContent = parseAIResponse(aiResponse);
+            console.log('Parsed content:', parsedContent);
+
+            // Insert content back into frame
+            insertContentIntoFrame(frame, parsedContent);
+            
+            // Restore selection state after AI generation
+            restoreSelectionState(selectedElementIds);
+
+            console.log('AI enhancement with custom message completed successfully');
+
+            // Emit enhancement completed event
+            const successEvent = new CustomEvent('enhancementCompleted', {
+                detail: {
+                    id: requestId,
+                    frameId: frame.id,
+                    frameTitle: frameTitle,
+                    timestamp: timestamp,
+                    completedAt: new Date(),
+                    status: 'success',
+                    response: aiResponse,
+                    customMessage: userMessage
+                }
+            });
+            document.dispatchEvent(successEvent);
+
+        } catch (error) {
+            console.error('Error during AI enhancement with custom message:', error);
+            alert(`AI enhancement failed: ${error.message}`);
+
+            // Emit enhancement failed event
+            const errorEvent = new CustomEvent('enhancementFailed', {
+                detail: {
+                    id: requestId,
+                    frameId: frame.id,
+                    frameTitle: frameTitle,
+                    timestamp: timestamp,
+                    completedAt: new Date(),
+                    status: 'error',
+                    error: error.message,
+                    customMessage: userMessage
+                }
+            });
+            document.dispatchEvent(errorEvent);
+        } finally {
+            // Always hide the spinner
+            hideLoadingSpinner(spinner);
+        }
+    }
+
+    /**
+     * Make API call to OpenRouter with custom user message
+     * @param {string} htmlContent - The clean HTML content to analyze
+     * @param {string} userMessage - Custom message from user
+     * @returns {Promise<string>} - The AI response
+     */
+    async function callOpenRouterWithMessage(htmlContent, userMessage) {
+        const settings = getSettings();
+        console.log('Using AI settings for custom message:', settings);
+        
+        // API key should always be available now due to fallback, but add safety check
+        if (!settings.apiKey || !settings.apiKey.trim()) {
+            throw new Error('OpenRouter API key is required. Please configure it in Settings/Context tab.');
+        }
+        
+        const requestBody = {
+            model: settings.model || 'qwen/qwen3-coder:nitro',
+            messages: [
+                {
+                    role: 'system',
+                    content: window.llmPrompt.getSystemPrompt()
+                },
+                {
+                    role: 'user',
+                    content: window.llmPrompt.getUserPromptWithMessage(htmlContent, userMessage)
+                }
+            ],
+            temperature: settings.temperature || 0,
+            max_tokens: settings.maxTokens || 10000
+        };
+
+        // Add reasoning tokens (keep original behavior for now)
+        requestBody.reasoning = {
+            "effort": "low"  // Allocates approximately 20% of max_tokens for reasoning.
+        };
+
+        const response = await fetch(OPENROUTER_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${settings.apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': window.location.origin,
+                'X-Title': 'Canvas Builder - AI Code Enhancement'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            let errorDetails = `${response.status} ${response.statusText}`;
+            try {
+                const errorBody = await response.text();
+                console.error('API Error Details:', errorBody);
+                errorDetails += ` - ${errorBody}`;
+            } catch (e) {
+                console.error('Could not parse error response');
+            }
+            throw new Error(`OpenRouter API error: ${errorDetails}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from OpenRouter API');
+        }
+
+        return data.choices[0].message.content;
+    }
+
+    /**
+     * Enhanced function to handle custom user messages in editing mode (keeps existing code)
+     * @param {HTMLElement} frame - The frame to enhance
+     * @param {string} userMessage - Custom message from user
+     */
+    async function enhanceFrameWithEditMessage(frame, userMessage) {
+        if (!frame) {
+            console.error('No frame provided for AI enhancement');
+            return;
+        }
+
+        if (!userMessage || !userMessage.trim()) {
+            console.error('No user message provided for custom enhancement');
+            return;
+        }
+
+        const requestId = Date.now() + Math.random().toString(36).substr(2, 9);
+        const timestamp = new Date();
+        
+        // Get frame title for display
+        const frameTitle = frame.querySelector('.frame-title')?.textContent || 'Untitled Frame';
+        
+        // Emit enhancement started event
+        const startEvent = new CustomEvent('enhancementStarted', {
+            detail: {
+                id: requestId,
+                frameId: frame.id,
+                frameTitle: frameTitle,
+                timestamp: timestamp,
+                status: 'processing',
+                customMessage: userMessage,
+                editMode: true
+            }
+        });
+        document.dispatchEvent(startEvent);
+
+        const spinner = showLoadingSpinner(frame);
+        
+        // Capture selection state before AI generation 
+        const selectedElementIds = window.getSelectedElements ? 
+            window.getSelectedElements().map(el => el.id).filter(id => id) : [];
+
+        try {
+            // Extract HTML with existing code (no stripping)
+            const htmlWithCode = extractHTMLWithExistingCode(frame);
+            console.log('Extracted HTML with existing code for AI analysis:', htmlWithCode);
+
+            // Call OpenRouter API with edit message
+            const aiResponse = await callOpenRouterWithEditMessage(htmlWithCode, userMessage);
+            console.log('AI Response:', aiResponse);
+
+            // Parse the response
+            const parsedContent = parseAIResponse(aiResponse);
+            console.log('Parsed content:', parsedContent);
+
+            // Insert content back into frame
+            insertContentIntoFrame(frame, parsedContent);
+            
+            // Restore selection state after AI generation
+            restoreSelectionState(selectedElementIds);
+
+            console.log('AI enhancement with edit message completed successfully');
+
+            // Emit enhancement completed event
+            const successEvent = new CustomEvent('enhancementCompleted', {
+                detail: {
+                    id: requestId,
+                    frameId: frame.id,
+                    frameTitle: frameTitle,
+                    timestamp: timestamp,
+                    completedAt: new Date(),
+                    status: 'success',
+                    response: aiResponse,
+                    customMessage: userMessage,
+                    editMode: true
+                }
+            });
+            document.dispatchEvent(successEvent);
+
+        } catch (error) {
+            console.error('Error during AI enhancement with edit message:', error);
+            alert(`AI enhancement failed: ${error.message}`);
+
+            // Emit enhancement failed event
+            const errorEvent = new CustomEvent('enhancementFailed', {
+                detail: {
+                    id: requestId,
+                    frameId: frame.id,
+                    frameTitle: frameTitle,
+                    timestamp: timestamp,
+                    completedAt: new Date(),
+                    status: 'error',
+                    error: error.message,
+                    customMessage: userMessage,
+                    editMode: true
+                }
+            });
+            document.dispatchEvent(errorEvent);
+        } finally {
+            // Always hide the spinner
+            hideLoadingSpinner(spinner);
+        }
+    }
+
+    /**
+     * Make API call to OpenRouter with edit message (keeps existing code)
+     * @param {string} htmlContent - The HTML content with existing code
+     * @param {string} userMessage - Custom message from user
+     * @returns {Promise<string>} - The AI response
+     */
+    async function callOpenRouterWithEditMessage(htmlContent, userMessage) {
+        const settings = getSettings();
+        console.log('Using AI settings for edit message:', settings);
+        
+        // API key should always be available now due to fallback, but add safety check
+        if (!settings.apiKey || !settings.apiKey.trim()) {
+            throw new Error('OpenRouter API key is required. Please configure it in Settings/Context tab.');
+        }
+        
+        const requestBody = {
+            model: settings.model || 'qwen/qwen3-coder:nitro',
+            messages: [
+                {
+                    role: 'system',
+                    content: window.llmPrompt.getSystemPrompt()
+                },
+                {
+                    role: 'user',
+                    content: window.llmPrompt.getUserPromptEditMessage(htmlContent, userMessage)
+                }
+            ],
+            temperature: settings.temperature || 0,
+            max_tokens: settings.maxTokens || 10000
+        };
+
+        // Add reasoning tokens (keep original behavior for now)
+        requestBody.reasoning = {
+            "effort": "low"  // Allocates approximately 20% of max_tokens for reasoning.
+        };
+
+        const response = await fetch(OPENROUTER_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${settings.apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': window.location.origin,
+                'X-Title': 'Canvas Builder - AI Code Enhancement'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            let errorDetails = `${response.status} ${response.statusText}`;
+            try {
+                const errorBody = await response.text();
+                console.error('API Error Details:', errorBody);
+                errorDetails += ` - ${errorBody}`;
+            } catch (e) {
+                console.error('Could not parse error response');
+            }
+            throw new Error(`OpenRouter API error: ${errorDetails}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from OpenRouter API');
+        }
+
+        return data.choices[0].message.content;
+    }
+
     // Expose public API
     window.llmManager = {
         enhanceFrameWithAI: enhanceFrameWithAI,
+        enhanceFrameWithCustomMessage: enhanceFrameWithCustomMessage,
+        enhanceFrameWithEditMessage: enhanceFrameWithEditMessage,
         handleAIEnhancementShortcut: handleAIEnhancementShortcut,
         extractCleanHTML: extractCleanHTML,
+        extractHTMLWithExistingCode: extractHTMLWithExistingCode,
         parseAIResponse: parseAIResponse,
         insertContentIntoFrame: insertContentIntoFrame
     };

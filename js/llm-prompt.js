@@ -71,7 +71,30 @@ Respond with the complete script and style tags needed to make this code functio
                 const parsed = JSON.parse(stored);
                 return {
                     systemPrompt: parsed.systemPrompt || SYSTEM_PROMPT,
-                    userPrompt: parsed.userPrompt || USER_PROMPT_TEMPLATE
+                    userPrompt: parsed.userPrompt || USER_PROMPT_TEMPLATE,
+                    userPromptWithMessage: parsed.userPromptWithMessage || `Please analyze the following HTML code and enhance it with the following functionality:
+
+\`\`\`html
+{htmlContent}
+\`\`\`
+
+<user_request>
+{user_message}
+</user_request>
+
+Respond with the complete script and style tags needed to make this code functional.`,
+
+                    userPromptEditMessage: parsed.userPromptEditMessage || `Please analyze the following HTML code and update it with the following functionality:
+
+\`\`\`html
+{htmlContent}
+\`\`\`
+
+<user_request>
+{user_message}
+</user_request>
+
+Respond with the edited script and style tags needed to make this code fully match the user's latest request.`
                 };
             }
         } catch (error) {
@@ -79,7 +102,30 @@ Respond with the complete script and style tags needed to make this code functio
         }
         return {
             systemPrompt: SYSTEM_PROMPT,
-            userPrompt: USER_PROMPT_TEMPLATE
+            userPrompt: USER_PROMPT_TEMPLATE,
+            userPromptWithMessage: `Please analyze the following HTML code and enhance it with the following functionality:
+
+\`\`\`html
+{htmlContent}
+\`\`\`
+
+<user_request>
+{user_message}
+</user_request>
+
+Respond with the complete script and style tags needed to make this code functional.`,
+
+            userPromptEditMessage: `Please analyze the following HTML code and update it with the following functionality:
+
+\`\`\`html
+{htmlContent}
+\`\`\`
+
+<user_request>
+{user_message}
+</user_request>
+
+Respond with the edited script and style tags needed to make this code fully match the user's latest request.`
         };
     }
 
@@ -95,11 +141,36 @@ Respond with the complete script and style tags needed to make this code functio
             return settings.userPrompt.replace('{htmlContent}', htmlContent);
         },
 
+        getUserPromptWithMessage: function(htmlContent, userMessage) {
+            const settings = getSettings();
+            return settings.userPromptWithMessage
+                .replace('{htmlContent}', htmlContent)
+                .replace('{user_message}', userMessage);
+        },
+
+        getUserPromptEditMessage: function(htmlContent, userMessage) {
+            const settings = getSettings();
+            return settings.userPromptEditMessage
+                .replace('{htmlContent}', htmlContent)
+                .replace('{user_message}', userMessage);
+        },
+
         // Expose defaults for settings tab
         getDefaults: function() {
             return {
                 systemPrompt: SYSTEM_PROMPT,
-                userPrompt: USER_PROMPT_TEMPLATE
+                userPrompt: USER_PROMPT_TEMPLATE,
+                userPromptWithMessage: `Please analyze the following HTML code and enhance it with the following functionality:
+
+\`\`\`html
+{htmlContent}
+\`\`\`
+
+<user_request>
+{user_message}
+</user_request>
+
+Respond with the complete script and style tags needed to make this code functional.`
             };
         }
     };

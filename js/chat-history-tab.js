@@ -13,6 +13,7 @@
     let historyContainer = null;
     let enhancementHistory = []; // Array of enhancement request entries
     let currentSelectedFrame = null; // Track the currently selected frame
+    let enhancementMode = 'editing'; // 'editing' or 'replacing'
 
     // Initialize the chat/history tab
     function init() {
@@ -47,9 +48,159 @@
                     <p><em>Select a frame and press Ctrl+R to get started!</em></p>
                 </div>
             </div>
+            <div class="message-input-section">
+                <div class="message-controls">
+                    <div class="enhancement-mode-toggle">
+                        <button class="mode-toggle-btn mode-active" data-mode="editing" data-selectable="false">Editing</button>
+                        <button class="mode-toggle-btn" data-mode="replacing" data-selectable="false">Replacing</button>
+                    </div>
+                </div>
+                <div class="message-input-container">
+                    <textarea 
+                        id="custom-message-input" 
+                        class="message-textarea" 
+                        placeholder="Describe how to modify the existing code in the selected frame..."
+                        rows="2"
+                        data-selectable="false"></textarea>
+                    <button 
+                        id="send-message-btn" 
+                        class="send-message-button" 
+                        title="Send Custom Enhancement Request"
+                        data-selectable="false">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22,2 15,22 11,13 2,9"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         `;
 
         historyContainer = container.querySelector('#enhancement-history-list');
+        
+        // Setup message input functionality
+        setupMessageInput(container);
+        
+        // Setup enhancement mode toggle
+        setupEnhancementModeToggle(container);
+    }
+
+    // Setup message input functionality
+    function setupMessageInput(container) {
+        const messageInput = container.querySelector('#custom-message-input');
+        const sendButton = container.querySelector('#send-message-btn');
+
+        if (!messageInput || !sendButton) {
+            console.error('Message input elements not found');
+            return;
+        }
+
+        // Send message on button click
+        sendButton.addEventListener('click', () => {
+            sendCustomMessage(messageInput.value.trim());
+        });
+
+        // Send message on Enter key (but allow Shift+Enter for new lines)
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendCustomMessage(messageInput.value.trim());
+            }
+        });
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', () => {
+            messageInput.style.height = 'auto';
+            messageInput.style.height = Math.min(messageInput.scrollHeight, 100) + 'px';
+        });
+    }
+
+    // Setup enhancement mode toggle functionality
+    function setupEnhancementModeToggle(container) {
+        const toggleButtons = container.querySelectorAll('.enhancement-mode-toggle .mode-toggle-btn');
+        
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const mode = button.dataset.mode;
+                switchEnhancementMode(mode);
+            });
+        });
+    }
+
+    // Switch between enhancement modes
+    function switchEnhancementMode(mode) {
+        enhancementMode = mode;
+        
+        // Update toggle button states
+        const toggleButtons = tabContent.querySelectorAll('.enhancement-mode-toggle .mode-toggle-btn');
+        toggleButtons.forEach(btn => {
+            if (btn.dataset.mode === mode) {
+                btn.classList.add('mode-active');
+            } else {
+                btn.classList.remove('mode-active');
+            }
+        });
+
+        // Update placeholder text based on mode
+        const messageInput = tabContent.querySelector('#custom-message-input');
+        if (messageInput) {
+            if (mode === 'editing') {
+                messageInput.placeholder = 'Describe how to modify the existing code in the selected frame...';
+            } else {
+                messageInput.placeholder = 'Describe what you want to add or change in the selected frame...';
+            }
+        }
+
+        console.log('Enhancement mode switched to:', mode);
+    }
+
+    // Send custom enhancement message
+    function sendCustomMessage(message) {
+        if (!message) {
+            alert('Please enter a message describing what you want to enhance.');
+            return;
+        }
+
+        // Get currently selected frame
+        const selectedElements = window.getSelectedElements ? window.getSelectedElements() : [];
+        let selectedFrame = null;
+
+        if (selectedElements.length > 0) {
+            const element = selectedElements[0];
+            if (element.classList.contains('frame')) {
+                selectedFrame = element;
+            } else {
+                selectedFrame = element.closest('.frame');
+            }
+        }
+
+        if (!selectedFrame) {
+            alert('Please select a frame to enhance with your custom message.');
+            return;
+        }
+
+        // Trigger custom enhancement based on mode
+        if (window.llmManager) {
+            if (enhancementMode === 'editing' && window.llmManager.enhanceFrameWithEditMessage) {
+                window.llmManager.enhanceFrameWithEditMessage(selectedFrame, message);
+            } else if (window.llmManager.enhanceFrameWithCustomMessage) {
+                window.llmManager.enhanceFrameWithCustomMessage(selectedFrame, message);
+            } else {
+                console.error('LLM Manager custom message function not available');
+                alert('Custom enhancement feature not available. Please check console for errors.');
+                return;
+            }
+            
+            // Clear the message input
+            const messageInput = tabContent.querySelector('#custom-message-input');
+            if (messageInput) {
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+            }
+        } else {
+            console.error('LLM Manager not available');
+            alert('Custom enhancement feature not available. Please check console for errors.');
+        }
     }
 
     // Set up event listeners for enhancement lifecycle events
@@ -93,7 +244,9 @@
             frameTitle: event.detail.frameTitle,
             timestamp: event.detail.timestamp,
             status: 'processing',
-            startTime: event.detail.timestamp
+            startTime: event.detail.timestamp,
+            customMessage: event.detail.customMessage || null,
+            editMode: event.detail.editMode || false
         };
 
         addHistoryEntry(entry);
@@ -108,7 +261,9 @@
             timestamp: event.detail.timestamp,
             completedAt: event.detail.completedAt,
             status: 'success',
-            duration: event.detail.completedAt - event.detail.timestamp
+            duration: event.detail.completedAt - event.detail.timestamp,
+            customMessage: event.detail.customMessage || null,
+            editMode: event.detail.editMode || false
         };
 
         updateHistoryEntry(entry);
@@ -124,7 +279,9 @@
             completedAt: event.detail.completedAt,
             status: 'error',
             error: event.detail.error,
-            duration: event.detail.completedAt - event.detail.timestamp
+            duration: event.detail.completedAt - event.detail.timestamp,
+            customMessage: event.detail.customMessage || null,
+            editMode: event.detail.editMode || false
         };
 
         updateHistoryEntry(entry);
@@ -155,21 +312,27 @@
         // Clear existing content
         historyContainer.innerHTML = '';
 
-        // Filter history by current selected frame
-        let filteredHistory = enhancementHistory;
-        if (currentSelectedFrame) {
-            filteredHistory = enhancementHistory.filter(entry => entry.frameId === currentSelectedFrame.id);
+        // Only show history if a frame is selected
+        if (!currentSelectedFrame) {
+            historyContainer.innerHTML = `
+                <div class="empty-history">
+                    <p>Select a frame to view its enhancement history.</p>
+                    <p><em>Click on a frame, then press Ctrl+R to get started!</em></p>
+                </div>
+            `;
+            return;
         }
 
+        // Filter history by current selected frame
+        const filteredHistory = enhancementHistory.filter(entry => entry.frameId === currentSelectedFrame.id);
+
         if (filteredHistory.length === 0) {
-            const emptyMessage = currentSelectedFrame 
-                ? `No enhancement requests for "${currentSelectedFrame.querySelector('.frame-title')?.textContent || 'this frame'}" yet.`
-                : 'No enhancement requests yet.';
+            const emptyMessage = `No enhancement requests for "${currentSelectedFrame.querySelector('.frame-title')?.textContent || 'this frame'}" yet.`;
                 
             historyContainer.innerHTML = `
                 <div class="empty-history">
                     <p>${emptyMessage}</p>
-                    <p><em>Select a frame and press Ctrl+R to get started!</em></p>
+                    <p><em>Press Ctrl+R to enhance this frame!</em></p>
                 </div>
             `;
             return;
@@ -201,7 +364,7 @@
             subtitleElement.textContent = 'AI frame enhancement requests (Ctrl+R) for this frame';
         } else {
             headerElement.textContent = 'Enhancement History';
-            subtitleElement.textContent = 'AI frame enhancement requests (Ctrl+R) - select a frame to filter';
+            subtitleElement.textContent = 'Select a frame to view its enhancement history';
         }
     }
 
@@ -217,16 +380,21 @@
         const statusText = getStatusText(entry.status);
         const durationText = entry.duration ? ` (${Math.round(entry.duration / 1000)}s)` : '';
 
+        // Determine what to show in the card body
+        const displayContent = entry.customMessage ? entry.customMessage : entry.frameTitle;
+        const modeIndicator = entry.editMode ? ' (Edit)' : '';
+        
         card.innerHTML = `
             <div class="card-header">
                 <div class="card-status">
                     <span class="status-icon">${statusIcon}</span>
-                    <span class="status-text">${statusText}${durationText}</span>
+                    <span class="status-text">${statusText}${durationText}${modeIndicator}</span>
                 </div>
                 <div class="card-time">${timeStr}</div>
             </div>
             <div class="card-body">
-                <div class="frame-title">${entry.frameTitle}</div>
+                <div class="card-content">${displayContent}</div>
+                ${entry.customMessage ? `<div class="frame-reference">Frame: ${entry.frameTitle}</div>` : ''}
                 ${entry.error ? `<div class="error-message">${entry.error}</div>` : ''}
             </div>
         `;

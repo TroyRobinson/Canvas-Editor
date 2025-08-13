@@ -863,9 +863,10 @@ input:checked + .mode-toggle-slider:before {
 
 /* Chat/History Tab Specific Styles */
 .tab-content[data-tab="chat-history"] {
-    padding: 16px;
+    display: flex;
+    flex-direction: column;
     color: #e0e0e0;
-    text-align: center;
+    padding: 0;
 }
 
 .tab-content[data-tab="chat-history"] .placeholder {
@@ -914,6 +915,24 @@ input:checked + .mode-toggle-slider:before {
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+/* Match scrollbar styling to other textareas */
+.enhancement-history-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.enhancement-history-container::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+.enhancement-history-container::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.enhancement-history-container::-webkit-scrollbar-thumb:hover {
+    background: #666;
 }
 
 .empty-history {
@@ -995,12 +1014,20 @@ input:checked + .mode-toggle-slider:before {
     color: #999;
 }
 
-.card-body .frame-title {
+.card-body .frame-title,
+.card-body .card-content {
     font-size: 14px;
     color: #e0e0e0;
     font-weight: 500;
     margin-bottom: 4px;
     word-break: break-word;
+}
+
+.card-body .frame-reference {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+    font-style: italic;
 }
 
 .error-message {
@@ -1108,6 +1135,165 @@ input:checked + .mode-toggle-slider:before {
 .prompt-textarea::-webkit-resizer {
     background-color: #333;
     background-image: none;
+}
+
+/* Prompt mode toggle styles (similar to code editor) */
+.prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.prompt-mode-toggle {
+    display: flex;
+    background: #2a2a2a;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #333;
+}
+
+.prompt-mode-toggle .mode-toggle-btn {
+    background: transparent;
+    color: #999;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.prompt-mode-toggle .mode-toggle-btn:hover {
+    background: #333;
+    color: #e0e0e0;
+}
+
+.prompt-mode-toggle .mode-toggle-btn.mode-active {
+    background: #6366f1;
+    color: #fff;
+}
+
+.prompt-mode-content {
+    transition: opacity 0.2s ease;
+}
+
+/* Message input section styles */
+.message-input-section {
+    background: #1a1a1a;
+    border-top: 1px solid #333;
+    padding: 12px;
+    flex-shrink: 0;
+    min-height: 100px; /* Fixed minimum height */
+    height: 100px; /* Fixed height */
+}
+
+.message-controls {
+    margin-bottom: 8px;
+}
+
+/* Enhancement mode toggle (similar to prompt mode toggle) */
+.enhancement-mode-toggle {
+    display: flex;
+    background: #2a2a2a;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #333;
+    width: fit-content;
+}
+
+.enhancement-mode-toggle .mode-toggle-btn {
+    background: transparent;
+    color: #999;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.enhancement-mode-toggle .mode-toggle-btn:hover {
+    background: #333;
+    color: #e0e0e0;
+}
+
+.enhancement-mode-toggle .mode-toggle-btn.mode-active {
+    background: #6366f1;
+    color: #fff;
+}
+
+.message-input-container {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+.message-textarea {
+    flex: 1;
+    background: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 8px 12px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    min-height: 36px;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.message-textarea:focus {
+    border-color: #6366f1;
+}
+
+.message-textarea::placeholder {
+    color: #666;
+}
+
+.send-message-button {
+    background: #6366f1;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+}
+
+.send-message-button:hover {
+    background: #5856eb;
+}
+
+.send-message-button:active {
+    background: #4f46e5;
+}
+
+/* Message textarea scrollbar */
+.message-textarea::-webkit-scrollbar {
+    width: 6px;
+}
+
+.message-textarea::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+.message-textarea::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+
+.message-textarea::-webkit-scrollbar-thumb:hover {
+    background: #666;
 }
 
 .params-grid {

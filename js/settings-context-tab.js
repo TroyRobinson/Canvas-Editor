@@ -15,6 +15,10 @@
     let tabContent = null;
     let systemPromptTextarea = null;
     let userPromptTextarea = null;
+    let userPromptWithMessageTextarea = null;
+    let userPromptEditMessageTextarea = null;
+    let promptModeToggle = null;
+    let currentPromptMode = 'no-message'; // 'no-message', 'message', or 'edit-message'
     let apiKeyInput = null;
     let modelInput = null;
     let temperatureInput = null;
@@ -69,6 +73,30 @@ When given HTML code, analyze the user's intended functionality and respond with
 
 Respond with the complete script and style tags needed to make this code functional.`,
 
+        userPromptWithMessage: `Please analyze the following HTML code and enhance it with the following functionality:
+
+\`\`\`html
+{htmlContent}
+\`\`\`
+
+<user_request>
+{user_message}
+</user_request>
+
+Respond with the complete script and style tags needed to make this code functional.`,
+
+        userPromptEditMessage: `Please analyze the following HTML code and update it with the following functionality:
+
+\`\`\`html
+{htmlContent}
+\`\`\`
+
+<user_request>
+{user_message}
+</user_request>
+
+Respond with the edited script and style tags needed to make this code fully match the user's latest request.`,
+
         apiKey: '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',
         model: 'qwen/qwen3-coder:nitro',
         temperature: 0,
@@ -105,20 +133,6 @@ Respond with the complete script and style tags needed to make this code functio
                 </div>
                 
                 <div class="settings-section">
-                    <div class="prompt-section">
-                        <h4>User Prompt Template</h4>
-                        <p class="prompt-help">Template for the user message sent to AI. Use {htmlContent} placeholder.</p>
-                        <textarea id="user-prompt-textarea" class="prompt-textarea" placeholder="Enter user prompt template..."></textarea>
-                    </div>
-                    
-                    <div class="prompt-section">
-                        <h4>System Prompt</h4>
-                        <p class="prompt-help">Instructions that define the AI's role and behavior constraints.</p>
-                        <textarea id="system-prompt-textarea" class="prompt-textarea" placeholder="Enter system prompt..."></textarea>
-                    </div>
-                </div>
-                
-                <div class="settings-section">
                     <h4>API Configuration</h4>
                     <div class="api-key-section">
                         <div class="param-group api-key-group">
@@ -151,12 +165,46 @@ Respond with the complete script and style tags needed to make this code functio
                         </div>
                     </div>
                 </div>
+                
+                <div class="settings-section">
+                    <div class="prompt-section">
+                        <h4>User Prompt Template</h4>
+                        <div class="prompt-mode-toggle">
+                            <button class="mode-toggle-btn mode-active" data-mode="no-message" data-selectable="false">No Message</button>
+                            <button class="mode-toggle-btn" data-mode="message" data-selectable="false">With Message</button>
+                            <button class="mode-toggle-btn" data-mode="edit-message" data-selectable="false">Edit Message</button>
+                        </div>
+                        
+                        <div id="no-message-prompt" class="prompt-mode-content">
+                            <p class="prompt-help">Template for standard AI enhancement (Ctrl+R). Use {htmlContent} placeholder.</p>
+                            <textarea id="user-prompt-textarea" class="prompt-textarea prompt-full-width" placeholder="Enter user prompt template for standard enhancement..."></textarea>
+                        </div>
+                        
+                        <div id="message-prompt" class="prompt-mode-content" style="display: none;">
+                            <p class="prompt-help">Template for custom message enhancement (replacing mode). Use {htmlContent} and {user_message} placeholders.</p>
+                            <textarea id="user-prompt-with-message-textarea" class="prompt-textarea prompt-full-width" placeholder="Enter user prompt template for custom messages..."></textarea>
+                        </div>
+                        
+                        <div id="edit-message-prompt" class="prompt-mode-content" style="display: none;">
+                            <p class="prompt-help">Template for editing existing code. Use {htmlContent} (with existing code) and {user_message} placeholders.</p>
+                            <textarea id="user-prompt-edit-message-textarea" class="prompt-textarea prompt-full-width" placeholder="Enter user prompt template for editing existing code..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="prompt-section">
+                        <h4>System Prompt</h4>
+                        <p class="prompt-help">Instructions that define the AI's role and behavior constraints.</p>
+                        <textarea id="system-prompt-textarea" class="prompt-textarea prompt-full-width" placeholder="Enter system prompt..."></textarea>
+                    </div>
+                </div>
             </div>
         `;
 
         // Get DOM references
         systemPromptTextarea = container.querySelector('#system-prompt-textarea');
         userPromptTextarea = container.querySelector('#user-prompt-textarea');
+        userPromptWithMessageTextarea = container.querySelector('#user-prompt-with-message-textarea');
+        userPromptEditMessageTextarea = container.querySelector('#user-prompt-edit-message-textarea');
         apiKeyInput = container.querySelector('#api-key-input');
         modelInput = container.querySelector('#model-input');
         temperatureInput = container.querySelector('#temperature-input');
@@ -164,13 +212,61 @@ Respond with the complete script and style tags needed to make this code functio
         maxThinkingTokensInput = container.querySelector('#max-thinking-tokens-input');
         const resetButton = container.querySelector('#reset-defaults-btn');
 
-        if (!systemPromptTextarea || !userPromptTextarea || !apiKeyInput || !modelInput) {
+        if (!systemPromptTextarea || !userPromptTextarea || !userPromptWithMessageTextarea || !userPromptEditMessageTextarea || !apiKeyInput || !modelInput) {
             console.error('Settings tab elements not found');
             return;
         }
 
+        setupPromptModeToggle(container);
+
         setupEventListeners(resetButton);
         loadSettings();
+    }
+
+    // Setup prompt mode toggle functionality
+    function setupPromptModeToggle(container) {
+        const toggleButtons = container.querySelectorAll('.prompt-mode-toggle .mode-toggle-btn');
+        
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const mode = button.dataset.mode;
+                switchPromptMode(mode);
+            });
+        });
+    }
+
+    // Switch between prompt modes
+    function switchPromptMode(mode) {
+        currentPromptMode = mode;
+        
+        // Update toggle button states
+        const toggleButtons = tabContent.querySelectorAll('.prompt-mode-toggle .mode-toggle-btn');
+        toggleButtons.forEach(btn => {
+            if (btn.dataset.mode === mode) {
+                btn.classList.add('mode-active');
+            } else {
+                btn.classList.remove('mode-active');
+            }
+        });
+
+        // Show/hide content sections
+        const noMessageContent = tabContent.querySelector('#no-message-prompt');
+        const messageContent = tabContent.querySelector('#message-prompt');
+        const editMessageContent = tabContent.querySelector('#edit-message-prompt');
+
+        // Hide all first
+        noMessageContent.style.display = 'none';
+        messageContent.style.display = 'none';
+        editMessageContent.style.display = 'none';
+
+        // Show selected mode
+        if (mode === 'no-message') {
+            noMessageContent.style.display = 'block';
+        } else if (mode === 'message') {
+            messageContent.style.display = 'block';
+        } else if (mode === 'edit-message') {
+            editMessageContent.style.display = 'block';
+        }
     }
 
     // Setup event listeners
@@ -178,6 +274,8 @@ Respond with the complete script and style tags needed to make this code functio
         // Auto-save on input changes (debounced)
         systemPromptTextarea.addEventListener('input', debounce(saveSettings, 500));
         userPromptTextarea.addEventListener('input', debounce(saveSettings, 500));
+        userPromptWithMessageTextarea.addEventListener('input', debounce(saveSettings, 500));
+        userPromptEditMessageTextarea.addEventListener('input', debounce(saveSettings, 500));
         apiKeyInput.addEventListener('input', debounce(saveSettings, 500));
         modelInput.addEventListener('input', debounce(saveSettings, 500));
         temperatureInput.addEventListener('input', debounce(saveSettings, 500));
@@ -209,6 +307,8 @@ Respond with the complete script and style tags needed to make this code functio
         
         systemPromptTextarea.value = settings.systemPrompt;
         userPromptTextarea.value = settings.userPrompt;
+        userPromptWithMessageTextarea.value = settings.userPromptWithMessage;
+        userPromptEditMessageTextarea.value = settings.userPromptEditMessage;
         apiKeyInput.value = settings.apiKey;
         modelInput.value = settings.model;
         temperatureInput.value = settings.temperature;
@@ -221,6 +321,8 @@ Respond with the complete script and style tags needed to make this code functio
         const settings = {
             systemPrompt: systemPromptTextarea.value,
             userPrompt: userPromptTextarea.value,
+            userPromptWithMessage: userPromptWithMessageTextarea.value,
+            userPromptEditMessage: userPromptEditMessageTextarea.value,
             apiKey: apiKeyInput.value,
             model: modelInput.value,
             temperature: parseFloat(temperatureInput.value) || 0,

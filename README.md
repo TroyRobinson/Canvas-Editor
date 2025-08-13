@@ -264,10 +264,12 @@ Comprehensive CSS styling defining:
   - Minimal activation for CSS-only editing experience
 
 #### `js/llm-manager.js`
-**Purpose**: AI-powered code enhancement via OpenRouter API integration with proper cleanup
-- **Frame Enhancement**: Analyzes selected frame HTML and generates improved script/style code using AI
+**Purpose**: AI-powered code enhancement via OpenRouter API with multiple enhancement modes
+- **Three Enhancement Modes**: Standard (Ctrl+R), Custom Message (replacing), and Edit Message (editing)
+- **Smart HTML Processing**: Strips existing code for replacing mode, preserves for editing mode
+- **Custom Message Support**: Accepts user-provided enhancement instructions via Chat/History tab
+- **Event System**: Emits lifecycle events (started/completed/failed) with custom message and mode tracking
 - **API Integration**: Uses OpenRouter with proper system/user message structure for token efficiency
-- **Smart HTML Processing**: Strips existing script/style content before sending to AI, then parses response
 - **Proper Cleanup**: Uses complete element replacement to prevent content accumulation between AI enhancements
 - **Visual Feedback**: Shows loading spinner in frame title bar that moves with frame
 - **Script Re-activation**: Automatically reactivates scripts after code insertion
@@ -316,16 +318,20 @@ Comprehensive CSS styling defining:
   - Re-establishes element behaviors after code application
 
 #### `js/chat-history-tab.js`
-**Purpose**: Enhancement history tracking tab showing AI frame enhancement requests
-- **Frame-Scoped History**: Shows enhancement requests for the currently selected frame only
-- **Real-time Status**: Displays processing, success, and error states with timestamps
-- **Visual Cards**: History cards with status icons, duration, and frame context
+**Purpose**: Enhancement history tracking and custom message interface
+- **Frame-Scoped History**: Shows enhancement requests for currently selected frame only (hidden when no frame selected)
+- **Custom Message Input**: Text area for user-specified enhancement requests with fixed-height UI
+- **Replacing/Editing Toggle**: Switch between code replacement and incremental editing modes (Editing default)
+- **Real-time Status**: Displays processing, success, and error states with timestamps and mode indicators
+- **Message Display**: History cards show custom messages prominently with frame reference below
 - **Auto-filtering**: Dynamically updates when selecting different frames
 - **Event Integration**: Listens to enhancement lifecycle events from llm-manager.js
 
 #### `js/settings-context-tab.js`
-**Purpose**: AI enhancement configuration interface with editable prompts and model parameters
-- **Editable Prompts**: Full-width textareas for system prompt and user prompt template customization
+**Purpose**: AI enhancement configuration interface with three-mode prompt templates
+- **Three Prompt Templates**: No Message (Ctrl+R), With Message (replacing), and Edit Message (editing) modes
+- **Full-width Textareas**: All prompt templates use consistent full-width styling like System Prompt
+- **Mode Toggle**: Organized under "User Prompt Template" title for clear prompt type switching
 - **API Configuration**: OpenRouter API key input with fallback to default key
 - **Model Parameters**: Temperature, max tokens, model selection, and thinking tokens settings
 - **LocalStorage Persistence**: Auto-saves all settings with 500ms debounce
@@ -404,6 +410,14 @@ Comprehensive CSS styling defining:
 8. **Press Ctrl/Cmd+Z on canvas** → Reverts entire element to previous HTML state
 9. **Click X button** → Closes panel, shows toggle button again
 10. **Drag panel border** → Resize panel width (persisted)
+
+### AI Enhancement with Custom Messages Workflow
+1. **Select a frame** → Chat/History tab shows frame-specific enhancement history
+2. **Choose enhancement mode** → Toggle between "Editing" (keeps existing code) and "Replacing" (starts fresh)
+3. **Type custom message** → Describe desired functionality in the text area
+4. **Press Enter or click send** → Triggers AI enhancement with custom instructions
+5. **View history** → Custom messages appear prominently in history cards with frame reference
+6. **Configure prompts** → Settings/Context tab has three prompt templates for different enhancement types
 
 ### Script Activation Workflow (Iframe-Based)
 1. **Edit Mode**: Scripts are **not executed** - pure content editing without script interference
