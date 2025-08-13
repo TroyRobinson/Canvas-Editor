@@ -292,7 +292,8 @@ Comprehensive CSS styling defining:
 - **Close Button**: X button in tab header to close panel and show toggle button
 - **Resizable Panel**: Drag border to resize, width persisted in localStorage
 - **State Management**: Panel stays open/closed until user changes it
-- **Key relationships**: Coordinates with code-editor.js and other tab modules
+- **Tab Persistence**: Respects user-chosen tabs, only auto-switches when no explicit choice made
+- **Key relationships**: Coordinates with code-editor.js and chat-history-tab.js
 
 #### `js/code-editor.js`
 **Purpose**: Code editing tab within the right pane with bi-directional editing for HTML and CSS
@@ -315,9 +316,12 @@ Comprehensive CSS styling defining:
   - Re-establishes element behaviors after code application
 
 #### `js/chat-history-tab.js`
-**Purpose**: Placeholder tab for future chat and history functionality
-- **Future Features**: Action history, recent changes log, collaborative features
-- **Tab Registration**: Follows same pattern as code editor for easy expansion
+**Purpose**: Enhancement history tracking tab showing AI frame enhancement requests
+- **Frame-Scoped History**: Shows enhancement requests for the currently selected frame only
+- **Real-time Status**: Displays processing, success, and error states with timestamps
+- **Visual Cards**: History cards with status icons, duration, and frame context
+- **Auto-filtering**: Dynamically updates when selecting different frames
+- **Event Integration**: Listens to enhancement lifecycle events from llm-manager.js
 
 ## Element Hierarchy and Types
 
