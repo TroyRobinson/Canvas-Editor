@@ -13,6 +13,7 @@
     let isDragging = false;
     let activeTab = null;
     let tabs = new Map();
+    let userChosenTab = null; // Track when user explicitly chooses a tab
 
     // DOM elements
     let panel = null;
@@ -82,7 +83,8 @@
         const tabButton = event.target.closest('[data-tab]');
         if (tabButton) {
             const tabId = tabButton.dataset.tab;
-            switchToTab(tabId);
+            userChosenTab = tabId; // Mark as user-chosen
+            switchToTab(tabId, { userInitiated: true });
         }
     }
 
@@ -128,9 +130,14 @@
         return tabContent;
     }
 
-    function switchToTab(tabId) {
+    function switchToTab(tabId, options = {}) {
         if (!tabs.has(tabId)) {
             console.warn(`Tab ${tabId} not found`);
+            return;
+        }
+
+        // If this is an automatic switch and user has chosen a tab, respect their choice
+        if (!options.userInitiated && userChosenTab && userChosenTab !== tabId) {
             return;
         }
 
@@ -193,6 +200,9 @@
             }
         }
         
+        // Clear user choice when panel is hidden
+        userChosenTab = null;
+        
         panel.style.display = 'none';
         document.body.style.paddingRight = '0';
         showToggleButton();
@@ -209,6 +219,14 @@
 
     function isVisible() {
         return panel && panel.style.display !== 'none';
+    }
+
+    function canAutoSwitch(tabId) {
+        return !userChosenTab || userChosenTab === tabId;
+    }
+
+    function clearUserChoice() {
+        userChosenTab = null;
     }
 
     // Resize functionality
@@ -255,7 +273,9 @@
         getTabContent: getTabContent,
         show: showPanel,
         hide: hidePanel,
-        isVisible: isVisible
+        isVisible: isVisible,
+        canAutoSwitch: canAutoSwitch,
+        clearUserChoice: clearUserChoice
     };
 
 })();

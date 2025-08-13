@@ -347,6 +347,24 @@
             return;
         }
 
+        const requestId = Date.now() + Math.random().toString(36).substr(2, 9);
+        const timestamp = new Date();
+        
+        // Get frame title for display
+        const frameTitle = frame.querySelector('.frame-title')?.textContent || 'Untitled Frame';
+        
+        // Emit enhancement started event
+        const startEvent = new CustomEvent('enhancementStarted', {
+            detail: {
+                id: requestId,
+                frameId: frame.id,
+                frameTitle: frameTitle,
+                timestamp: timestamp,
+                status: 'processing'
+            }
+        });
+        document.dispatchEvent(startEvent);
+
         const spinner = showLoadingSpinner(frame);
         
         // Capture selection state before AI generation 
@@ -374,10 +392,38 @@
 
             console.log('AI enhancement completed successfully');
 
+            // Emit enhancement completed event
+            const successEvent = new CustomEvent('enhancementCompleted', {
+                detail: {
+                    id: requestId,
+                    frameId: frame.id,
+                    frameTitle: frameTitle,
+                    timestamp: timestamp,
+                    completedAt: new Date(),
+                    status: 'success',
+                    response: aiResponse
+                }
+            });
+            document.dispatchEvent(successEvent);
+
         } catch (error) {
             console.error('Error during AI enhancement:', error);
             // You could show an error message to the user here
             alert(`AI enhancement failed: ${error.message}`);
+
+            // Emit enhancement failed event
+            const errorEvent = new CustomEvent('enhancementFailed', {
+                detail: {
+                    id: requestId,
+                    frameId: frame.id,
+                    frameTitle: frameTitle,
+                    timestamp: timestamp,
+                    completedAt: new Date(),
+                    status: 'error',
+                    error: error.message
+                }
+            });
+            document.dispatchEvent(errorEvent);
         } finally {
             // Always hide the spinner
             hideLoadingSpinner(spinner);

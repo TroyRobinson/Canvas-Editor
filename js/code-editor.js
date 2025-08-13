@@ -231,8 +231,8 @@
                 // Switch to HTML mode when selecting an element
                 switchMode('html');
                 setSelectedElement(element);
-                // Only switch to code editor tab if panel is already visible
-                if (window.rightPaneManager.isVisible()) {
+                // Only switch to code editor tab if panel is visible and auto-switching is allowed
+                if (window.rightPaneManager.isVisible() && window.rightPaneManager.canAutoSwitch('code-editor')) {
                     window.rightPaneManager.switchToTab('code-editor');
                 }
             }
@@ -241,8 +241,8 @@
             // Switch to HTML mode for multiple selection
             switchMode('html');
             setMultipleSelection(selectedElements);
-            // Only switch to code editor tab if panel is already visible
-            if (window.rightPaneManager.isVisible()) {
+            // Only switch to code editor tab if panel is visible and auto-switching is allowed
+            if (window.rightPaneManager.isVisible() && window.rightPaneManager.canAutoSwitch('code-editor')) {
                 window.rightPaneManager.switchToTab('code-editor');
             }
         } else {
