@@ -35,10 +35,8 @@
                 <h3>Chat & History</h3>
                 <p>This tab will contain:</p>
                 <ul>
-                    <li>AI chat interface for design assistance</li>
                     <li>Action history and undo timeline</li>
                     <li>Recent changes log</li>
-                    <li>Collaborative features</li>
                 </ul>
                 <p><em>Coming soon...</em></p>
             </div>
@@ -67,7 +65,6 @@
     // Expose public API for future expansion
     window.chatHistoryTab = {
         // Future methods will be added here
-        // showChat: () => {...},
         // showHistory: () => {...},
         // addHistoryEntry: (entry) => {...}
     };

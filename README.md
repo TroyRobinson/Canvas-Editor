@@ -285,8 +285,17 @@ Comprehensive CSS styling defining:
   - Coordinates with selection.js to get selected frames
   - Follows same cleanup pattern as code-editor.js and mode-manager.js (element replacement not innerHTML)
 
+#### `js/right-pane-manager.js`
+**Purpose**: Manages right-side tabbed panel UI with resizing and visibility controls
+- **Tab System**: Registers and manages multiple tabs (Code Editor, Chat/History, future features)
+- **Toggle Button**: Circular menu button in top-right to open panel (hidden by default)
+- **Close Button**: X button in tab header to close panel and show toggle button
+- **Resizable Panel**: Drag border to resize, width persisted in localStorage
+- **State Management**: Panel stays open/closed until user changes it
+- **Key relationships**: Coordinates with code-editor.js and other tab modules
+
 #### `js/code-editor.js`
-**Purpose**: Right-side resizable code pane with bi-directional editing for HTML and CSS
+**Purpose**: Code editing tab within the right pane with bi-directional editing for HTML and CSS
 - **HTML/CSS Mode Toggle**: Switch between editing element HTML and global CSS styles
 - **Real-time Code View**: Shows exact HTML of selected elements (frame-content only for frames) OR global CSS with live updates
 - **Automatic Code Application**: Changes apply automatically with 200ms debounce
@@ -294,16 +303,21 @@ Comprehensive CSS styling defining:
 - **CSS Global Editing**: Live CSS editing with immediate visual feedback across all canvas elements
 - **Native Textarea Undo**: Standard Ctrl/Cmd+Z works within the code editor
 - **Canvas Undo Integration**: Focus/blur snapshots create proper canvas undo entries
-- **Resizable Panel**: Drag border to resize, width persisted in localStorage
 - **Multi-selection Support**: Shows combined code for multiple selected elements
-- **Smart Mode Switching**: Auto-switches to HTML when selecting elements, CSS when clicking canvas
+- **Smart Mode Switching**: Auto-switches to HTML when selecting elements, only if panel is open
 - **Key relationships**:
+  - Registers as tab with right-pane-manager.js
   - Delegates CSS operations to css-manager.js
   - Listens to `selectionChanged` events from selection.js
   - Integrates with undo.js via `recordElementReplacement` for HTML structure changes
   - Delegates script activation to script-manager.js
   - Protected from canvas keyboard shortcuts when focused
   - Re-establishes element behaviors after code application
+
+#### `js/chat-history-tab.js`
+**Purpose**: Placeholder tab for future chat and history functionality
+- **Future Features**: Action history, recent changes log, collaborative features
+- **Tab Registration**: Follows same pattern as code editor for easy expansion
 
 ## Element Hierarchy and Types
 
@@ -367,16 +381,17 @@ Comprehensive CSS styling defining:
 4. **Click outside** the element or press **Escape/Enter** to exit edit mode
 5. Dragging is disabled while editing to prevent accidental moves
 
-### Code Editing Workflow
-1. **Select any element** → HTML code appears in right-side panel automatically (HTML mode)
-2. **Click canvas (no selection)** → Global CSS appears in right-side panel (CSS mode)
-3. **Toggle HTML/CSS modes** → Use buttons in code editor header to switch
-4. **Type HTML/CSS changes** → Canvas updates automatically after 200ms pause
-5. **Use Ctrl/Cmd+Z in code editor** → Instant undo/redo within editor (native browser behavior)
-6. **Click on canvas or switch elements** → Code change recorded in canvas undo system
-7. **Press Ctrl/Cmd+Z on canvas** → Reverts entire element to previous HTML state
-8. **Escape key** → Closes code panel and clears selection
-9. **Drag panel border** → Resize code editor width (persisted)
+### Right Pane & Code Editing Workflow
+1. **Click toggle button** (top-right) → Opens right-side tabbed panel
+2. **Select any element** → Switches to Code Editor tab if panel is open (HTML mode)
+3. **Click canvas (no selection)** → Shows global CSS in Code Editor if panel is open (CSS mode)
+4. **Toggle HTML/CSS modes** → Use buttons in code editor header to switch
+5. **Type HTML/CSS changes** → Canvas updates automatically after 200ms pause
+6. **Use Ctrl/Cmd+Z in code editor** → Instant undo/redo within editor (native browser behavior)
+7. **Click on canvas or switch elements** → Code change recorded in canvas undo system
+8. **Press Ctrl/Cmd+Z on canvas** → Reverts entire element to previous HTML state
+9. **Click X button** → Closes panel, shows toggle button again
+10. **Drag panel border** → Resize panel width (persisted)
 
 ### Script Activation Workflow (Iframe-Based)
 1. **Edit Mode**: Scripts are **not executed** - pure content editing without script interference
@@ -416,7 +431,8 @@ The application uses a distributed state management approach where each module e
 - `window.recordCreate`, `window.recordDelete`, `window.recordMove`, `window.recordElementReplacement`, etc. - Operation recording functions
 - `window.textEditing` - Text editing state and utilities (isEditing, getCurrentlyEditingElement)
 - `window.canvasMode` - Current mode state ('edit' or 'interactive')
-- `window.codeEditor` - Code editor API (show, hide, isActive, updateCodeView, showCSSEditor)
+- `window.rightPaneManager` - Right pane UI API (registerTab, switchToTab, show, hide, isVisible)
+- `window.codeEditor` - Code editor tab API (show, hide, isActive, updateCodeView, showCSSEditor)
 - `window.cssManager` - CSS management API (getCurrentCSS, updateCSS, hasBeenEdited, initialize, injectIntoIframe)
 - `window.iframeManager` - Iframe preview API (createPreviewIframe, showIframe, hideIframe, destroyIframe, positionIframe)
 
