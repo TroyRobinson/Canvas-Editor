@@ -8,9 +8,36 @@
 (function() {
     'use strict';
 
-    const OPENROUTER_API_KEY = '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';
-    const OPENROUTER_MODEL = 'qwen/qwen3-coder:nitro';
     const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+    // Get settings from localStorage or use defaults
+    function getSettings() {
+        const defaults = {
+            apiKey: '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',
+            model: 'qwen/qwen3-coder:nitro',
+            temperature: 0,
+            maxTokens: 10000,
+            maxThinkingTokens: 2000
+        };
+        
+        try {
+            const stored = localStorage.getItem('canvasAISettings');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                // Merge with defaults and validate
+                return {
+                    apiKey: (parsed.apiKey && parsed.apiKey.trim()) ? parsed.apiKey.trim() : defaults.apiKey,
+                    model: parsed.model && parsed.model.trim() ? parsed.model.trim() : defaults.model,
+                    temperature: typeof parsed.temperature === 'number' ? parsed.temperature : defaults.temperature,
+                    maxTokens: typeof parsed.maxTokens === 'number' && parsed.maxTokens > 0 ? parsed.maxTokens : defaults.maxTokens,
+                    maxThinkingTokens: typeof parsed.maxThinkingTokens === 'number' ? parsed.maxThinkingTokens : defaults.maxThinkingTokens
+                };
+            }
+        } catch (error) {
+            console.warn('Error loading AI settings from localStorage:', error);
+        }
+        return defaults;
+    }
 
 
     /**
@@ -296,36 +323,56 @@
      * @returns {Promise<string>} - The AI response
      */
     async function callOpenRouter(htmlContent) {
+        const settings = getSettings();
+        console.log('Using AI settings:', settings);
+        
+        // API key should always be available now due to fallback, but add safety check
+        if (!settings.apiKey || !settings.apiKey.trim()) {
+            throw new Error('OpenRouter API key is required. Please configure it in Settings/Context tab.');
+        }
+        
+        const requestBody = {
+            model: settings.model || 'qwen/qwen3-coder:nitro',
+            messages: [
+                {
+                    role: 'system',
+                    content: window.llmPrompt.getSystemPrompt()
+                },
+                {
+                    role: 'user',
+                    content: window.llmPrompt.getUserPrompt(htmlContent)
+                }
+            ],
+            temperature: settings.temperature || 0,
+            max_tokens: settings.maxTokens || 10000
+        };
+
+        // Add reasoning tokens (keep original behavior for now)
+        requestBody.reasoning = {
+            "effort": "low"  // Allocates approximately 20% of max_tokens for reasoning.
+        };
+
         const response = await fetch(OPENROUTER_URL, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Authorization': `Bearer ${settings.apiKey}`,
                 'Content-Type': 'application/json',
                 'HTTP-Referer': window.location.origin,
                 'X-Title': 'Canvas Builder - AI Code Enhancement'
             },
-            body: JSON.stringify({
-                model: OPENROUTER_MODEL,
-                messages: [
-                    {
-                        role: 'system',
-                        content: window.llmPrompt.getSystemPrompt()
-                    },
-                    {
-                        role: 'user',
-                        content: window.llmPrompt.getUserPrompt(htmlContent)
-                    }
-                ],
-                temperature: 0,
-                "reasoning": {
-                    "effort": "low"  // Allocates approximately 20% of max_tokens for reasoning.
-                  },
-                max_tokens: 10000
-            })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
-            throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+            let errorDetails = `${response.status} ${response.statusText}`;
+            try {
+                const errorBody = await response.text();
+                console.error('API Error Details:', errorBody);
+                errorDetails += ` - ${errorBody}`;
+            } catch (e) {
+                console.error('Could not parse error response');
+            }
+            throw new Error(`OpenRouter API error: ${errorDetails}`);
         }
 
         const data = await response.json();

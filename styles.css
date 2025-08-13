@@ -719,6 +719,11 @@ input:checked + .mode-toggle-slider:before {
     overflow: hidden;
 }
 
+/* Allow settings tab to scroll */
+.tab-content[data-tab="settings-context"] {
+    overflow-y: auto;
+}
+
 .tab-content {
     flex: 1;
     display: flex;
@@ -819,6 +824,28 @@ input:checked + .mode-toggle-slider:before {
 }
 
 .code-editor-textarea::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
+
+/* Settings tab and prompt textarea scrollbars - same style as code editor */
+.settings-content::-webkit-scrollbar,
+.prompt-textarea::-webkit-scrollbar {
+    width: 8px;
+}
+
+.settings-content::-webkit-scrollbar-track,
+.prompt-textarea::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+.settings-content::-webkit-scrollbar-thumb,
+.prompt-textarea::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover,
+.prompt-textarea::-webkit-scrollbar-thumb:hover {
     background: #666;
 }
 
@@ -985,4 +1012,189 @@ input:checked + .mode-toggle-slider:before {
     margin-top: 6px;
     border-left: 2px solid #ef4444;
     word-break: break-word;
+}
+
+/* Settings/Context Tab Styles */
+.settings-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 16px 20px;
+    gap: 20px;
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.settings-header h3 {
+    color: #e0e0e0;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.reset-button {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.reset-button:hover {
+    background: #dc2626;
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.settings-section h4 {
+    color: #e0e0e0;
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+}
+
+.prompt-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.prompt-help {
+    color: #999;
+    font-size: 12px;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.prompt-textarea {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    padding: 12px;
+    resize: vertical;
+    min-height: 120px;
+    max-height: 300px;
+    overflow-y: auto;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.prompt-textarea:focus {
+    border-color: #6366f1;
+}
+
+.prompt-textarea::placeholder {
+    color: #666;
+}
+
+/* Dark resize handle for textareas */
+.prompt-textarea::-webkit-resizer {
+    background-color: #333;
+    background-image: none;
+}
+
+.params-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.param-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.param-group label {
+    color: #ccc;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.param-input {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.param-input:focus {
+    border-color: #6366f1;
+}
+
+.param-input::placeholder {
+    color: #666;
+}
+
+/* API Key Section Styling */
+.api-key-section {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 6px;
+}
+
+.api-key-group {
+    width: 100%;
+}
+
+.api-key-input {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    letter-spacing: 0.5px;
+}
+
+.required {
+    color: #ef4444;
+    font-weight: bold;
+}
+
+.param-help {
+    color: #999;
+    font-size: 11px;
+    margin-top: 4px;
+    line-height: 1.3;
+}
+
+.param-help a {
+    color: #6366f1;
+    text-decoration: none;
+}
+
+.param-help a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive adjustments for settings */
+@media (max-width: 600px) {
+    .params-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .settings-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
 }

@@ -287,13 +287,13 @@ Comprehensive CSS styling defining:
 
 #### `js/right-pane-manager.js`
 **Purpose**: Manages right-side tabbed panel UI with resizing and visibility controls
-- **Tab System**: Registers and manages multiple tabs (Code Editor, Chat/History, future features)
+- **Tab System**: Registers and manages multiple tabs (Code Editor, Chat/History, Settings/Context)
 - **Toggle Button**: Circular menu button in top-right to open panel (hidden by default)
 - **Close Button**: X button in tab header to close panel and show toggle button
 - **Resizable Panel**: Drag border to resize, width persisted in localStorage
 - **State Management**: Panel stays open/closed until user changes it
 - **Tab Persistence**: Respects user-chosen tabs, only auto-switches when no explicit choice made
-- **Key relationships**: Coordinates with code-editor.js and chat-history-tab.js
+- **Key relationships**: Coordinates with code-editor.js, chat-history-tab.js, and settings-context-tab.js
 
 #### `js/code-editor.js`
 **Purpose**: Code editing tab within the right pane with bi-directional editing for HTML and CSS
@@ -322,6 +322,14 @@ Comprehensive CSS styling defining:
 - **Visual Cards**: History cards with status icons, duration, and frame context
 - **Auto-filtering**: Dynamically updates when selecting different frames
 - **Event Integration**: Listens to enhancement lifecycle events from llm-manager.js
+
+#### `js/settings-context-tab.js`
+**Purpose**: AI enhancement configuration interface with editable prompts and model parameters
+- **Editable Prompts**: Full-width textareas for system prompt and user prompt template customization
+- **API Configuration**: OpenRouter API key input with fallback to default key
+- **Model Parameters**: Temperature, max tokens, model selection, and thinking tokens settings
+- **LocalStorage Persistence**: Auto-saves all settings with 500ms debounce
+- **Reset Functionality**: Restore all settings to hardcoded defaults with confirmation dialog
 
 ## Element Hierarchy and Types
 

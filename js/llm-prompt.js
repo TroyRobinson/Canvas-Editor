@@ -63,14 +63,44 @@ When given HTML code, analyze the user's intended functionality and respond with
 Respond with the complete script and style tags needed to make this code functional.`;
 
 
+    // Get settings from localStorage or use hardcoded defaults
+    function getSettings() {
+        try {
+            const stored = localStorage.getItem('canvasAISettings');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return {
+                    systemPrompt: parsed.systemPrompt || SYSTEM_PROMPT,
+                    userPrompt: parsed.userPrompt || USER_PROMPT_TEMPLATE
+                };
+            }
+        } catch (error) {
+            console.warn('Error loading prompt settings from localStorage:', error);
+        }
+        return {
+            systemPrompt: SYSTEM_PROMPT,
+            userPrompt: USER_PROMPT_TEMPLATE
+        };
+    }
+
     // Expose the prompts through the global window object
     window.llmPrompt = {
         getSystemPrompt: function() {
-            return SYSTEM_PROMPT;
+            const settings = getSettings();
+            return settings.systemPrompt;
         },
         
         getUserPrompt: function(htmlContent) {
-            return USER_PROMPT_TEMPLATE.replace('{htmlContent}', htmlContent);
+            const settings = getSettings();
+            return settings.userPrompt.replace('{htmlContent}', htmlContent);
+        },
+
+        // Expose defaults for settings tab
+        getDefaults: function() {
+            return {
+                systemPrompt: SYSTEM_PROMPT,
+                userPrompt: USER_PROMPT_TEMPLATE
+            };
         }
     };
 
