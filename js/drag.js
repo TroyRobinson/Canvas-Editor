@@ -154,8 +154,10 @@ function setupElementDragging(element) {
         // If this is an element-frame, only handle drag if clicking directly on the element-frame background
         // Don't handle drag for child elements - let them handle their own drag
         if (element.classList.contains('element-frame')) {
-            // If the click target is a child element with free-floating class, don't handle the drag
-            if (e.target !== element && e.target.classList.contains('free-floating')) {
+            // If the click occurred inside a nested free-floating element, let that element handle the drag.
+            // This accounts for clicks on text or other descendants within the free-floating element.
+            const freeFloatingAncestor = e.target.closest('.free-floating');
+            if (freeFloatingAncestor && freeFloatingAncestor !== element) {
                 return;
             }
         }
@@ -185,7 +187,17 @@ function setupElementDragging(element) {
             // Edge detection handled the event (started resize) - don't drag
             return;
         }
-        
+
+        // Special handling for line elements: dragging adjusts angle and length
+        if (element.classList.contains('line-element')) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            if (window.startResize) {
+                window.startResize(e, element, 'se');
+            }
+            return;
+        }
+
         e.stopImmediatePropagation(); // Prevent any other handlers from firing
         
         // Handle alt+drag for duplication
@@ -501,12 +513,12 @@ function moveSingleElement(e) {
         const newLeft = canvasCoords.x - dragOffset.x;
         const newTop = canvasCoords.y - dragOffset.y;
         
-        // Keep frame within canvas bounds (in canvas coordinates)
+        // Keep frame within horizontal bounds and prevent going above the top
         const frameWidth = parseFloat(currentDragging.style.width) || currentDragging.offsetWidth;
-        const frameHeight = parseFloat(currentDragging.style.height) || currentDragging.offsetHeight;
-        
+
         currentDragging.style.left = Math.max(0, Math.min(newLeft, window.innerWidth / zoom - frameWidth)) + 'px';
-        currentDragging.style.top = Math.max(0, Math.min(newTop, window.innerHeight / zoom - frameHeight)) + 'px';
+        // Allow dragging below the viewport bottom
+        currentDragging.style.top = Math.max(0, newTop) + 'px';
     } else if (currentDragging.classList.contains('free-floating')) {
         // For free-floating elements, calculate relative to parent
         const parentRect = currentDragging.parentElement.getBoundingClientRect();
@@ -772,12 +784,12 @@ function moveFrameWithOffset(frame, offset, e) {
     const newLeft = canvasCoords.x - dragOffset.x + offset.x;
     const newTop = canvasCoords.y - dragOffset.y + offset.y;
     
-    // Keep frame within canvas bounds
+    // Keep frame within horizontal bounds and prevent going above the top
     const frameWidth = parseFloat(frame.style.width) || frame.offsetWidth;
-    const frameHeight = parseFloat(frame.style.height) || frame.offsetHeight;
-    
+
     frame.style.left = Math.max(0, Math.min(newLeft, window.innerWidth / zoom - frameWidth)) + 'px';
-    frame.style.top = Math.max(0, Math.min(newTop, window.innerHeight / zoom - frameHeight)) + 'px';
+    // Allow dragging below the viewport bottom
+    frame.style.top = Math.max(0, newTop) + 'px';
 }
 
 function moveElementWithOffset(element, offset, e) {
