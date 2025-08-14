@@ -28,6 +28,12 @@
     let modeToggleCss = null;
     let headerSpan = null;
 
+    function isInteractiveElement(el) {
+        if (!el || !el.tagName) return false;
+        const tag = el.tagName;
+        return tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+    }
+
     // Initialize the code editor tab
     function init() {
         if (!window.rightPaneManager) {
@@ -340,7 +346,31 @@
             }
             
             const cleanElement = cleanElementForSerialization(elementToShow);
-            const formattedHTML = formatHTML(cleanElement.outerHTML);
+            let html = cleanElement.outerHTML;
+
+            if (isInteractiveElement(elementToShow)) {
+                let commentNode = null;
+                let next = elementToShow.nextSibling;
+                while (next && next.nodeType === Node.TEXT_NODE && !next.nodeValue.trim()) {
+                    next = next.nextSibling;
+                }
+                if (next && next.nodeType === Node.COMMENT_NODE) {
+                    commentNode = next;
+                } else {
+                    let prev = elementToShow.previousSibling;
+                    while (prev && prev.nodeType === Node.TEXT_NODE && !prev.nodeValue.trim()) {
+                        prev = prev.previousSibling;
+                    }
+                    if (prev && prev.nodeType === Node.COMMENT_NODE) {
+                        commentNode = prev;
+                    }
+                }
+                if (commentNode) {
+                    html = `<!-- ${commentNode.nodeValue.trim()} -->\n` + html;
+                }
+            }
+
+            const formattedHTML = formatHTML(html);
             
             // Preserve cursor position if user is actively editing
             const shouldPreserveCursor = document.activeElement === textarea && !textarea.disabled;
@@ -483,6 +513,12 @@
             }
             
             const newElement = tempContainer.children[0];
+            let commentText = '';
+            tempContainer.childNodes.forEach(node => {
+                if (node.nodeType === Node.COMMENT_NODE) {
+                    commentText = node.nodeValue.trim();
+                }
+            });
             
             // Check if we're editing a frame's content
             if (currentSelectedElement.classList.contains('frame')) {
@@ -545,27 +581,52 @@
                 
                 // Preserve the element's position and container
                 const parent = currentSelectedElement.parentNode;
-                const nextSibling = currentSelectedElement.nextSibling;
-                
+
+                // Remove existing sibling comment nodes if present
+                let nextSibling = currentSelectedElement.nextSibling;
+                while (nextSibling && nextSibling.nodeType === Node.TEXT_NODE && !nextSibling.nodeValue.trim()) {
+                    nextSibling = nextSibling.nextSibling;
+                }
+                if (nextSibling && nextSibling.nodeType === Node.COMMENT_NODE) {
+                    const toRemove = nextSibling;
+                    nextSibling = toRemove.nextSibling;
+                    toRemove.remove();
+                } else {
+                    nextSibling = currentSelectedElement.nextSibling;
+                }
+                let prevSibling = currentSelectedElement.previousSibling;
+                while (prevSibling && prevSibling.nodeType === Node.TEXT_NODE && !prevSibling.nodeValue.trim()) {
+                    prevSibling = prevSibling.previousSibling;
+                }
+                if (prevSibling && prevSibling.nodeType === Node.COMMENT_NODE) {
+                    prevSibling.remove();
+                }
+
                 // Replace the element
                 parent.removeChild(currentSelectedElement);
                 parent.insertBefore(newElement, nextSibling);
-                
+
+                // Insert comment node for interactive elements
+                if (isInteractiveElement(newElement) && commentText) {
+                    const commentNode = document.createComment(` ${commentText} `);
+                    parent.insertBefore(commentNode, newElement.nextSibling);
+                }
+
                 // Update the current reference
                 const oldElement = currentSelectedElement;
                 currentSelectedElement = newElement;
-                
+
                 // Ensure all elements are properly processed by the selection system first
                 if (window.makeContainerElementsSelectable) {
                     window.makeContainerElementsSelectable(newElement);
                 }
-                
+
                 // Re-setup element behaviors
                 setupElementBehaviors(newElement);
-                
+
                 // Also setup behaviors for child elements that need special treatment
                 setupChildElementBehaviors(newElement);
-                
+
                 // Update selection to the new element
                 if (window.selectElement) {
                     window.selectElement(newElement);
