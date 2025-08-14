@@ -110,6 +110,11 @@
         if (target.closest('#mode-toggle-container')) {
             return null;
         }
+
+        // Only allow editing for elements within the canvas
+        if (!target.closest('#canvas')) {
+            return null;
+        }
         
         // Check for input wrapper for placeholder editing
         const inputWrapper = target.closest('.input-wrapper');
