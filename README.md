@@ -467,7 +467,7 @@ Comprehensive CSS styling defining:
 - Elements automatically switch containers when dragged over new parents
 - Frame resizing triggers automatic container reassignment for contained elements
 - Zoom and pan operations maintain relative positioning
-- In flexbox containers created with **Shift + A**, dragging a child without Cmd/Ctrl reorders it within the flex flow
+- In flexbox containers created with **Shift + A**, child elements remain individually selectable, and dragging a child without Cmd/Ctrl reorders it within the flex flow
 
 ## Performance Optimizations
 

@@ -6,7 +6,6 @@ let isFlexReordering = false;
 let flexContainer = null;
 let flexOldHTML = '';
 let flexDirection = 'row';
-let isLineDragging = false;
 
 // Alt/Option key duplication state
 let isAltPressed = false;
@@ -182,22 +181,18 @@ function setupElementDragging(element) {
         if (window.isInPlacementMode && window.isInPlacementMode()) return;
         if (window.isPlacementDragging && window.isPlacementDragging()) return;
         if (window.isResizing && window.isResizing()) return;
-        
-        // If this is an element-frame, only handle drag if clicking directly on the element-frame background
-        // Don't handle drag for child elements - let them handle their own drag
-        if (element.classList.contains('element-frame')) {
-            // If the click occurred inside a nested free-floating element, let that element handle the drag.
-            // This accounts for clicks on text or other descendants within the free-floating element.
-            const freeFloatingAncestor = e.target.closest('.free-floating');
-            if (freeFloatingAncestor && freeFloatingAncestor !== element) {
+        // If clicking on a selectable child inside this element, let that child handle the event
+        if (element.classList.contains('free-floating') && e.target !== element) {
+            const selectableAncestor = e.target.closest('[data-selectable="true"]');
+            if (selectableAncestor && selectableAncestor !== element) {
                 return;
             }
         }
-        
+
         // Check if we're clicking on a nested element-frame (but not its contents)
         // Only prevent drag if clicking directly on an element-frame that's not this element
         const clickedElement = e.target;
-        const isNestedElementFrame = clickedElement.classList.contains('element-frame') && 
+        const isNestedElementFrame = clickedElement.classList.contains('element-frame') &&
                                    clickedElement !== element;
         
         if (isNestedElementFrame) {
