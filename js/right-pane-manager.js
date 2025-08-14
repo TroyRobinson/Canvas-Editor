@@ -22,6 +22,7 @@
     let contentContainer = null;
     let toggleButton = null;
     let closeButton = null;
+    let preservedSelection = [];
 
     // Initialize the right pane when the DOM is ready
     function init() {
@@ -65,6 +66,9 @@
 
     // Setup event listeners
     function setupEventListeners() {
+        // Preserve selection before tab click
+        tabContainer.addEventListener('mousedown', handleTabMouseDown);
+
         // Tab click handling
         tabContainer.addEventListener('click', handleTabClick);
         
@@ -84,7 +88,14 @@
         if (tabButton) {
             const tabId = tabButton.dataset.tab;
             userChosenTab = tabId; // Mark as user-chosen
-            switchToTab(tabId, { userInitiated: true });
+            switchToTab(tabId, { userInitiated: true, preservedSelection });
+            preservedSelection = [];
+        }
+    }
+
+    function handleTabMouseDown() {
+        if (window.getSelectedElements) {
+            preservedSelection = window.getSelectedElements();
         }
     }
 
@@ -173,6 +184,16 @@
 
         // Show panel if hidden
         showPanel();
+
+        // Restore selection if it was cleared by tab interaction
+        if (options.preservedSelection && options.preservedSelection.length &&
+            window.selectElement) {
+            options.preservedSelection.forEach(el => {
+                if (document.contains(el)) {
+                    window.selectElement(el, true);
+                }
+            });
+        }
     }
 
     function getActiveTab() {
