@@ -199,6 +199,21 @@ window.addEventListener('load', () => {
             e.preventDefault();
             groupSelectedElements();
         }
+        // Auto layout with Shift + A
+        if (e.key.toLowerCase() === 'a' && e.shiftKey && !e.metaKey && !e.ctrlKey) {
+            if (e.target.tagName === 'INPUT' ||
+                e.target.tagName === 'TEXTAREA' ||
+                e.target.contentEditable === 'true' ||
+                (window.codeEditor && window.codeEditor.isActive())) {
+                return; // Allow normal typing behavior in text fields
+            }
+            e.preventDefault();
+            const container = window.getSelectedElement ? window.getSelectedElement() : null;
+            if (container && window.applyAutoLayout) {
+                window.applyAutoLayout(container);
+            }
+        }
+
         
         // Undo with Cmd/Ctrl + Z
         if (e.key === 'z' && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
