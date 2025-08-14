@@ -957,7 +957,6 @@ input:checked + .mode-toggle-slider:before {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    justify-content: flex-end;
 }
 
 .enhancement-history-scroll::-webkit-scrollbar {
@@ -981,7 +980,6 @@ input:checked + .mode-toggle-slider:before {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-top: auto;
 }
 
 .empty-history {

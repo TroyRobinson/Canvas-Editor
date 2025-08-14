@@ -33,6 +33,13 @@
 
         // Set up event listeners for enhancement events
         setupEnhancementEventListeners();
+
+        // Make Chat/History the default active tab on load
+        if (window.rightPaneManager &&
+            typeof window.rightPaneManager.getActiveTab === 'function' &&
+            !window.rightPaneManager.getActiveTab()) {
+            window.rightPaneManager.switchToTab('chat-history');
+        }
     }
 
     // Initialize tab content when first created
