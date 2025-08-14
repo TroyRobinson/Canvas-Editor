@@ -2,6 +2,7 @@ let currentDragging = null;
 let dragOffset = { x: 0, y: 0 };
 let isMultiDragging = false;
 let multiDragOffsets = new Map(); // Store relative positions of all selected elements
+let isLineDragging = false;
 
 // Alt/Option key duplication state
 let isAltPressed = false;
@@ -89,11 +90,19 @@ function setupFrameDragging(frame, titleBar) {
             currentDragging = frame;
         }
         const rect = currentDragging.getBoundingClientRect();
-        
+
         // Account for zoom when calculating drag offset
         const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
-        dragOffset.x = (e.clientX - rect.left) / zoom;
-        dragOffset.y = (e.clientY - rect.top) / zoom;
+        if (isLineDragging && currentDragging.classList.contains('line-element')) {
+            const parentRect = currentDragging.parentElement.getBoundingClientRect();
+            const startLeft = parentRect.left + (parseFloat(currentDragging.style.left) || 0) * zoom;
+            const startTop = parentRect.top + (parseFloat(currentDragging.style.top) || 0) * zoom;
+            dragOffset.x = (e.clientX - startLeft) / zoom;
+            dragOffset.y = (e.clientY - startTop) / zoom;
+        } else {
+            dragOffset.x = (e.clientX - rect.left) / zoom;
+            dragOffset.y = (e.clientY - rect.top) / zoom;
+        }
         
         currentDragging.classList.add('dragging');
         
@@ -179,13 +188,48 @@ function setupElementDragging(element) {
         }
         
         e.stopPropagation();
-        
+
+        // Reset line drag flag for new operation
+        isLineDragging = false;
+
         // CHECK FOR EDGE DETECTION FIRST - before blocking other handlers (includes extended zones)
         if (window.handleElementMouseDown && window.handleElementMouseDown(element, e)) {
             // Edge detection handled the event (started resize) - don't drag
             return;
         }
-        
+
+        // Special handling for line elements
+        if (element.classList.contains('line-element')) {
+            const parentRect = element.parentElement.getBoundingClientRect();
+            const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+            const startX = parentRect.left + (parseFloat(element.style.left) || 0) * zoom;
+            const startY = parentRect.top + (parseFloat(element.style.top) || 0) * zoom;
+            const width = (parseFloat(element.style.width) || 0) * zoom;
+            const angleMatch = element.style.transform.match(/rotate\((-?\d+(?:\.\d+)?)deg\)/);
+            const angle = angleMatch ? parseFloat(angleMatch[1]) : 0;
+            const angleRad = angle * Math.PI / 180;
+            const endX = startX + width * Math.cos(angleRad);
+            const endY = startY + width * Math.sin(angleRad);
+            const distStart = Math.hypot(e.clientX - startX, e.clientY - startY);
+            const distEnd = Math.hypot(e.clientX - endX, e.clientY - endY);
+            const threshold = 10; // pixels
+
+            if (distStart <= threshold || distEnd <= threshold) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                if (window.startResize) {
+                    const handle = distStart < distEnd ? 'nw' : 'se';
+                    window.startResize(e, element, handle);
+                }
+                return;
+            }
+
+            // Not near endpoints - treat as normal drag (reposition)
+            isLineDragging = true;
+        } else {
+            isLineDragging = false;
+        }
+
         e.stopImmediatePropagation(); // Prevent any other handlers from firing
         
         // Handle alt+drag for duplication
@@ -214,11 +258,19 @@ function setupElementDragging(element) {
             currentDragging = element;
         }
         const rect = currentDragging.getBoundingClientRect();
-        
+
         // Account for zoom when calculating drag offset
         const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
-        dragOffset.x = (e.clientX - rect.left) / zoom;
-        dragOffset.y = (e.clientY - rect.top) / zoom;
+        if (isLineDragging && currentDragging.classList.contains('line-element')) {
+            const parentRect = currentDragging.parentElement.getBoundingClientRect();
+            const startLeft = parentRect.left + (parseFloat(currentDragging.style.left) || 0) * zoom;
+            const startTop = parentRect.top + (parseFloat(currentDragging.style.top) || 0) * zoom;
+            dragOffset.x = (e.clientX - startLeft) / zoom;
+            dragOffset.y = (e.clientY - startTop) / zoom;
+        } else {
+            dragOffset.x = (e.clientX - rect.left) / zoom;
+            dragOffset.y = (e.clientY - rect.top) / zoom;
+        }
         
         currentDragging.classList.add('dragging');
         
@@ -627,6 +679,7 @@ document.addEventListener('mouseup', (e) => {
         isMultiDragging = false;
         multiDragOffsets.clear();
         dragStartPositions.clear();
+        isLineDragging = false;
         
         // Handle duplicate drag completion
         if (isDuplicateDrag) {

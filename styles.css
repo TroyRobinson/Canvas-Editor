@@ -428,6 +428,8 @@ body.shift-selecting {
     background: #e0e0e0;
     border: none;
     border-radius: 0;
+    height: 2px;
+    transform-origin: 0 0;
 }
 
 .circle-element {
