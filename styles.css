@@ -1593,9 +1593,9 @@ input:checked + .mode-toggle-slider:before {
 /* Left sidebar search widget */
 #left-sidebar {
     position: absolute;
-    top: 0;
+
+    top: 80px;
     left: 0;
-    height: 100vh;
     width: 40px;
     background: #1a1a1a;
     border-right: 1px solid #333;
@@ -1606,10 +1606,14 @@ input:checked + .mode-toggle-slider:before {
     padding: 8px 4px;
     transition: width 0.2s;
     z-index: 1000;
+    height: auto;
+    max-height: 70vh;
+    overflow-y: auto;
 }
 
 #left-sidebar.expanded {
     width: 250px;
+    max-height: 70vh;
 }
 
 #left-sidebar button {
@@ -1623,7 +1627,6 @@ input:checked + .mode-toggle-slider:before {
 #search-container {
     display: none;
     flex-direction: column;
-    flex: 1;
     width: 100%;
 }
 
@@ -1640,7 +1643,6 @@ input:checked + .mode-toggle-slider:before {
 }
 
 #search-results {
-    flex: 1;
     overflow-y: auto;
 }
 
@@ -1658,6 +1660,7 @@ input:checked + .mode-toggle-slider:before {
     display: grid;
     grid-template-columns: repeat(auto-fill, 32px);
     gap: 4px;
+    align-content: start;
 }
 
 #search-results.icons .result {
