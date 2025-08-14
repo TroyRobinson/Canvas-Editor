@@ -93,11 +93,19 @@ function setupFrameDragging(frame, titleBar) {
             currentDragging = frame;
         }
         const rect = currentDragging.getBoundingClientRect();
-        
+
         // Account for zoom when calculating drag offset
         const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
-        dragOffset.x = (e.clientX - rect.left) / zoom;
-        dragOffset.y = (e.clientY - rect.top) / zoom;
+        if (isLineDragging && currentDragging.classList.contains('line-element')) {
+            const parentRect = currentDragging.parentElement.getBoundingClientRect();
+            const startLeft = parentRect.left + (parseFloat(currentDragging.style.left) || 0) * zoom;
+            const startTop = parentRect.top + (parseFloat(currentDragging.style.top) || 0) * zoom;
+            dragOffset.x = (e.clientX - startLeft) / zoom;
+            dragOffset.y = (e.clientY - startTop) / zoom;
+        } else {
+            dragOffset.x = (e.clientX - rect.left) / zoom;
+            dragOffset.y = (e.clientY - rect.top) / zoom;
+        }
         
         currentDragging.classList.add('dragging');
         
@@ -173,7 +181,6 @@ function setupElementDragging(element) {
         if (window.isInPlacementMode && window.isInPlacementMode()) return;
         if (window.isPlacementDragging && window.isPlacementDragging()) return;
         if (window.isResizing && window.isResizing()) return;
-
         // If clicking on a selectable child inside this element, let that child handle the event
         if (element.classList.contains('free-floating') && e.target !== element) {
             const selectableAncestor = e.target.closest('[data-selectable="true"]');
@@ -201,13 +208,48 @@ function setupElementDragging(element) {
         }
         
         e.stopPropagation();
-        
+
+        // Reset line drag flag for new operation
+        isLineDragging = false;
+
         // CHECK FOR EDGE DETECTION FIRST - before blocking other handlers (includes extended zones)
         if (window.handleElementMouseDown && window.handleElementMouseDown(element, e)) {
             // Edge detection handled the event (started resize) - don't drag
             return;
         }
-        
+
+        // Special handling for line elements
+        if (element.classList.contains('line-element')) {
+            const parentRect = element.parentElement.getBoundingClientRect();
+            const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+            const startX = parentRect.left + (parseFloat(element.style.left) || 0) * zoom;
+            const startY = parentRect.top + (parseFloat(element.style.top) || 0) * zoom;
+            const width = (parseFloat(element.style.width) || 0) * zoom;
+            const angleMatch = element.style.transform.match(/rotate\((-?\d+(?:\.\d+)?)deg\)/);
+            const angle = angleMatch ? parseFloat(angleMatch[1]) : 0;
+            const angleRad = angle * Math.PI / 180;
+            const endX = startX + width * Math.cos(angleRad);
+            const endY = startY + width * Math.sin(angleRad);
+            const distStart = Math.hypot(e.clientX - startX, e.clientY - startY);
+            const distEnd = Math.hypot(e.clientX - endX, e.clientY - endY);
+            const threshold = 10; // pixels
+
+            if (distStart <= threshold || distEnd <= threshold) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                if (window.startResize) {
+                    const handle = distStart < distEnd ? 'nw' : 'se';
+                    window.startResize(e, element, handle);
+                }
+                return;
+            }
+
+            // Not near endpoints - treat as normal drag (reposition)
+            isLineDragging = true;
+        } else {
+            isLineDragging = false;
+        }
+
         e.stopImmediatePropagation(); // Prevent any other handlers from firing
         
         // Handle alt+drag for duplication
@@ -236,11 +278,19 @@ function setupElementDragging(element) {
             currentDragging = element;
         }
         const rect = currentDragging.getBoundingClientRect();
-        
+
         // Account for zoom when calculating drag offset
         const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
-        dragOffset.x = (e.clientX - rect.left) / zoom;
-        dragOffset.y = (e.clientY - rect.top) / zoom;
+        if (isLineDragging && currentDragging.classList.contains('line-element')) {
+            const parentRect = currentDragging.parentElement.getBoundingClientRect();
+            const startLeft = parentRect.left + (parseFloat(currentDragging.style.left) || 0) * zoom;
+            const startTop = parentRect.top + (parseFloat(currentDragging.style.top) || 0) * zoom;
+            dragOffset.x = (e.clientX - startLeft) / zoom;
+            dragOffset.y = (e.clientY - startTop) / zoom;
+        } else {
+            dragOffset.x = (e.clientX - rect.left) / zoom;
+            dragOffset.y = (e.clientY - rect.top) / zoom;
+        }
         
         currentDragging.classList.add('dragging');
         
@@ -555,12 +605,12 @@ function moveSingleElement(e) {
         const newLeft = canvasCoords.x - dragOffset.x;
         const newTop = canvasCoords.y - dragOffset.y;
         
-        // Keep frame within canvas bounds (in canvas coordinates)
+        // Keep frame within horizontal bounds and prevent going above the top
         const frameWidth = parseFloat(currentDragging.style.width) || currentDragging.offsetWidth;
-        const frameHeight = parseFloat(currentDragging.style.height) || currentDragging.offsetHeight;
-        
+
         currentDragging.style.left = Math.max(0, Math.min(newLeft, window.innerWidth / zoom - frameWidth)) + 'px';
-        currentDragging.style.top = Math.max(0, Math.min(newTop, window.innerHeight / zoom - frameHeight)) + 'px';
+        // Allow dragging below the viewport bottom
+        currentDragging.style.top = Math.max(0, newTop) + 'px';
     } else if (currentDragging.classList.contains('free-floating')) {
         // For free-floating elements, calculate relative to parent
         const parentRect = currentDragging.parentElement.getBoundingClientRect();
@@ -695,6 +745,7 @@ document.addEventListener('mouseup', (e) => {
         isMultiDragging = false;
         multiDragOffsets.clear();
         dragStartPositions.clear();
+        isLineDragging = false;
         
         // Handle duplicate drag completion
         if (isDuplicateDrag) {
@@ -840,12 +891,12 @@ function moveFrameWithOffset(frame, offset, e) {
     const newLeft = canvasCoords.x - dragOffset.x + offset.x;
     const newTop = canvasCoords.y - dragOffset.y + offset.y;
     
-    // Keep frame within canvas bounds
+    // Keep frame within horizontal bounds and prevent going above the top
     const frameWidth = parseFloat(frame.style.width) || frame.offsetWidth;
-    const frameHeight = parseFloat(frame.style.height) || frame.offsetHeight;
-    
+
     frame.style.left = Math.max(0, Math.min(newLeft, window.innerWidth / zoom - frameWidth)) + 'px';
-    frame.style.top = Math.max(0, Math.min(newTop, window.innerHeight / zoom - frameHeight)) + 'px';
+    // Allow dragging below the viewport bottom
+    frame.style.top = Math.max(0, newTop) + 'px';
 }
 
 function moveElementWithOffset(element, offset, e) {

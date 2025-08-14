@@ -27,6 +27,7 @@ function createLineElement() {
     element.className = 'line-element free-floating';
     element.style.width = '100px';
     element.style.height = '2px';
+    element.style.transformOrigin = '0 0';
     element.id = `line-${elementCounter}`;
     return element;
 }
@@ -144,6 +145,30 @@ function startElementPlacement(elementType) {
     }
 }
 
+// Allow external modules to start placement with a pre-built element
+function startPlacementWithElement(element) {
+    if (placingElement) {
+        cancelElementPlacement();
+    }
+
+    placementMode = true;
+    placingElement = element;
+
+    placingElement.classList.add('placing-element');
+    document.body.appendChild(placingElement);
+
+    // Prevent any drag interactions on the placing element
+    placingElement.style.pointerEvents = 'none';
+
+    // Position at mouse location
+    document.addEventListener('mousemove', handlePlacementMouseMove);
+    document.addEventListener('mousedown', handlePlacementMouseDown);
+    document.addEventListener('mouseup', handlePlacementMouseUp);
+    document.addEventListener('keydown', handlePlacementKeydown);
+}
+
+window.startPlacementWithElement = startPlacementWithElement;
+
 function createFrameForPlacement() {
     frameCounter++;
     const frame = document.createElement('div');
@@ -203,16 +228,21 @@ function handlePlacementMouseUp(e) {
             // Simple click - just place the element
             placeElement(e.clientX, e.clientY);
         } else {
-            // Was dragging - element is already placed and being resized
-            // Clean up resize state
-            if (resizeTarget) {
-                resizeTarget.classList.remove('resizing');
-                resizing = false;
-                resizeTarget = null;
-                resizeHandle = null;
+            if (placingElement.classList.contains('line-element')) {
+                // Finalize line placement at start point
+                placeElement(placementStartPos.x, placementStartPos.y);
+            } else {
+                // Was dragging - element is already placed and being resized
+                // Clean up resize state
+                if (resizeTarget) {
+                    resizeTarget.classList.remove('resizing');
+                    resizing = false;
+                    resizeTarget = null;
+                    resizeHandle = null;
+                }
+
+                console.log(`Element placed and resized`);
             }
-            
-            console.log(`Element placed and resized`);
         }
     } catch (error) {
         console.error('Error during placement mouse-up:', error);
@@ -233,26 +263,35 @@ function handlePlacementMouseUp(e) {
 
 function handlePlacementMouseMove(e) {
     if (!placingElement) return;
-    
+
     if (placementStartPos.x !== 0 && !isPlacementDragging) {
-        // Check if we've moved enough to start drag-resize
+        // Check if we've moved enough to start drag-placement
         const deltaX = e.clientX - placementStartPos.x;
         const deltaY = e.clientY - placementStartPos.y;
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        
-        if (distance > 5) { // Start drag-resize after 5px movement
+
+        if (distance > 5) { // Start drag after 5px movement
             isPlacementDragging = true;
-            
+
+            if (placingElement.classList.contains('line-element')) {
+                // Anchor line at start point
+                placingElement.style.left = placementStartPos.x + 'px';
+                placingElement.style.top = placementStartPos.y + 'px';
+                placingElement.style.width = '0px';
+                placingElement.style.height = '2px';
+                return;
+            }
+
             // Place the element at the START position (where mouse was first pressed)
             const placedElement = placeElement(placementStartPos.x, placementStartPos.y);
-            
+
             if (placedElement) {
                 // Start with minimal size - let the resize system handle all sizing
                 // This ensures the element fits exactly between drop point and mouse
                 const minSize = 1;
                 placedElement.style.width = minSize + 'px';
                 placedElement.style.height = minSize + 'px';
-                
+
                 // Set up resize state to track from the placement start position
                 // The resize system will size the element to exactly where the mouse is
                 resizing = true;
@@ -260,20 +299,31 @@ function handlePlacementMouseMove(e) {
                 resizeHandle = 'se'; // Southeast corner resize
                 resizeStartPos = { x: placementStartPos.x, y: placementStartPos.y }; // Anchor at drop point
                 resizeStartSize = { width: minSize, height: minSize }; // Minimal starting size
-                resizeStartOffset = { 
-                    left: parseFloat(placedElement.style.left) || 0, 
-                    top: parseFloat(placedElement.style.top) || 0 
+                resizeStartOffset = {
+                    left: parseFloat(placedElement.style.left) || 0,
+                    top: parseFloat(placedElement.style.top) || 0
                 };
                 isDragToResize = true; // Enable direct sizing mode
-                
+
                 placedElement.classList.add('resizing');
                 bringToFront(placedElement);
-                
+
                 return; // Don't update position since we're now resizing
             }
         }
     }
-    
+
+    if (isPlacementDragging && placingElement && placingElement.classList.contains('line-element')) {
+        // Update line length and angle based on mouse position
+        const deltaX = e.clientX - placementStartPos.x;
+        const deltaY = e.clientY - placementStartPos.y;
+        const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+        placingElement.style.width = length + 'px';
+        placingElement.style.transform = `rotate(${angle}deg)`;
+        return;
+    }
+
     if (!isPlacementDragging) {
         // Normal mouse following
         placingElement.style.left = e.clientX + 'px';

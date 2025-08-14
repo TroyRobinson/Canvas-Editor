@@ -737,7 +737,8 @@
                     window.recordElementReplacement(
                         elementSnapshot.elementId,
                         elementSnapshot.originalHTML,
-                        currentHTML
+                        currentHTML,
+                        elementSnapshot.isFrameContent
                     );
                 }
             }

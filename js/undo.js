@@ -566,49 +566,83 @@ class UndoManager {
     // Undo element replacement (restore old HTML)
     undoElementReplace(data) {
         const element = document.getElementById(data.elementId);
-        if (element) {
-            // Get parent and position info before removal
-            const parent = element.parentNode;
-            const nextSibling = element.nextSibling;
-            
-            // Remove current element
-            element.remove();
-            
-            // Create new element from old HTML
-            const tempContainer = document.createElement('div');
-            tempContainer.innerHTML = data.oldHTML;
-            const restoredElement = tempContainer.children[0];
-            
-            // Insert at original position
-            parent.insertBefore(restoredElement, nextSibling);
-            
-            // Re-setup element behaviors
-            this.setupElementAfterRestore(restoredElement);
+        if (!element) return;
+
+        // Special handling when only frame content was replaced
+        if (data.isFrameContent && element.classList.contains('frame')) {
+            const frameContent = element.querySelector('.frame-content');
+            if (frameContent) {
+                const tempContainer = document.createElement('div');
+                tempContainer.innerHTML = data.oldHTML;
+                const restoredContent = tempContainer.children[0];
+                frameContent.replaceWith(restoredContent);
+
+                // Re-setup frame behaviors for new content
+                if (window.setupFrame) {
+                    window.setupFrame(element);
+                }
+            }
+            return;
         }
+
+        // Get parent and position info before removal
+        const parent = element.parentNode;
+        const nextSibling = element.nextSibling;
+
+        // Remove current element
+        element.remove();
+
+        // Create new element from old HTML
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = data.oldHTML;
+        const restoredElement = tempContainer.children[0];
+
+        // Insert at original position
+        parent.insertBefore(restoredElement, nextSibling);
+
+        // Re-setup element behaviors
+        this.setupElementAfterRestore(restoredElement);
     }
 
     // Redo element replacement (restore new HTML) 
     redoElementReplace(data) {
         const element = document.getElementById(data.elementId);
-        if (element) {
-            // Get parent and position info before removal
-            const parent = element.parentNode;
-            const nextSibling = element.nextSibling;
-            
-            // Remove current element
-            element.remove();
-            
-            // Create new element from new HTML
-            const tempContainer = document.createElement('div');
-            tempContainer.innerHTML = data.newHTML;
-            const restoredElement = tempContainer.children[0];
-            
-            // Insert at original position
-            parent.insertBefore(restoredElement, nextSibling);
-            
-            // Re-setup element behaviors
-            this.setupElementAfterRestore(restoredElement);
+        if (!element) return;
+
+        // Special handling when only frame content was replaced
+        if (data.isFrameContent && element.classList.contains('frame')) {
+            const frameContent = element.querySelector('.frame-content');
+            if (frameContent) {
+                const tempContainer = document.createElement('div');
+                tempContainer.innerHTML = data.newHTML;
+                const restoredContent = tempContainer.children[0];
+                frameContent.replaceWith(restoredContent);
+
+                // Re-setup frame behaviors for new content
+                if (window.setupFrame) {
+                    window.setupFrame(element);
+                }
+            }
+            return;
         }
+
+        // Get parent and position info before removal
+        const parent = element.parentNode;
+        const nextSibling = element.nextSibling;
+
+        // Remove current element
+        element.remove();
+
+        // Create new element from new HTML
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = data.newHTML;
+        const restoredElement = tempContainer.children[0];
+
+        // Insert at original position
+        parent.insertBefore(restoredElement, nextSibling);
+
+        // Re-setup element behaviors
+        this.setupElementAfterRestore(restoredElement);
     }
 
     // Helper: Re-setup element behaviors after restore
@@ -1002,10 +1036,12 @@ window.recordContentChange = (elementId, oldContent, newContent) => {
     }));
 };
 
-window.recordElementReplacement = (elementId, oldHTML, newHTML) => {
+window.recordElementReplacement = (elementOrId, oldHTML, newHTML, isFrameContent = false) => {
+    const elementId = typeof elementOrId === 'string' ? elementOrId : elementOrId.id;
     undoManager.addCommand(new Command('replace', {
         elementId,
         oldHTML,
-        newHTML
+        newHTML,
+        isFrameContent
     }));
 };
