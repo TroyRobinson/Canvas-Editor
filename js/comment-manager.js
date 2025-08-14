@@ -26,47 +26,60 @@
         if (!element) return [];
         
         const comments = [];
-        
-        // For input elements, check data attribute first
-        const isInputElement = element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || 
+
+        const isInputElement = element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' ||
                               element.tagName === 'SELECT' || element.tagName === 'BUTTON';
-        
+
         if (isInputElement) {
-            const dataComment = element.getAttribute('data-comment');
-            if (dataComment) {
-                comments.push(dataComment);
+            // For interactive elements, look for sibling comment nodes
+            let prev = element.previousSibling;
+            while (prev && prev.nodeType === Node.TEXT_NODE && !prev.nodeValue.trim()) {
+                prev = prev.previousSibling;
             }
-            
-            // Also check for sibling comment node
-            let nextNode = element.nextSibling;
-            if (nextNode && nextNode.nodeType === Node.COMMENT_NODE) {
-                const commentText = nextNode.nodeValue.trim();
-                if (commentText && !comments.includes(commentText)) {
-                    comments.push(commentText);
-                }
+            if (prev && prev.nodeType === Node.COMMENT_NODE) {
+                const commentText = prev.nodeValue.trim();
+                if (commentText) comments.push(commentText);
             }
-            
+
+            let next = element.nextSibling;
+            while (next && next.nodeType === Node.TEXT_NODE && !next.nodeValue.trim()) {
+                next = next.nextSibling;
+            }
+            if (next && next.nodeType === Node.COMMENT_NODE) {
+                const commentText = next.nodeValue.trim();
+                if (commentText) comments.push(commentText);
+            }
+
             return comments;
         }
-        
+
         // Method 1: Check direct child nodes for comment nodes
         for (let i = 0; i < element.childNodes.length; i++) {
             const node = element.childNodes[i];
             if (node.nodeType === Node.COMMENT_NODE) {
+                // Ignore comments that belong to child elements
+                let prev = node.previousSibling;
+                while (prev && prev.nodeType === Node.TEXT_NODE && !prev.nodeValue.trim()) {
+                    prev = prev.previousSibling;
+                }
+                if (prev && prev.nodeType === Node.ELEMENT_NODE) {
+                    continue; // Comment is associated with previous element
+                }
+
                 const commentText = node.nodeValue.trim();
                 if (commentText) {
                     comments.push(commentText);
                 }
             }
         }
-        
+
         // Method 2: Also check for comments in the element's direct HTML content
         // But only if there are no direct comment nodes (for elements with innerHTML set)
         if (comments.length === 0 && element.innerHTML) {
             const directComments = extractDirectComments(element.innerHTML);
             comments.push(...directComments);
         }
-        
+
         return comments;
     }
 
@@ -84,13 +97,22 @@
         for (let i = 0; i < tempDiv.childNodes.length; i++) {
             const node = tempDiv.childNodes[i];
             if (node.nodeType === Node.COMMENT_NODE) {
+                // Ignore comments that belong to preceding elements
+                let prev = node.previousSibling;
+                while (prev && prev.nodeType === Node.TEXT_NODE && !prev.nodeValue.trim()) {
+                    prev = prev.previousSibling;
+                }
+                if (prev && prev.nodeType === Node.ELEMENT_NODE) {
+                    continue;
+                }
+
                 const commentText = node.nodeValue.trim();
                 if (commentText) {
                     comments.push(commentText);
                 }
             }
         }
-        
+
         return comments;
     }
 
@@ -110,7 +132,25 @@
         }
         
         // Always check elements that already have comments
-        const hasContent = element.innerHTML && element.innerHTML.includes('<!--');
+        let hasContent = element.innerHTML && element.innerHTML.includes('<!--');
+        if (!hasContent) {
+            let prev = element.previousSibling;
+            while (prev && prev.nodeType === Node.TEXT_NODE && !prev.nodeValue.trim()) {
+                prev = prev.previousSibling;
+            }
+            if (prev && prev.nodeType === Node.COMMENT_NODE) {
+                hasContent = true;
+            }
+        }
+        if (!hasContent) {
+            let next = element.nextSibling;
+            while (next && next.nodeType === Node.TEXT_NODE && !next.nodeValue.trim()) {
+                next = next.nextSibling;
+            }
+            if (next && next.nodeType === Node.COMMENT_NODE) {
+                hasContent = true;
+            }
+        }
         if (hasContent) return true;
         
         // In comment mode: allow any element that can contain content
@@ -403,56 +443,71 @@
         if (!element) return;
         
         // For input elements and other elements that don't support innerHTML modification,
-        // we'll use a data attribute approach or insert comment as a sibling
-        const isInputElement = element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || 
+        // use sibling HTML comments
+        const isInputElement = element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' ||
                               element.tagName === 'SELECT' || element.tagName === 'BUTTON';
-        
+
         if (isInputElement) {
-            // For input elements, store comment as a data attribute
-            // and create a comment node as the next sibling
-            const oldComment = element.getAttribute('data-comment') || '';
-            
-            if (commentText) {
-                element.setAttribute('data-comment', commentText);
-                
-                // Also try to add an HTML comment after the element
-                let commentNode = element.nextSibling;
-                if (commentNode && commentNode.nodeType === Node.COMMENT_NODE) {
-                    commentNode.nodeValue = ` ${commentText} `;
-                } else {
-                    commentNode = document.createComment(` ${commentText} `);
-                    element.parentNode.insertBefore(commentNode, element.nextSibling);
-                }
-            } else {
-                element.removeAttribute('data-comment');
-                // Remove comment node if it exists
-                let commentNode = element.nextSibling;
-                if (commentNode && commentNode.nodeType === Node.COMMENT_NODE) {
-                    commentNode.remove();
-                }
+            // Build old HTML representation (element + comment)
+            let oldHTML = element.outerHTML;
+            let next = element.nextSibling;
+            while (next && next.nodeType === Node.TEXT_NODE && !next.nodeValue.trim()) {
+                next = next.nextSibling;
             }
-            
-            // Record for undo system if available
+            if (next && next.nodeType === Node.COMMENT_NODE) {
+                oldHTML += `<!-- ${next.nodeValue.trim()} -->`;
+                next.remove();
+            }
+            let prev = element.previousSibling;
+            while (prev && prev.nodeType === Node.TEXT_NODE && !prev.nodeValue.trim()) {
+                prev = prev.previousSibling;
+            }
+            if (prev && prev.nodeType === Node.COMMENT_NODE) {
+                oldHTML = `<!-- ${prev.nodeValue.trim()} -->` + oldHTML;
+                prev.remove();
+            }
+
+            // Add new comment node if needed
+            if (commentText) {
+                const commentNode = document.createComment(` ${commentText} `);
+                element.parentNode.insertBefore(commentNode, element.nextSibling);
+            }
+
+            // Record for undo system
             if (window.recordElementReplacement) {
-                window.recordElementReplacement(element, oldComment, commentText || '');
+                let newHTML = element.outerHTML;
+                let sib = element.nextSibling;
+                while (sib && sib.nodeType === Node.TEXT_NODE && !sib.nodeValue.trim()) {
+                    sib = sib.nextSibling;
+                }
+                if (sib && sib.nodeType === Node.COMMENT_NODE) {
+                    newHTML += `<!-- ${sib.nodeValue.trim()} -->`;
+                }
+                window.recordElementReplacement(element, oldHTML, commentText ? newHTML : element.outerHTML);
             }
         } else {
-            // For regular elements, use innerHTML approach
+            // For regular elements, manipulate DOM directly
             const oldHTML = element.innerHTML;
-            
-            // Remove existing comments first
-            let newHTML = element.innerHTML;
-            newHTML = newHTML.replace(/<!--[\s\S]*?-->/g, '');
-            
-            // Add new comment if provided
+
+            // Remove existing top-level comments (those not following an element)
+            Array.from(element.childNodes).forEach(node => {
+                if (node.nodeType === Node.COMMENT_NODE) {
+                    let prev = node.previousSibling;
+                    while (prev && prev.nodeType === Node.TEXT_NODE && !prev.nodeValue.trim()) {
+                        prev = prev.previousSibling;
+                    }
+                    if (!prev || prev.nodeType !== Node.ELEMENT_NODE) {
+                        node.remove();
+                    }
+                }
+            });
+
             if (commentText) {
-                newHTML = `<!-- ${commentText} -->\n${newHTML}`;
+                const commentNode = document.createComment(` ${commentText} `);
+                element.insertBefore(commentNode, element.firstChild);
             }
-            
-            // Update element
-            element.innerHTML = newHTML;
-            
-            // Record for undo system
+
+            const newHTML = element.innerHTML;
             if (window.recordElementReplacement) {
                 window.recordElementReplacement(element, oldHTML, newHTML);
             }
