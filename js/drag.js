@@ -501,12 +501,12 @@ function moveSingleElement(e) {
         const newLeft = canvasCoords.x - dragOffset.x;
         const newTop = canvasCoords.y - dragOffset.y;
         
-        // Keep frame within canvas bounds (in canvas coordinates)
+        // Keep frame within horizontal bounds and prevent going above the top
         const frameWidth = parseFloat(currentDragging.style.width) || currentDragging.offsetWidth;
-        const frameHeight = parseFloat(currentDragging.style.height) || currentDragging.offsetHeight;
-        
+
         currentDragging.style.left = Math.max(0, Math.min(newLeft, window.innerWidth / zoom - frameWidth)) + 'px';
-        currentDragging.style.top = Math.max(0, Math.min(newTop, window.innerHeight / zoom - frameHeight)) + 'px';
+        // Allow dragging below the viewport bottom
+        currentDragging.style.top = Math.max(0, newTop) + 'px';
     } else if (currentDragging.classList.contains('free-floating')) {
         // For free-floating elements, calculate relative to parent
         const parentRect = currentDragging.parentElement.getBoundingClientRect();
@@ -772,12 +772,12 @@ function moveFrameWithOffset(frame, offset, e) {
     const newLeft = canvasCoords.x - dragOffset.x + offset.x;
     const newTop = canvasCoords.y - dragOffset.y + offset.y;
     
-    // Keep frame within canvas bounds
+    // Keep frame within horizontal bounds and prevent going above the top
     const frameWidth = parseFloat(frame.style.width) || frame.offsetWidth;
-    const frameHeight = parseFloat(frame.style.height) || frame.offsetHeight;
-    
+
     frame.style.left = Math.max(0, Math.min(newLeft, window.innerWidth / zoom - frameWidth)) + 'px';
-    frame.style.top = Math.max(0, Math.min(newTop, window.innerHeight / zoom - frameHeight)) + 'px';
+    // Allow dragging below the viewport bottom
+    frame.style.top = Math.max(0, newTop) + 'px';
 }
 
 function moveElementWithOffset(element, offset, e) {
