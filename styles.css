@@ -58,8 +58,8 @@ body.panning {
 /* Element-frames: Special divs that act as containers */
 .element-frame {
     position: absolute;
-    background: transparent;
-    border: 2px dashed #999;
+    background: #222222;
+    border: 2px solid #666;
     border-radius: 6px;
     overflow: visible;
     cursor: default;
