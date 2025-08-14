@@ -125,11 +125,11 @@ Comprehensive CSS styling defining:
 
 #### `js/auto-layout.js`
 **Purpose**: Flexbox auto-layout conversion for absolutely positioned children
-- **Shift + A**: Apply auto-layout to selected container
+- **Shift + A**: Apply auto-layout to selected container (converts to flexbox and auto-resizes to fit children)
 - Detects dominant orientation by where most elements are positioned
 - Converts elements into a single horizontal row or vertical column with no outliers
 - Calculates padding from the space above and left of the upper-left element
-- Integrates with drag.js so dropped items join the container's flex flow
+- Integrates with drag.js so dropped items join the container's flex flow and elements can be reordered by dragging within the container
 
 #### `js/edge-detection.js`
 **Purpose**: Intelligent resize detection system with extended hit zones
@@ -467,6 +467,7 @@ Comprehensive CSS styling defining:
 - Elements automatically switch containers when dragged over new parents
 - Frame resizing triggers automatic container reassignment for contained elements
 - Zoom and pan operations maintain relative positioning
+- In flexbox containers created with **Shift + A**, dragging a child without Cmd/Ctrl reorders it within the flex flow
 
 ## Performance Optimizations
 
