@@ -29,11 +29,12 @@ Comprehensive CSS styling defining:
 
 #### `js/comment-manager.js`
 **Purpose**: HTML comment visualization with interactive bubbles and Comment Mode editing
-- **Comment Detection**: Scans for HTML comments in all elements (`<!-- comment -->`, `data-comment` attributes)
+- **Comment Detection**: Scans for HTML comment nodes (`<!-- comment -->`) in all elements
 - **Visual Indicators**: Blue bubble (💬) positioned outside element boundaries (only shown for elements with existing comments)
 - **Comment Mode**: Press `C` key to toggle Comment Mode with visual chip indicator
 - **Interactive Editing**: In Comment Mode, click any element to add/edit comments via editable textarea popover
-- **Multiple Storage Methods**: Regular elements use innerHTML comments, interactive elements (buttons, inputs) use data attributes + sibling comment nodes
+- **Unified Storage**: All elements, including buttons and inputs, store comments using HTML comment nodes
+- **Comment Isolation**: Parent frame comments and child element comments remain independent
 - **Bubble Interaction**: Click bubbles to show same editable popover as clicking the element
 - **Drag/Resize Tracking**: Bubbles smoothly follow elements during operations
 - **Key relationships**:
