@@ -123,6 +123,13 @@ Comprehensive CSS styling defining:
 - **Undo support**: Records extraction state for reversal
 - **Key relationships**: Integrates with drag.js and resize.js, records to undo.js
 
+#### `js/auto-layout.js`
+**Purpose**: Flexbox auto-layout conversion for absolutely positioned children
+- Detects dominant orientation by where most elements are positioned
+- Converts elements into a single horizontal row or vertical column with no outliers
+- Calculates padding from the space above and left of the upper-left element
+- Integrates with drag.js so dropped items join the container's flex flow
+
 #### `js/edge-detection.js`
 **Purpose**: Intelligent resize detection system with extended hit zones
 - **Smart Edge Detection**: Adaptive thresholds based on element size and zoom level
@@ -144,19 +151,21 @@ Comprehensive CSS styling defining:
 - Frame dragging with title bar interaction
 - Free-floating element dragging with container detection
 - Automatic container switching when elements are dragged between containers
+- Elements dropped into flex auto-layout containers join the container's flow
 - Multi-selection group dragging with relative positioning maintained
 - **Option/Alt+drag duplication**: Creates duplicates that follow mouse, with abort capability
 - **Cmd+Option+Alt+drag extraction**: Duplicates static elements as free-floating elements
 - Zoom-aware coordinate calculations
 - **Text editing check**: Prevents dragging when elements are in edit mode
 - **Undo/Redo support**: Records all movements with complete state capture
-- **Key relationships**: 
-  - Uses zoom.js for coordinate transformation
-  - Integrates with selection.js for multi-selection support
-  - Leverages extraction.js logic for making static elements free-floating
-  - Records movements to undo.js with position and container tracking
-  - Prevents conflicts with pan.js and resize.js operations
-  - Checks `window.textEditing.isEditing()` to prevent drag during text edit
+  - **Key relationships**:
+    - Uses zoom.js for coordinate transformation
+    - Integrates with selection.js for multi-selection support
+    - Leverages extraction.js logic for making static elements free-floating
+    - Records movements to undo.js with position and container tracking
+    - Prevents conflicts with pan.js and resize.js operations
+    - Checks `window.textEditing.isEditing()` to prevent drag during text edit
+    - Elements dropped into flex auto-layout containers automatically join the flow
 
 #### `js/resize.js`
 **Purpose**: Element resizing with intelligent edge detection system

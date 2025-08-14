@@ -706,10 +706,20 @@ function moveElementToContainer(element, newParent, mouseX, mouseY) {
     } else {
         newParent.appendChild(element);
     }
-    
-    // Update position
-    element.style.left = newLeft + 'px';
-    element.style.top = newTop + 'px';
+
+    const newParentStyle = window.getComputedStyle(newParent);
+    if (newParentStyle.display === 'flex') {
+        // Drop element into flex flow
+        element.classList.remove('free-floating');
+        element.style.position = 'relative';
+        element.style.left = '';
+        element.style.top = '';
+        element.style.margin = '0';
+    } else {
+        // Update position for absolutely positioned containers
+        element.style.left = newLeft + 'px';
+        element.style.top = newTop + 'px';
+    }
     
     console.log(`🚚 DRAG: Element moved to new container (no script cleanup needed)`);
     

@@ -24,11 +24,16 @@
 
         const minLeft = Math.min(...childData.map(d => d.left));
         const minTop = Math.min(...childData.map(d => d.top));
-        const maxLeft = Math.max(...childData.map(d => d.left));
-        const maxTop = Math.max(...childData.map(d => d.top));
-        const xRange = maxLeft - minLeft;
-        const yRange = maxTop - minTop;
-        const direction = xRange >= yRange ? 'row' : 'column';
+
+        // Determine dominant positioning direction based on majority alignment
+        function std(values) {
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            return Math.sqrt(values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length);
+        }
+
+        const stdLeft = std(childData.map(d => d.left));
+        const stdTop = std(childData.map(d => d.top));
+        const direction = stdTop <= stdLeft ? 'row' : 'column';
 
         // Sort children along the primary axis
         childData.sort((a, b) => direction === 'row' ? a.left - b.left : a.top - b.top);
@@ -67,9 +72,9 @@
             el.classList.remove('free-floating');
             el.style.margin = '0';
             if (direction === 'row') {
-                el.style.marginTop = (data.top - minTop) + 'px';
+                el.style.marginTop = '0';
             } else {
-                el.style.marginLeft = (data.left - minLeft) + 'px';
+                el.style.marginLeft = '0';
             }
         });
 
