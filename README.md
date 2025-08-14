@@ -27,7 +27,18 @@ Comprehensive CSS styling defining:
 
 ### Core Modules
 
-#### `js/iframe-manager.js` (New)
+#### `js/comment-manager.js` (New)
+**Purpose**: HTML comment visualization with interactive bubbles
+- **Comment Detection**: Scans for HTML comments (`<!-- comment -->`) in frame elements
+- **Visual Indicators**: Blue bubble (💬) positioned outside element boundaries
+- **Interactive Display**: Click bubbles to select elements and show floating comment text
+- **Drag/Resize Tracking**: Bubbles smoothly follow elements during operations
+- **Key relationships**:
+  - Integrates with selection.js for element selection on bubble click
+  - Uses fixed positioning to avoid affecting document flow
+  - Coordinates with zoom/pan systems for proper positioning
+
+#### `js/iframe-manager.js`
 **Purpose**: Iframe-based interactive mode previews with script isolation
 - **Preview Creation**: Creates same-origin iframes for frame content during interactive mode
 - **Perfect Positioning**: Positions iframes to overlay frame content areas exactly
