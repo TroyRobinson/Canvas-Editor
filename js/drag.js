@@ -154,8 +154,10 @@ function setupElementDragging(element) {
         // If this is an element-frame, only handle drag if clicking directly on the element-frame background
         // Don't handle drag for child elements - let them handle their own drag
         if (element.classList.contains('element-frame')) {
-            // If the click target is a child element with free-floating class, don't handle the drag
-            if (e.target !== element && e.target.classList.contains('free-floating')) {
+            // If the click occurred inside a nested free-floating element, let that element handle the drag.
+            // This accounts for clicks on text or other descendants within the free-floating element.
+            const freeFloatingAncestor = e.target.closest('.free-floating');
+            if (freeFloatingAncestor && freeFloatingAncestor !== element) {
                 return;
             }
         }
