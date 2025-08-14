@@ -95,9 +95,9 @@ window.addEventListener('load', () => {
         window.canvasMode.createToggleUI();
     }
     
-    // Show CSS editor on app load (user requirement)
-    if (window.codeEditor && window.codeEditor.showCSSEditor) {
-        window.codeEditor.showCSSEditor();
+    // Show Chat/History tab on app load
+    if (window.rightPaneManager) {
+        window.rightPaneManager.switchToTab('chat-history');
     }
     
     // Add keyboard shortcut to create new frames

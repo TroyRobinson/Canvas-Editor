@@ -218,8 +218,21 @@ function initializeMarqueeSelection() {
         }
         // Handle clicks on body for selection clearing
         else if (e.target === document.body) {
-            // Clear selections on empty space click
-            if (!e.shiftKey && window.clearSelection) {
+            const panel = document.getElementById('right-pane-panel');
+            const toggle = document.getElementById('right-pane-toggle');
+            const panelRect = panel ? panel.getBoundingClientRect() : null;
+            const toggleRect = toggle ? toggle.getBoundingClientRect() : null;
+
+            const inPanel = panelRect &&
+                e.clientX >= panelRect.left && e.clientX <= panelRect.right &&
+                e.clientY >= panelRect.top && e.clientY <= panelRect.bottom;
+
+            const inToggle = toggleRect &&
+                e.clientX >= toggleRect.left && e.clientX <= toggleRect.right &&
+                e.clientY >= toggleRect.top && e.clientY <= toggleRect.bottom;
+
+            // Clear selections on empty space click outside right pane controls
+            if (!inPanel && !inToggle && !e.shiftKey && window.clearSelection) {
                 window.clearSelection();
             }
         }

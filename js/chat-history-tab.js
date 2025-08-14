@@ -10,7 +10,8 @@
 
     // State management
     let tabContent = null;
-    let historyContainer = null;
+    let historyScroll = null;
+    let historyList = null;
     let enhancementHistory = []; // Array of enhancement request entries
     let currentSelectedFrame = null; // Track the currently selected frame
     let enhancementMode = 'editing'; // 'editing' or 'replacing'
@@ -42,10 +43,12 @@
                 <h3>Enhancement History</h3>
                 <p class="history-subtitle">AI frame enhancement requests (Ctrl+R)</p>
             </div>
-            <div class="enhancement-history-container" id="enhancement-history-list">
-                <div class="empty-history">
-                    <p>No enhancement requests yet.</p>
-                    <p><em>Select a frame and press Ctrl+R to get started!</em></p>
+            <div class="enhancement-history-scroll">
+                <div class="enhancement-history-container" id="enhancement-history-list">
+                    <div class="empty-history">
+                        <p>No enhancement requests yet.</p>
+                        <p><em>Select a frame and press Ctrl+R to get started!</em></p>
+                    </div>
                 </div>
             </div>
             <div class="message-input-section">
@@ -56,15 +59,15 @@
                     </div>
                 </div>
                 <div class="message-input-container">
-                    <textarea 
-                        id="custom-message-input" 
-                        class="message-textarea" 
+                    <textarea
+                        id="custom-message-input"
+                        class="message-textarea"
                         placeholder="Describe how to modify the existing code in the selected frame..."
                         rows="2"
                         data-selectable="false"></textarea>
-                    <button 
-                        id="send-message-btn" 
-                        class="send-message-button" 
+                    <button
+                        id="send-message-btn"
+                        class="send-message-button"
                         title="Send Custom Enhancement Request"
                         data-selectable="false">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -76,7 +79,8 @@
             </div>
         `;
 
-        historyContainer = container.querySelector('#enhancement-history-list');
+        historyScroll = container.querySelector('.enhancement-history-scroll');
+        historyList = container.querySelector('#enhancement-history-list');
         
         // Setup message input functionality
         setupMessageInput(container);
@@ -304,17 +308,17 @@
 
     // Render the full history (filtered by current frame)
     function renderHistory() {
-        if (!historyContainer) return;
+        if (!historyList || !historyScroll) return;
 
         // Update header to show current frame context
         updateHistoryHeader();
 
         // Clear existing content
-        historyContainer.innerHTML = '';
+        historyList.innerHTML = '';
 
         // Only show history if a frame is selected
         if (!currentSelectedFrame) {
-            historyContainer.innerHTML = `
+            historyList.innerHTML = `
                 <div class="empty-history">
                     <p>Select a frame to view its enhancement history.</p>
                     <p><em>Click on a frame, then press Ctrl+R to get started!</em></p>
@@ -329,7 +333,7 @@
         if (filteredHistory.length === 0) {
             const emptyMessage = `No enhancement requests for "${currentSelectedFrame.querySelector('.frame-title')?.textContent || 'this frame'}" yet.`;
                 
-            historyContainer.innerHTML = `
+            historyList.innerHTML = `
                 <div class="empty-history">
                     <p>${emptyMessage}</p>
                     <p><em>Press Ctrl+R to enhance this frame!</em></p>
@@ -344,11 +348,11 @@
         // Create cards for each entry
         sortedHistory.forEach(entry => {
             const card = createHistoryCard(entry);
-            historyContainer.appendChild(card);
+            historyList.appendChild(card);
         });
 
         // Scroll to bottom to show newest entries
-        historyContainer.scrollTop = historyContainer.scrollHeight;
+        historyScroll.scrollTop = historyScroll.scrollHeight;
     }
 
     // Update the history header to show current frame context
