@@ -27,16 +27,21 @@ Comprehensive CSS styling defining:
 
 ### Core Modules
 
-#### `js/comment-manager.js` (New)
-**Purpose**: HTML comment visualization with interactive bubbles
-- **Comment Detection**: Scans for HTML comments (`<!-- comment -->`) in frame elements
-- **Visual Indicators**: Blue bubble (💬) positioned outside element boundaries
-- **Interactive Display**: Click bubbles to select elements and show floating comment text
+#### `js/comment-manager.js`
+**Purpose**: HTML comment visualization with interactive bubbles and Comment Mode editing
+- **Comment Detection**: Scans for HTML comments in all elements (`<!-- comment -->`, `data-comment` attributes)
+- **Visual Indicators**: Blue bubble (💬) positioned outside element boundaries (only shown for elements with existing comments)
+- **Comment Mode**: Press `C` key to toggle Comment Mode with visual chip indicator
+- **Interactive Editing**: In Comment Mode, click any element to add/edit comments via editable textarea popover
+- **Multiple Storage Methods**: Regular elements use innerHTML comments, interactive elements (buttons, inputs) use data attributes + sibling comment nodes
+- **Bubble Interaction**: Click bubbles to show same editable popover as clicking the element
 - **Drag/Resize Tracking**: Bubbles smoothly follow elements during operations
 - **Key relationships**:
-  - Integrates with selection.js for element selection on bubble click
+  - Integrates with mode-manager.js for Comment Mode state and JS interception bypass
+  - Integrates with selection.js for element selection on bubble/element click
   - Uses fixed positioning to avoid affecting document flow
   - Coordinates with zoom/pan systems for proper positioning
+  - Records comment changes to undo.js system
 
 #### `js/iframe-manager.js`
 **Purpose**: Iframe-based interactive mode previews with script isolation
@@ -235,6 +240,7 @@ Comprehensive CSS styling defining:
 - Global keyboard shortcuts:
   - **Ctrl+Z / Shift+Ctrl+Z**: Undo/Redo operations
   - **Ctrl+R**: AI-powered frame enhancement (works even during text editing)
+  - **C**: Toggle Comment Mode for adding/editing element comments
   - Ctrl+N for new frames, Ctrl+0 for zoom reset
   - Backspace for deletion (with undo recording)
   - **Ctrl+G for grouping** (with undo recording)
@@ -244,16 +250,19 @@ Comprehensive CSS styling defining:
 - **Key relationships**: Orchestrates the other modules and provides entry point
 
 #### `js/mode-manager.js`
-**Purpose**: Canvas mode switching between edit and interactive modes using iframe isolation
+**Purpose**: Canvas mode switching between edit and interactive modes using iframe isolation, plus Comment Mode management
 - **Edit Mode**: Default mode for creating, selecting, and manipulating elements (no script execution)
 - **Interactive Mode**: Creates isolated iframe previews where scripts execute safely
+- **Comment Mode**: Independent mode for adding/editing HTML comments on any element
 - **Iframe Isolation**: Complete separation - scripts run only in iframes, never in edit mode
 - **Visual Continuity**: Frame title bars and borders remain visible during interactive mode
-- **Mode Toggle UI**: Checkbox switch in top-right corner for quick mode changes
+- **Mode Toggle UI**: Checkbox switch in top-right corner for interactive mode, "Comment Mode" chip for comment mode
+- **JS Interception**: Prevents interactive element clicks in edit mode, but allows them in comment mode
 - **Key relationships**: 
   - Uses iframe-manager.js for iframe creation and positioning
   - Uses css-manager.js for injecting styles into iframes
-  - Modifies canvas container's `data-canvas-mode` attribute
+  - Coordinates with comment-manager.js for Comment Mode state
+  - Modifies canvas container's `data-canvas-mode` and `data-comment-mode` attributes
 
 #### `js/css-manager.js`
 **Purpose**: Centralized CSS loading, persistence, application, and iframe injection

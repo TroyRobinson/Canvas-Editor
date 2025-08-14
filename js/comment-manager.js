@@ -27,6 +27,28 @@
         
         const comments = [];
         
+        // For input elements, check data attribute first
+        const isInputElement = element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || 
+                              element.tagName === 'SELECT' || element.tagName === 'BUTTON';
+        
+        if (isInputElement) {
+            const dataComment = element.getAttribute('data-comment');
+            if (dataComment) {
+                comments.push(dataComment);
+            }
+            
+            // Also check for sibling comment node
+            let nextNode = element.nextSibling;
+            if (nextNode && nextNode.nodeType === Node.COMMENT_NODE) {
+                const commentText = nextNode.nodeValue.trim();
+                if (commentText && !comments.includes(commentText)) {
+                    comments.push(commentText);
+                }
+            }
+            
+            return comments;
+        }
+        
         // Method 1: Check direct child nodes for comment nodes
         for (let i = 0; i < element.childNodes.length; i++) {
             const node = element.childNodes[i];
@@ -87,18 +109,49 @@
             return false;
         }
         
-        // Only process elements that can contain HTML content
+        // Always check elements that already have comments
         const hasContent = element.innerHTML && element.innerHTML.includes('<!--');
-        return hasContent;
+        if (hasContent) return true;
+        
+        // In comment mode: allow any element that can contain content
+        if (window.canvasMode && window.canvasMode.isCommentMode && window.canvasMode.isCommentMode()) {
+            // Allow frames, element-frames, and content elements
+            if (element.classList.contains('frame') || 
+                element.classList.contains('element-frame') ||
+                element.classList.contains('free-floating')) {
+                return true;
+            }
+            
+            // Allow interactive elements
+            if (element.tagName === 'BUTTON' || 
+                element.tagName === 'INPUT' || 
+                element.tagName === 'SELECT' || 
+                element.tagName === 'TEXTAREA') {
+                return true;
+            }
+            
+            // Allow text elements and other content elements
+            if (element.tagName === 'P' || element.tagName === 'H1' || element.tagName === 'H2' || 
+                element.tagName === 'H3' || element.tagName === 'H4' || element.tagName === 'H5' || 
+                element.tagName === 'H6' || element.tagName === 'SPAN' || element.tagName === 'DIV') {
+                return true;
+            }
+            
+            // Allow any element with content (but not script/style)
+            return element.innerHTML !== undefined && element.tagName !== 'SCRIPT' && element.tagName !== 'STYLE';
+        }
+        
+        // In normal mode: only process elements that already have comments (handled above)
+        return false;
     }
 
     /**
      * Check if a comment bubble should be visible for an element
-     * Respects canvas mode and text editing, but stays visible during drag/resize
+     * ONLY show bubbles for elements that have existing comments
      */
     function shouldShowBubble(element) {
         // Skip in interactive mode
-        if (window.canvasMode === 'interactive') return false;
+        if (window.canvasMode && window.canvasMode.isInteractiveMode && window.canvasMode.isInteractiveMode()) return false;
         
         // Skip during panning (global operation)
         if (window.isPanning) return false;
@@ -109,8 +162,9 @@
             return false;
         }
         
-        // Stay visible during drag/resize operations for better UX
-        return true;
+        // ONLY show bubbles for elements that actually have comments
+        const comments = extractComments(element);
+        return comments.length > 0;
     }
 
     /**
@@ -133,6 +187,13 @@
         bubble.style.cursor = 'pointer';
         bubble.style.zIndex = Z_INDEX_BUBBLE;
         bubble.style.pointerEvents = 'auto';
+        bubble.style.background = '#6366f1';
+        bubble.style.border = '1px solid #4338ca';
+        bubble.style.borderRadius = '50%';
+        bubble.style.display = 'flex';
+        bubble.style.alignItems = 'center';
+        bubble.style.justifyContent = 'center';
+        bubble.style.color = '#ffffff';
         
         // Click handler
         bubble.addEventListener('click', (e) => {
@@ -145,8 +206,16 @@
                     window.selectElement(parentElement);
                 }
                 
-                // Show comment display
-                showCommentDisplay(parentElement, comments, e.clientX, e.clientY);
+                // Always get fresh comments from the element
+                const currentComments = extractComments(parentElement);
+                
+                // In comment mode: show editable comment display
+                if (window.canvasMode && window.canvasMode.isCommentMode && window.canvasMode.isCommentMode()) {
+                    showEditableCommentDisplay(parentElement, currentComments, e.clientX, e.clientY);
+                } else {
+                    // Normal mode: show read-only display
+                    showCommentDisplay(parentElement, currentComments, e.clientX, e.clientY);
+                }
             }
         });
         
@@ -244,6 +313,156 @@
     }
 
     /**
+     * Create and show editable comment display area for comment mode
+     * @param {HTMLElement} element - Element containing comments
+     * @param {Array} comments - Array of comment strings
+     * @param {number} clickX - X coordinate of click
+     * @param {number} clickY - Y coordinate of click
+     */
+    function showEditableCommentDisplay(element, comments, clickX, clickY) {
+        hideCommentDisplay();
+        
+        const display = document.createElement('div');
+        display.className = 'comment-display editable';
+        
+        // Create editable textarea
+        const textarea = document.createElement('textarea');
+        textarea.className = 'comment-textarea';
+        textarea.value = comments.join('\n\n');
+        textarea.placeholder = 'Add your comment here...';
+        
+        display.appendChild(textarea);
+        
+        // Styling
+        display.style.position = 'fixed';
+        display.style.left = (clickX + DISPLAY_OFFSET) + 'px';
+        display.style.top = clickY + 'px';
+        display.style.zIndex = Z_INDEX_DISPLAY;
+        display.style.pointerEvents = 'auto';
+        
+        document.body.appendChild(display);
+        activeCommentDisplay = display;
+        
+        // Position adjustment to keep in viewport
+        const rect = display.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            display.style.left = (clickX - rect.width - DISPLAY_OFFSET) + 'px';
+        }
+        if (rect.bottom > window.innerHeight) {
+            display.style.top = (clickY - rect.height) + 'px';
+        }
+        
+        // Focus the textarea for immediate editing
+        setTimeout(() => {
+            textarea.focus();
+            if (comments.length === 0) {
+                // For new comments, place cursor at start
+                textarea.setSelectionRange(0, 0);
+            } else {
+                // For existing comments, select all text for easy editing
+                textarea.select();
+            }
+        }, 50);
+        
+        // Save on blur or Enter key
+        const saveComment = () => {
+            const newComment = textarea.value.trim();
+            saveCommentToElement(element, newComment);
+            hideCommentDisplay();
+        };
+        
+        textarea.addEventListener('blur', saveComment);
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                saveComment();
+            } else if (e.key === 'Escape') {
+                hideCommentDisplay();
+            }
+        });
+        
+        // Click outside to save and close (unless clicking on textarea)
+        const closeHandler = (e) => {
+            if (!display.contains(e.target)) {
+                saveComment();
+                document.removeEventListener('click', closeHandler, true);
+            }
+        };
+        
+        setTimeout(() => {
+            document.addEventListener('click', closeHandler, true);
+        }, 100);
+    }
+
+    /**
+     * Save comment to element's HTML
+     * @param {HTMLElement} element - Element to save comment to
+     * @param {string} commentText - Comment text to save
+     */
+    function saveCommentToElement(element, commentText) {
+        if (!element) return;
+        
+        // For input elements and other elements that don't support innerHTML modification,
+        // we'll use a data attribute approach or insert comment as a sibling
+        const isInputElement = element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || 
+                              element.tagName === 'SELECT' || element.tagName === 'BUTTON';
+        
+        if (isInputElement) {
+            // For input elements, store comment as a data attribute
+            // and create a comment node as the next sibling
+            const oldComment = element.getAttribute('data-comment') || '';
+            
+            if (commentText) {
+                element.setAttribute('data-comment', commentText);
+                
+                // Also try to add an HTML comment after the element
+                let commentNode = element.nextSibling;
+                if (commentNode && commentNode.nodeType === Node.COMMENT_NODE) {
+                    commentNode.nodeValue = ` ${commentText} `;
+                } else {
+                    commentNode = document.createComment(` ${commentText} `);
+                    element.parentNode.insertBefore(commentNode, element.nextSibling);
+                }
+            } else {
+                element.removeAttribute('data-comment');
+                // Remove comment node if it exists
+                let commentNode = element.nextSibling;
+                if (commentNode && commentNode.nodeType === Node.COMMENT_NODE) {
+                    commentNode.remove();
+                }
+            }
+            
+            // Record for undo system if available
+            if (window.recordElementReplacement) {
+                window.recordElementReplacement(element, oldComment, commentText || '');
+            }
+        } else {
+            // For regular elements, use innerHTML approach
+            const oldHTML = element.innerHTML;
+            
+            // Remove existing comments first
+            let newHTML = element.innerHTML;
+            newHTML = newHTML.replace(/<!--[\s\S]*?-->/g, '');
+            
+            // Add new comment if provided
+            if (commentText) {
+                newHTML = `<!-- ${commentText} -->\n${newHTML}`;
+            }
+            
+            // Update element
+            element.innerHTML = newHTML;
+            
+            // Record for undo system
+            if (window.recordElementReplacement) {
+                window.recordElementReplacement(element, oldHTML, newHTML);
+            }
+        }
+        
+        // Refresh comment detection for this specific element only
+        processElementComments(element);
+    }
+
+    /**
      * Hide and remove the active comment display
      */
     function hideCommentDisplay() {
@@ -263,6 +482,7 @@
         const comments = extractComments(element);
         const hadBubble = commentBubbles.has(element);
         
+        // ONLY show bubbles for elements with existing comments
         if (comments.length > 0) {
             commentData.set(element, comments);
             
@@ -274,6 +494,8 @@
                 // Update existing bubble
                 const bubble = commentBubbles.get(element);
                 bubble.title = `${comments.length} comment${comments.length > 1 ? 's' : ''}`;
+                bubble.innerHTML = '💬'; // Normal comment icon
+                bubble.style.opacity = '1';
             }
             
             // Position the bubble
@@ -410,6 +632,69 @@
     }
 
     /**
+     * Setup click handler for comment mode interactions
+     */
+    function setupCommentModeClickHandler() {
+        let isHandlingClick = false; // Prevent duplicate handling
+        
+        // Add global click listener for comment mode using both capture and bubble phases
+        const handleCommentModeClick = (e) => {
+            // Only handle clicks in comment mode
+            if (!window.canvasMode || !window.canvasMode.isCommentMode || !window.canvasMode.isCommentMode()) {
+                return;
+            }
+            
+            // Prevent duplicate handling from multiple event listeners
+            if (isHandlingClick) return;
+            
+            // Don't interfere with placement mode
+            if (window.isInPlacementMode && window.isInPlacementMode()) {
+                return;
+            }
+            
+            // Don't handle clicks on comment bubbles or displays (they have their own handlers)
+            if (e.target.closest('.comment-bubble') || e.target.closest('.comment-display')) {
+                return;
+            }
+            
+            // Find the clicked element within canvas
+            const canvas = document.getElementById('canvas');
+            if (!canvas || !canvas.contains(e.target)) {
+                return;
+            }
+            
+            // Find the nearest commentable element
+            let targetElement = e.target;
+            while (targetElement && targetElement !== canvas) {
+                if (shouldProcessElement(targetElement)) {
+                    // Found a commentable element
+                    isHandlingClick = true;
+                    
+                    // Select the element
+                    if (window.selectElement) {
+                        window.selectElement(targetElement);
+                    }
+                    
+                    // Get existing comments or create empty array
+                    const comments = extractComments(targetElement);
+                    
+                    // Show editable comment display with a small delay to ensure other handlers complete
+                    setTimeout(() => {
+                        showEditableCommentDisplay(targetElement, comments, e.clientX, e.clientY);
+                        isHandlingClick = false; // Reset flag
+                    }, 10);
+                    return;
+                }
+                targetElement = targetElement.parentElement;
+            }
+        };
+        
+        // Add listeners for both capture and bubble phases to ensure we catch the click
+        document.addEventListener('click', handleCommentModeClick, true); // Capture phase
+        document.addEventListener('click', handleCommentModeClick, false); // Bubble phase
+    }
+
+    /**
      * Monitor resize state changes and provide fluid positioning during resize operations
      */
     function setupResizeStateMonitor() {
@@ -528,6 +813,17 @@
                 setTimeout(refreshAllBubblePositions, 10);
             }
         });
+        
+        // Listen for comment mode changes
+        window.addEventListener('commentModeChanged', (e) => {
+            if (e.detail) {
+                // Refresh all elements to show/hide bubbles based on new mode
+                setTimeout(scanAllElements, 10);
+            }
+        });
+        
+        // Setup element click handling for comment mode
+        setupCommentModeClickHandler();
         
         // Monitor drag state changes via class mutations
         setupDragStateMonitor();
