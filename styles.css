@@ -81,7 +81,7 @@ body.panning {
     height: calc(100% - 41px);
     overflow: visible;
     position: relative;
-    cursor: default;
+    cursor: default !important;
 }
 
 .free-floating {
