@@ -329,6 +329,34 @@ function checkElementFrameContainment(elementFrame) {
             }
         }
     });
+
+    // Check free-floating siblings in parent container to absorb into this element-frame
+    const parent = elementFrame.parentElement || canvas;
+    const siblingElements = Array.from(parent.children).filter(el =>
+        el !== elementFrame && el.classList && el.classList.contains('free-floating')
+    );
+
+    siblingElements.forEach(element => {
+        const elementRect = element.getBoundingClientRect();
+        const elementCenter = {
+            x: elementRect.left + elementRect.width / 2,
+            y: elementRect.top + elementRect.height / 2
+        };
+
+        const newParent = findContainerAtPoint(elementCenter.x, elementCenter.y, element);
+
+        if (newParent === elementFrame) {
+            const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+            const newLeft = (elementRect.left - frameRect.left) / zoom;
+            const newTop = (elementRect.top - frameRect.top) / zoom;
+
+            elementFrame.appendChild(element);
+            element.style.left = newLeft + 'px';
+            element.style.top = newTop + 'px';
+
+            console.log(`📦 RESIZE: Element moved into new container (no script cleanup needed)`);
+        }
+    });
 }
 
 // Resize a text element to fit its content

@@ -171,27 +171,39 @@ function makeSelectable(element) {
         
         // Don't interfere with existing operations
         if (window.isPanning) return;
-        
+
         // Don't select if it's an input/textarea and user is typing or in code editor
         if ((element.tagName === 'INPUT' && document.activeElement === element) ||
             (window.codeEditor && window.codeEditor.isActive())) return;
-        
+
+        // Frames should only be selectable via their title bar (or frame border)
+        if (element.classList && element.classList.contains('frame')) {
+            const isTitleClick = e.target.classList.contains('frame-title') ||
+                                 (e.target.closest && e.target.closest('.frame-title'));
+            const isFrameSelf = e.target === element;
+
+            // If clicking inside the content area, allow event to propagate for marquee selection
+            if (!isTitleClick && !isFrameSelf) {
+                return;
+            }
+        }
+
         e.stopPropagation();
-        
+
         // Try edge detection first for resize operations
         if (window.handleElementMouseDown && window.handleElementMouseDown(element, e)) {
             // Edge detection handled the event (started resize)
             return;
         }
-        
+
         // Check if shift key is pressed for multi-selection
         const addToSelection = e.shiftKey;
-        
+
         // Prevent text selection when shift-clicking
         if (addToSelection) {
             e.preventDefault();
         }
-        
+
         selectElement(element, addToSelection);
     });
 }
