@@ -144,6 +144,30 @@ function startElementPlacement(elementType) {
     }
 }
 
+// Allow external modules to start placement with a pre-built element
+function startPlacementWithElement(element) {
+    if (placingElement) {
+        cancelElementPlacement();
+    }
+
+    placementMode = true;
+    placingElement = element;
+
+    placingElement.classList.add('placing-element');
+    document.body.appendChild(placingElement);
+
+    // Prevent any drag interactions on the placing element
+    placingElement.style.pointerEvents = 'none';
+
+    // Position at mouse location
+    document.addEventListener('mousemove', handlePlacementMouseMove);
+    document.addEventListener('mousedown', handlePlacementMouseDown);
+    document.addEventListener('mouseup', handlePlacementMouseUp);
+    document.addEventListener('keydown', handlePlacementKeydown);
+}
+
+window.startPlacementWithElement = startPlacementWithElement;
+
 function createFrameForPlacement() {
     frameCounter++;
     const frame = document.createElement('div');
