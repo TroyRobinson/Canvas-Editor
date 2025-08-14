@@ -26,7 +26,9 @@ function captureStartPositions(elements) {
 }
 
 function setupFrameDragging(frame, titleBar) {
-    frame.addEventListener('mousedown', (e) => {
+    if (!titleBar) return;
+
+    titleBar.addEventListener('mousedown', (e) => {
         // Check if in interactive mode
         if (window.canvasMode && window.canvasMode.isInteractiveMode()) {
             return;
