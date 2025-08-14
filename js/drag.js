@@ -187,7 +187,17 @@ function setupElementDragging(element) {
             // Edge detection handled the event (started resize) - don't drag
             return;
         }
-        
+
+        // Special handling for line elements: dragging adjusts angle and length
+        if (element.classList.contains('line-element')) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            if (window.startResize) {
+                window.startResize(e, element, 'se');
+            }
+            return;
+        }
+
         e.stopImmediatePropagation(); // Prevent any other handlers from firing
         
         // Handle alt+drag for duplication
