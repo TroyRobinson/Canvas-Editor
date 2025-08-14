@@ -2,6 +2,10 @@ let currentDragging = null;
 let dragOffset = { x: 0, y: 0 };
 let isMultiDragging = false;
 let multiDragOffsets = new Map(); // Store relative positions of all selected elements
+let isFlexReordering = false;
+let flexContainer = null;
+let flexOldHTML = '';
+let flexDirection = 'row';
 
 // Alt/Option key duplication state
 let isAltPressed = false;
@@ -137,7 +141,26 @@ function setupElementDragging(element) {
         }
         
         if (e.metaKey || e.ctrlKey) return; // This is for extraction, not dragging
-        if (!element.classList.contains('free-floating')) return;
+        const parent = element.parentElement;
+        const parentStyle = parent ? window.getComputedStyle(parent) : null;
+
+        if (!element.classList.contains('free-floating')) {
+            if (parentStyle && parentStyle.display === 'flex') {
+                if (e.shiftKey && window.selectElement) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    window.selectElement(element, true);
+                    return;
+                }
+                e.stopPropagation();
+                if (window.handleElementMouseDown && window.handleElementMouseDown(element, e)) {
+                    return;
+                }
+                e.stopImmediatePropagation();
+                startFlexReorderDrag(element, parent, parentStyle.flexDirection);
+            }
+            return;
+        }
         if (e.target.classList.contains('resize-handle')) return; // Don't drag if clicking resize handle
         if (window.isPanning) return; // Don't drag if panning
         
@@ -150,20 +173,19 @@ function setupElementDragging(element) {
         if (window.isInPlacementMode && window.isInPlacementMode()) return;
         if (window.isPlacementDragging && window.isPlacementDragging()) return;
         if (window.isResizing && window.isResizing()) return;
-        
-        // If this is an element-frame, only handle drag if clicking directly on the element-frame background
-        // Don't handle drag for child elements - let them handle their own drag
-        if (element.classList.contains('element-frame')) {
-            // If the click target is a child element with free-floating class, don't handle the drag
-            if (e.target !== element && e.target.classList.contains('free-floating')) {
+
+        // If clicking on a selectable child inside this element, let that child handle the event
+        if (element.classList.contains('free-floating') && e.target !== element) {
+            const selectableAncestor = e.target.closest('[data-selectable="true"]');
+            if (selectableAncestor && selectableAncestor !== element) {
                 return;
             }
         }
-        
+
         // Check if we're clicking on a nested element-frame (but not its contents)
         // Only prevent drag if clicking directly on an element-frame that's not this element
         const clickedElement = e.target;
-        const isNestedElementFrame = clickedElement.classList.contains('element-frame') && 
+        const isNestedElementFrame = clickedElement.classList.contains('element-frame') &&
                                    clickedElement !== element;
         
         if (isNestedElementFrame) {
@@ -259,6 +281,36 @@ function setupElementDragging(element) {
         
         e.preventDefault();
     }, true); // Use capture phase to handle events before they bubble
+}
+
+function startFlexReorderDrag(element, container, direction) {
+    currentDragging = element;
+    isFlexReordering = true;
+    flexContainer = container;
+    flexDirection = direction.startsWith('column') ? 'column' : 'row';
+    flexOldHTML = container.outerHTML;
+    element.classList.add('dragging');
+    if (window.selectElement) {
+        window.selectElement(element);
+    }
+}
+
+function handleFlexReorderMove(e) {
+    if (!flexContainer) return;
+    const pointerX = e.clientX;
+    const pointerY = e.clientY;
+    const children = Array.from(flexContainer.children).filter(ch => ch !== currentDragging);
+    for (let child of children) {
+        const rect = child.getBoundingClientRect();
+        const before = flexDirection === 'row'
+            ? pointerX < rect.left + rect.width / 2
+            : pointerY < rect.top + rect.height / 2;
+        if (before) {
+            flexContainer.insertBefore(currentDragging, child);
+            return;
+        }
+    }
+    flexContainer.appendChild(currentDragging);
 }
 
 // Alt/Option key tracking for duplication
@@ -480,8 +532,10 @@ function abortDuplicateDrag() {
 // Global mouse move handler
 document.addEventListener('mousemove', (e) => {
     if (!currentDragging || window.isPanning) return;
-    
-    if (isMultiDragging) {
+
+    if (isFlexReordering) {
+        handleFlexReorderMove(e);
+    } else if (isMultiDragging) {
         moveMultiSelection(e);
     } else {
         moveSingleElement(e);
@@ -523,7 +577,21 @@ function moveSingleElement(e) {
 // Global mouse up handler
 document.addEventListener('mouseup', (e) => {
     if (!currentDragging) return;
-    
+    if (isFlexReordering) {
+        const newHTML = flexContainer ? flexContainer.outerHTML : '';
+        if (flexContainer && flexContainer.id && flexOldHTML !== newHTML && window.recordElementReplacement) {
+            window.recordElementReplacement(flexContainer.id, flexOldHTML, newHTML);
+        }
+        currentDragging.classList.remove('dragging');
+        currentDragging = null;
+        isFlexReordering = false;
+        flexContainer = null;
+        flexOldHTML = '';
+        flexDirection = 'row';
+        dragOffset = { x: 0, y: 0 };
+        return;
+    }
+
     // Always ensure we clean up the dragging state, regardless of any errors
     try {
         // Record movement for undo before handling container changes
