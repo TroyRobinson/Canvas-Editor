@@ -5,6 +5,8 @@ let resizeStartPos = { x: 0, y: 0 };
 let resizeStartSize = { width: 0, height: 0 };
 let resizeStartOffset = { left: 0, top: 0 };
 let isDragToResize = false; // Flag for drag-to-resize mode
+let lineResizeAnchor = null;
+let lineResizeParentCoords = null;
 
 // For undo tracking
 let resizeStartContainerId = null;
@@ -48,7 +50,7 @@ function startResize(e, element, handlePos) {
     };
     
     element.classList.add('resizing');
-    
+
     // Capture container ID for undo tracking
     resizeStartContainerId = element.parentElement?.id || 'canvas';
     
@@ -62,19 +64,94 @@ function startResize(e, element, handlePos) {
     }
     
     bringToFront(element);
+
+    // Special setup for line elements to support angle and length adjustments
+    if (element.classList.contains('line-element')) {
+        const parent = element.parentElement;
+        const parentRect = parent.getBoundingClientRect ? parent.getBoundingClientRect() : { left: 0, top: 0 };
+        lineResizeParentCoords = window.canvasZoom ?
+            window.canvasZoom.screenToCanvas(parentRect.left, parentRect.top) :
+            { x: parentRect.left, y: parentRect.top };
+
+        const angleMatch = element.style.transform.match(/rotate\((-?\d+(?:\.\d+)?)deg\)/);
+        const angle = angleMatch ? parseFloat(angleMatch[1]) : 0;
+        const angleRad = angle * Math.PI / 180;
+
+        const startCanvas = {
+            x: lineResizeParentCoords.x + resizeStartOffset.left,
+            y: lineResizeParentCoords.y + resizeStartOffset.top
+        };
+        const endCanvas = {
+            x: startCanvas.x + resizeStartSize.width * Math.cos(angleRad),
+            y: startCanvas.y + resizeStartSize.width * Math.sin(angleRad)
+        };
+
+        if (handlePos === 'se' || handlePos === 'e' || handlePos === 's') {
+            lineResizeAnchor = {
+                fixed: 'start',
+                canvas: startCanvas,
+                local: { x: resizeStartOffset.left, y: resizeStartOffset.top }
+            };
+        } else if (handlePos === 'nw' || handlePos === 'w' || handlePos === 'n') {
+            lineResizeAnchor = {
+                fixed: 'end',
+                canvas: endCanvas,
+                local: {
+                    x: endCanvas.x - lineResizeParentCoords.x,
+                    y: endCanvas.y - lineResizeParentCoords.y
+                }
+            };
+        } else {
+            lineResizeAnchor = null;
+        }
+    } else {
+        lineResizeAnchor = null;
+        lineResizeParentCoords = null;
+    }
 }
 
 document.addEventListener('mousemove', (e) => {
     if (!resizing || window.isPanning) return;
-    
+
+    if (resizeTarget && resizeTarget.classList.contains('line-element') && lineResizeAnchor) {
+        const mouseCanvas = window.canvasZoom ?
+            window.canvasZoom.screenToCanvas(e.clientX, e.clientY) :
+            { x: e.clientX, y: e.clientY };
+
+        if (lineResizeAnchor.fixed === 'start') {
+            const dx = mouseCanvas.x - lineResizeAnchor.canvas.x;
+            const dy = mouseCanvas.y - lineResizeAnchor.canvas.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            resizeTarget.style.left = lineResizeAnchor.local.x + 'px';
+            resizeTarget.style.top = lineResizeAnchor.local.y + 'px';
+            resizeTarget.style.width = length + 'px';
+            resizeTarget.style.height = '2px';
+            resizeTarget.style.transform = `rotate(${angle}deg)`;
+        } else if (lineResizeAnchor.fixed === 'end') {
+            const dx = lineResizeAnchor.canvas.x - mouseCanvas.x;
+            const dy = lineResizeAnchor.canvas.y - mouseCanvas.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            const newLeft = mouseCanvas.x - lineResizeParentCoords.x;
+            const newTop = mouseCanvas.y - lineResizeParentCoords.y;
+            resizeTarget.style.left = newLeft + 'px';
+            resizeTarget.style.top = newTop + 'px';
+            resizeTarget.style.width = length + 'px';
+            resizeTarget.style.height = '2px';
+            resizeTarget.style.transform = `rotate(${angle}deg)`;
+        }
+        return;
+    }
+
     const deltaX = e.clientX - resizeStartPos.x;
     const deltaY = e.clientY - resizeStartPos.y;
-    
+
     // Account for zoom
     const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
     const scaledDeltaX = deltaX / zoom;
     const scaledDeltaY = deltaY / zoom;
-    
+
     let newWidth = resizeStartSize.width;
     let newHeight = resizeStartSize.height;
     let newLeft = resizeStartOffset.left;
@@ -211,6 +288,8 @@ document.addEventListener('mouseup', (e) => {
             resizeHandle = null;
             isDragToResize = false; // Reset drag-to-resize flag
             resizeStartContainerId = null;
+            lineResizeAnchor = null;
+            lineResizeParentCoords = null;
         }
     }
 });

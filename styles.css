@@ -58,8 +58,8 @@ body.panning {
 /* Element-frames: Special divs that act as containers */
 .element-frame {
     position: absolute;
-    background: transparent;
-    border: 2px dashed #999;
+    background: #222222;
+    border: 2px solid #666;
     border-radius: 6px;
     overflow: visible;
     cursor: default;
@@ -288,7 +288,7 @@ body.shift-selecting {
 #help-text {
     position: fixed;
     bottom: 20px;
-    left: 20px;
+    left: 60px;
     background: rgba(0, 0, 0, 0.6);
     color: #808080;
     padding: 10px 14px;
@@ -428,6 +428,8 @@ body.shift-selecting {
     background: #e0e0e0;
     border: none;
     border-radius: 0;
+    height: 2px;
+    transform-origin: 0 0;
 }
 
 .circle-element {
@@ -499,7 +501,7 @@ body.shift-selecting {
 #mode-toggle-container {
     position: fixed;
     top: 20px;
-    left: 20px;
+    left: 60px;
     z-index: 10000;
     display: flex;
     align-items: center;
@@ -1582,4 +1584,99 @@ input:checked + .mode-toggle-slider:before {
 .selected + .comment-bubble,
 .comment-bubble {
     z-index: 51; /* Above selection indicators but below drag/resize systems */
+}
+
+/* Left sidebar search widget */
+#left-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 40px;
+    background: #1a1a1a;
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 4px;
+    transition: width 0.2s;
+    z-index: 1000;
+}
+
+#left-sidebar.expanded {
+    width: 250px;
+}
+
+#left-sidebar button {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 4px;
+}
+
+#search-container {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+}
+
+#left-sidebar.expanded #search-container {
+    display: flex;
+}
+
+#search-input {
+    margin-bottom: 8px;
+    padding: 4px;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    border: 1px solid #555;
+}
+
+#search-results {
+    flex: 1;
+    overflow-y: auto;
+}
+
+#search-results .result {
+    padding: 4px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#search-results .result.selected {
+    background: #333;
+}
+
+#search-results.icons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 32px);
+    gap: 4px;
+}
+
+#search-results.icons .result {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+#search-results.icons .result.selected {
+    outline: 2px solid #4a90e2;
+}
+
+#search-results.icons .result img {
+    display: block;
+    filter: invert(100%);
+}
+
+.icon-element {
+    width: 24px;
+    height: 24px;
+    filter: invert(100%);
 }
