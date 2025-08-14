@@ -125,6 +125,7 @@ Comprehensive CSS styling defining:
 
 #### `js/auto-layout.js`
 **Purpose**: Flexbox auto-layout conversion for absolutely positioned children
+- **Shift + A**: Apply auto-layout to selected container
 - Detects dominant orientation by where most elements are positioned
 - Converts elements into a single horizontal row or vertical column with no outliers
 - Calculates padding from the space above and left of the upper-left element
