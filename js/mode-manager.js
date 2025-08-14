@@ -5,6 +5,7 @@
     // Initialize mode state
     window.canvasMode = {
         mode: 'edit', // Default to edit mode
+        commentMode: false, // Comment mode state
         
         setMode(newMode) {
             if (this.mode === newMode) return;
@@ -49,6 +50,29 @@
             this.setMode(this.mode === 'edit' ? 'interactive' : 'edit');
         },
         
+        setCommentMode(enabled) {
+            if (this.commentMode === enabled) return;
+            
+            this.commentMode = enabled;
+            document.body.setAttribute('data-comment-mode', enabled ? 'active' : 'inactive');
+            
+            // Update comment mode UI
+            this.updateCommentModeUI();
+            
+            // Dispatch custom event for other modules
+            window.dispatchEvent(new CustomEvent('commentModeChanged', { 
+                detail: { enabled: enabled } 
+            }));
+        },
+        
+        toggleCommentMode() {
+            this.setCommentMode(!this.commentMode);
+        },
+        
+        isCommentMode() {
+            return this.commentMode;
+        },
+        
         exitAllActiveOperations() {
             // Clear selection if in interactive mode
             if (this.mode === 'interactive' && window.clearSelection) {
@@ -77,6 +101,13 @@
             }
         },
         
+        updateCommentModeUI() {
+            const chip = document.getElementById('comment-mode-chip');
+            if (chip) {
+                chip.style.display = this.commentMode ? 'flex' : 'none';
+            }
+        },
+        
         createToggleUI() {
             // Create toggle container
             const toggleContainer = document.createElement('div');
@@ -98,6 +129,26 @@
             
             // Insert at the beginning of body
             document.body.insertBefore(toggleContainer, document.body.firstChild);
+            
+            // Create comment mode chip
+            this.createCommentModeChip();
+        },
+        
+        createCommentModeChip() {
+            // Create comment mode chip container
+            const chipContainer = document.createElement('div');
+            chipContainer.id = 'comment-mode-chip';
+            chipContainer.innerHTML = `
+                <span class="chip-icon">💬</span>
+                <span class="chip-text">Comment Mode</span>
+            `;
+            chipContainer.style.display = 'none'; // Hidden by default
+            
+            // Insert after the mode toggle container
+            const modeToggle = document.getElementById('mode-toggle-container');
+            if (modeToggle) {
+                modeToggle.insertAdjacentElement('afterend', chipContainer);
+            }
         },
         
         // Enter interactive mode by creating iframe previews for all frames
@@ -151,6 +202,7 @@
 
     // Set initial mode on body
     document.body.setAttribute('data-canvas-mode', 'edit');
+    document.body.setAttribute('data-comment-mode', 'inactive');
 
     // Event interception for edit mode
     let jsInterceptionListener = null;
@@ -165,6 +217,11 @@
         jsInterceptionListener = function(e) {
             // Don't intercept during placement mode - let placement system handle events
             if (window.isInPlacementMode && window.isInPlacementMode()) {
+                return;
+            }
+            
+            // Don't intercept in comment mode - allow comment system to handle interactions
+            if (window.canvasMode.isCommentMode && window.canvasMode.isCommentMode()) {
                 return;
             }
             

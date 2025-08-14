@@ -81,7 +81,7 @@ body.panning {
     height: calc(100% - 41px);
     overflow: visible;
     position: relative;
-    cursor: default;
+    cursor: default !important;
 }
 
 .free-floating {
@@ -544,6 +544,45 @@ input:checked + .mode-toggle-slider:before {
     transform: translateX(20px);
 }
 
+/* Comment Mode Chip */
+#comment-mode-chip {
+    position: fixed;
+    top: 20px;
+    left: 200px; /* Position to the right of mode toggle */
+    z-index: 10000;
+    display: none; /* Hidden by default */
+    align-items: center;
+    gap: 8px;
+    background: #6366f1; /* Accent color */
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    user-select: none;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    animation: fadeIn 0.2s ease-out;
+}
+
+#comment-mode-chip .chip-icon {
+    font-size: 14px;
+}
+
+#comment-mode-chip .chip-text {
+    color: #fff;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Interactive mode - hide all selection indicators */
 [data-canvas-mode="interactive"] .selected {
     outline: none !important;
@@ -917,6 +956,8 @@ input:checked + .mode-toggle-slider:before {
     padding: 12px;
     display: flex;
     flex-direction: column;
+    gap: 8px;
+    justify-content: flex-end;
 }
 
 .enhancement-history-scroll::-webkit-scrollbar {
@@ -1465,10 +1506,43 @@ input:checked + .mode-toggle-slider:before {
     }
 }
 
+/* Editable comment display styles */
+.comment-display.editable {
+    padding: 8px;
+    min-width: 200px;
+    max-width: 350px;
+}
+
+.comment-textarea {
+    width: 100%;
+    min-height: 60px;
+    background: #0f0f0f;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 8px;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    resize: vertical;
+    outline: none;
+}
+
+.comment-textarea:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.comment-textarea::placeholder {
+    color: #999;
+}
+
 /* Ensure comment bubbles don't interfere with interactive mode */
 [data-canvas-mode="interactive"] .comment-bubble {
     display: none;
 }
+
+/* Comment bubbles are controlled via JavaScript visibility logic */
 
 /* Style comment bubbles to work with zoom levels */
 @media (max-width: 1200px) {

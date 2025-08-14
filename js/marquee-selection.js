@@ -5,6 +5,7 @@ let marqueeElement = null;
 let isDragging = false;
 let dragThreshold = 5; // pixels
 let previewSelectedElements = new Set();
+let marqueeStartElement = null;
 
 // Create marquee element
 function createMarqueeElement() {
@@ -194,22 +195,25 @@ function initializeMarqueeSelection() {
     const canvas = document.getElementById('canvas');
     if (!canvas) return;
     
-    // Handle mousedown on canvas and body for selection clearing
+    // Handle mousedown on canvas, frame-content, and body for selection clearing
     document.addEventListener('mousedown', (e) => {
-        // Handle canvas clicks for marquee selection
-        if (e.target === canvas) {
+        const isCanvas = e.target === canvas;
+        const isFrameContent = e.target.classList && e.target.classList.contains('frame-content');
+
+        if (isCanvas || isFrameContent) {
             // Check if in interactive mode
             if (window.canvasMode && window.canvasMode.isInteractiveMode()) {
                 return;
             }
-            
+
             // Don't start marquee if panning or other operations
             if (window.isPanning) return;
             if (window.isInPlacementMode && window.isInPlacementMode()) return;
             if (window.isResizing && window.isResizing()) return;
-            
+
             // Store start position but don't start marquee yet
             marqueeStartPos = { x: e.clientX, y: e.clientY };
+            marqueeStartElement = isCanvas ? canvas : e.target;
             isDragging = false;
         }
         // Handle clicks on body for selection clearing
@@ -258,20 +262,21 @@ function initializeMarqueeSelection() {
             const addToSelection = e.shiftKey;
             endMarqueeSelection(e, addToSelection);
         } else if (marqueeStartPos.x !== 0 && marqueeStartPos.y !== 0 && !isDragging) {
-            // Simple click on canvas without drag - clear selections if not adding
+            // Simple click without drag - clear selections if not adding
             if (!e.shiftKey && window.clearSelection) {
                 window.clearSelection();
             }
-            
-            // Show CSS editor on canvas click (user requirement - blur focus from other elements)
-            if (window.codeEditor && window.codeEditor.showCSSEditor) {
+
+            // Show CSS editor only when clicking empty canvas
+            if (marqueeStartElement === canvas && window.codeEditor && window.codeEditor.showCSSEditor) {
                 window.codeEditor.showCSSEditor();
             }
         }
-        
+
         // Reset marquee state
         marqueeStartPos = { x: 0, y: 0 };
         isDragging = false;
+        marqueeStartElement = null;
     });
     
     // Cancel on escape
