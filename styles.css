@@ -915,6 +915,7 @@ input:checked + .mode-toggle-slider:before {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    justify-content: flex-end;
 }
 
 /* Match scrollbar styling to other textareas */
@@ -1185,7 +1186,8 @@ input:checked + .mode-toggle-slider:before {
     padding: 12px;
     flex-shrink: 0;
     min-height: 100px; /* Fixed minimum height */
-    height: 100px; /* Fixed height */
+    display: flex;
+    flex-direction: column;
 }
 
 .message-controls {
@@ -1243,7 +1245,7 @@ input:checked + .mode-toggle-slider:before {
     outline: none;
     transition: border-color 0.2s;
     min-height: 36px;
-    max-height: 100px;
+    max-height: 200px;
     overflow-y: auto;
 }
 
