@@ -111,7 +111,7 @@
         // Auto-resize textarea
         messageInput.addEventListener('input', () => {
             messageInput.style.height = 'auto';
-            messageInput.style.height = Math.min(messageInput.scrollHeight, 100) + 'px';
+            messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
         });
     }
 
