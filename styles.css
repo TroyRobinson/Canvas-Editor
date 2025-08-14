@@ -756,6 +756,7 @@ input:checked + .mode-toggle-slider:before {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
 }
 
 /* Allow settings tab to scroll */
@@ -768,6 +769,7 @@ input:checked + .mode-toggle-slider:before {
     display: flex;
     flex-direction: column;
     background: #1a1a1a;
+    min-height: 0;
 }
 
 /* Code Editor Tab Specific Styles */
@@ -949,6 +951,7 @@ input:checked + .mode-toggle-slider:before {
 
 .enhancement-history-container {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 12px;
     display: flex;
