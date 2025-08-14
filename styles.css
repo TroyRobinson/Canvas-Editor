@@ -305,6 +305,30 @@ body.shift-selecting {
     opacity: 1;
 }
 
+#help-close-btn {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    background: transparent;
+    border: none;
+    color: #999;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    transition: all 0.2s;
+}
+
+#help-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+}
+
 #help-text kbd {
     background: rgba(255, 255, 255, 0.1);
     padding: 2px 5px;

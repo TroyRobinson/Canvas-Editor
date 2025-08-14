@@ -95,9 +95,18 @@ window.addEventListener('load', () => {
         window.canvasMode.createToggleUI();
     }
     
-    // Show Chat/History tab on app load
+    // Show Chat/History tab on app load (behave as if user clicked it)
     if (window.rightPaneManager) {
-        window.rightPaneManager.switchToTab('chat-history');
+        window.rightPaneManager.switchToTab('chat-history', { userInitiated: true });
+    }
+    
+    // Setup help close button
+    const helpCloseBtn = document.getElementById('help-close-btn');
+    const helpText = document.getElementById('help-text');
+    if (helpCloseBtn && helpText) {
+        helpCloseBtn.addEventListener('click', () => {
+            helpText.style.display = 'none';
+        });
     }
     
     // Add keyboard shortcut to create new frames

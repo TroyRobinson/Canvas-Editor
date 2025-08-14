@@ -5,8 +5,8 @@ function createFrame(x, y, title) {
     frame.id = `frame-${frameCounter}`;
     frame.style.left = x + 'px';
     frame.style.top = y + 'px';
-    frame.style.width = '300px';
-    frame.style.height = '200px';
+    frame.style.width = '800px';
+    frame.style.height = '600px';
     
     const titleBar = document.createElement('div');
     titleBar.className = 'frame-title';
@@ -18,9 +18,9 @@ function createFrame(x, y, title) {
     // Add initial content
     if (frameCounter === 1) {
         content.innerHTML = `
-            <h3 id="frame-${frameCounter}-heading">Frame ${frameCounter}</h3>
-            <p id="frame-${frameCounter}-text">My buttons sparkle</p>
-            <button id="frame-${frameCounter}-button">
+            <h3 id="frame-${frameCounter}-heading" class="free-floating" style="position: absolute; left: 20px; top: 20px; width: 200px;">Frame ${frameCounter}</h3>
+            <p id="frame-${frameCounter}-text" class="free-floating" style="position: absolute; left: 20px; top: 60px; width: 200px;">My buttons sparkle</p>
+            <button id="frame-${frameCounter}-button" class="free-floating" style="position: absolute; left: 20px; top: 100px; width: 100px; height: 40px;">
                 Click Me
             </button>
             <style>
@@ -99,11 +99,18 @@ function createFrame(x, y, title) {
         window.makeContainerElementsSelectable(content);
     }
     
-    // Make static elements selectable individually
+    // Make static elements selectable individually and setup free-floating elements
     const staticElements = content.querySelectorAll('h3, p, button');
     staticElements.forEach(element => {
         if (window.makeSelectable) {
             window.makeSelectable(element);
+        }
+        
+        // If element is free-floating, set it up for dragging
+        if (element.classList.contains('free-floating')) {
+            if (window.setupFreeFloatingElement) {
+                window.setupFreeFloatingElement(element);
+            }
         }
     });
     
@@ -155,10 +162,17 @@ window.setupFrame = function(frame) {
             window.makeContainerElementsSelectable(content);
         }
         
-        // Make static elements selectable individually
+        // Make static elements selectable individually and setup free-floating elements
         content.querySelectorAll('h3, p, button').forEach(element => {
             if (window.makeSelectable) {
                 window.makeSelectable(element);
+            }
+            
+            // If element is free-floating, set it up for dragging
+            if (element.classList.contains('free-floating')) {
+                if (window.setupFreeFloatingElement) {
+                    window.setupFreeFloatingElement(element);
+                }
             }
         });
     }

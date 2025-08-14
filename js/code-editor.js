@@ -237,20 +237,14 @@
                 // Switch to HTML mode when selecting an element
                 switchMode('html');
                 setSelectedElement(element);
-                // Only switch to code editor tab if panel is visible and auto-switching is allowed
-                if (window.rightPaneManager.isVisible() && window.rightPaneManager.canAutoSwitch('code-editor')) {
-                    window.rightPaneManager.switchToTab('code-editor');
-                }
+                // Don't auto-switch to code editor tab - let user choose their preferred tab
             }
         } else if (selectedElements.length > 1) {
             // Multiple selection - show combined code or a summary
             // Switch to HTML mode for multiple selection
             switchMode('html');
             setMultipleSelection(selectedElements);
-            // Only switch to code editor tab if panel is visible and auto-switching is allowed
-            if (window.rightPaneManager.isVisible() && window.rightPaneManager.canAutoSwitch('code-editor')) {
-                window.rightPaneManager.switchToTab('code-editor');
-            }
+            // Don't auto-switch to code editor tab - let user choose their preferred tab
         } else {
             // No selection
             clearSelection();

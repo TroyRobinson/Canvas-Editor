@@ -267,10 +267,6 @@ function initializeMarqueeSelection() {
                 window.clearSelection();
             }
 
-            // Show CSS editor only when clicking empty canvas
-            if (marqueeStartElement === canvas && window.codeEditor && window.codeEditor.showCSSEditor) {
-                window.codeEditor.showCSSEditor();
-            }
         }
 
         // Reset marquee state
