@@ -275,16 +275,35 @@ window.addEventListener('load', () => {
         // Toggle Comment Mode with C key
         if (e.key === 'c' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
             // Protect situations where user is typing in input fields or code editor
-            if (e.target.tagName === 'INPUT' || 
-                e.target.tagName === 'TEXTAREA' || 
+            if (e.target.tagName === 'INPUT' ||
+                e.target.tagName === 'TEXTAREA' ||
                 e.target.contentEditable === 'true' ||
                 (window.codeEditor && window.codeEditor.isActive())) {
                 return; // Allow normal typing behavior
             }
-            
+
             e.preventDefault();
             if (window.canvasMode && window.canvasMode.toggleCommentMode) {
                 window.canvasMode.toggleCommentMode();
+            }
+        }
+
+        // Escape key handling for mode transitions
+        if (e.key === 'Escape') {
+            // Exit interactive mode back to edit mode
+            if (window.canvasMode && window.canvasMode.isInteractiveMode && window.canvasMode.isInteractiveMode()) {
+                e.preventDefault();
+                window.canvasMode.setMode('edit');
+                return;
+            }
+
+            // Exit comment mode when no elements are selected
+            if (window.canvasMode && window.canvasMode.isCommentMode && window.canvasMode.isCommentMode()) {
+                const hasSelection = window.getSelectedElements && window.getSelectedElements().length > 0;
+                if (!hasSelection) {
+                    e.preventDefault();
+                    window.canvasMode.setCommentMode(false);
+                }
             }
         }
     });
