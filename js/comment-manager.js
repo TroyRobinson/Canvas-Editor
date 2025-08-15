@@ -417,6 +417,10 @@
                 e.preventDefault();
                 saveComment();
             } else if (e.key === 'Escape') {
+                // Only close the comment popover on first Escape
+                // Prevent the event from bubbling to global handlers
+                e.preventDefault();
+                e.stopPropagation();
                 hideCommentDisplay();
             }
         });
@@ -524,7 +528,13 @@
         if (activeCommentDisplay) {
             activeCommentDisplay.remove();
             activeCommentDisplay = null;
+            return true;
         }
+        return false;
+    }
+
+    function hasActiveCommentDisplay() {
+        return !!activeCommentDisplay;
     }
 
     /**
@@ -914,7 +924,8 @@
         cleanup,
         scanAllElements,
         refreshAllBubblePositions,
-        hideCommentDisplay
+        hideCommentDisplay,
+        hasActiveCommentDisplay
     };
 
     // Auto-initialize when canvas is ready

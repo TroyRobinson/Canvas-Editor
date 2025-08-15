@@ -771,14 +771,9 @@
 
     // Handle keyboard shortcuts in textarea
     function handleKeyDown(event) {
-        // Escape to close panel
         if (event.key === 'Escape') {
-            event.preventDefault();
-            window.rightPaneManager.hide();
-            // Clear selection
-            if (window.clearSelection) {
-                window.clearSelection();
-            }
+            // Let the global Escape handler manage sequential behavior
+            // No action needed here
         }
     }
 

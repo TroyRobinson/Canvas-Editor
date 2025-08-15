@@ -288,7 +288,7 @@ window.addEventListener('load', () => {
             }
         }
 
-        // Escape key handling for mode transitions
+        // Escape key handling for sequential operations
         if (e.key === 'Escape') {
             // Exit interactive mode back to edit mode
             if (window.canvasMode && window.canvasMode.isInteractiveMode && window.canvasMode.isInteractiveMode()) {
@@ -297,13 +297,34 @@ window.addEventListener('load', () => {
                 return;
             }
 
-            // Exit comment mode when no elements are selected
-            if (window.canvasMode && window.canvasMode.isCommentMode && window.canvasMode.isCommentMode()) {
-                const hasSelection = window.getSelectedElements && window.getSelectedElements().length > 0;
-                if (!hasSelection) {
-                    e.preventDefault();
-                    window.canvasMode.setCommentMode(false);
+            // Close active comment editor popover
+            if (window.commentManager && window.commentManager.hasActiveCommentDisplay && window.commentManager.hasActiveCommentDisplay()) {
+                e.preventDefault();
+                window.commentManager.hideCommentDisplay();
+                return;
+            }
+
+            // Deselect any selected elements
+            if (window.getSelectedElements && window.getSelectedElements().length > 0) {
+                e.preventDefault();
+                if (window.clearSelection) {
+                    window.clearSelection();
                 }
+                return;
+            }
+
+            // Exit comment mode if active
+            if (window.canvasMode && window.canvasMode.isCommentMode && window.canvasMode.isCommentMode()) {
+                e.preventDefault();
+                window.canvasMode.setCommentMode(false);
+                return;
+            }
+
+            // Close right pane if visible
+            if (window.rightPaneManager && window.rightPaneManager.isVisible && window.rightPaneManager.isVisible()) {
+                e.preventDefault();
+                window.rightPaneManager.hide();
+                return;
             }
         }
     });

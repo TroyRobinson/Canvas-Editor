@@ -79,7 +79,7 @@
         closeButton.addEventListener('click', hidePanel);
         
         // Keyboard shortcuts
-        document.addEventListener('keydown', handleKeyDown);
+        // Escape key handling is managed globally
     }
 
     // Handle tab clicks
@@ -99,13 +99,7 @@
         }
     }
 
-    // Handle keyboard shortcuts
-    function handleKeyDown(event) {
-        // Escape to close panel (if no active tab content is handling it)
-        if (event.key === 'Escape' && !event.defaultPrevented) {
-            hidePanel();
-        }
-    }
+    // Keyboard shortcut handler removed in favor of global Escape sequence
 
     // Tab management
     function registerTab(tabId, config) {
