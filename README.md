@@ -305,6 +305,7 @@ Comprehensive CSS styling defining:
 - **Visual Feedback**: Shows loading spinner in frame title bar that moves with frame
 - **Script Re-activation**: Automatically reactivates scripts after code insertion
 - **Free-floating Element Recovery**: Re-establishes drag/resize/selection behaviors for extracted elements after AI generation
+- **State Preservation**: Snapshots and restores element selectable/draggable state across AI regenerations to maintain user customizations
 - **Key constraints for AI-generated code**:
   - No `DOMContentLoaded` events (scripts execute dynamically after page load)
   - Use `@keyframes` animations instead of CSS transitions (`.free-floating` has `transition: none !important`)
