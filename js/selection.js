@@ -257,40 +257,57 @@ window.makeSelectable = makeSelectable;
 window.makeContainerElementsSelectable = makeContainerElementsSelectable;
 window.initializeSelection = initializeSelection;
 
+// Initialize newly added elements and their children
+function initializeNewElement(element) {
+    if (element.nodeType !== 1) return; // Only process element nodes
+
+    // Skip processing if in placement mode - element will be handled after placement
+    if (window.isInPlacementMode && window.isInPlacementMode()) {
+        return;
+    }
+
+    // Skip resize handles entirely
+    if (element.classList.contains('resize-handle')) return;
+
+    if (element.classList.contains('frame')) {
+        if (element.dataset.selectable !== 'true') {
+            element.dataset.selectable = 'true';
+            makeSelectable(element);
+        }
+        const content = element.querySelector('.frame-content');
+        if (content) {
+            makeContainerElementsSelectable(content);
+        }
+    } else if (element.classList.contains('frame-content')) {
+        makeContainerElementsSelectable(element);
+    } else if (element.classList.contains('element-frame')) {
+        if (window.setupElementFrame) {
+            window.setupElementFrame(element);
+        } else if (window.setupElementDragging) {
+            window.setupElementDragging(element);
+        }
+        if (window.makeContainerElementsSelectable) {
+            window.makeContainerElementsSelectable(element);
+        }
+    } else if (element.classList.contains('free-floating')) {
+        if (window.setupFreeFloatingElement) {
+            window.setupFreeFloatingElement(element);
+        }
+    } else if (element.matches('h1, h2, h3, h4, h5, h6, p, button, input, img, div:not(.frame):not(.frame-content):not(.resize-handle)')) {
+        if (element.dataset.selectable !== 'true') {
+            element.dataset.selectable = 'true';
+            makeSelectable(element);
+        }
+    }
+
+    // Recursively initialize child elements
+    element.childNodes.forEach(child => initializeNewElement(child));
+}
+
 // Watch for new elements being added
 const observer = new MutationObserver((mutations) => {
     mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
-            if (node.nodeType === 1) { // Element node
-                // Skip processing if in placement mode - element will be handled after placement
-                if (window.isInPlacementMode && window.isInPlacementMode()) {
-                    return;
-                }
-                
-                // If it's a frame, make it selectable and scan its content
-                if (node.classList && node.classList.contains('frame')) {
-                    if (node.dataset.selectable !== 'true') {
-                        node.dataset.selectable = 'true';
-                        makeSelectable(node);
-                    }
-                    const content = node.querySelector('.frame-content');
-                    if (content) {
-                        makeContainerElementsSelectable(content);
-                    }
-                }
-                // If it's a frame-content, scan its content
-                else if (node.classList && node.classList.contains('frame-content')) {
-                    makeContainerElementsSelectable(node);
-                }
-                // If it's any other element, make it selectable if appropriate
-                else if (node.tagName && ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'BUTTON', 'INPUT', 'IMG'].includes(node.tagName)) {
-                    if (node.dataset.selectable !== 'true') {
-                        node.dataset.selectable = 'true';
-                        makeSelectable(node);
-                    }
-                }
-            }
-        });
+        mutation.addedNodes.forEach(node => initializeNewElement(node));
     });
 });
 
