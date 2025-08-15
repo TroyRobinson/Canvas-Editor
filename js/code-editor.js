@@ -546,7 +546,14 @@
                     if (window.ensureAllElementsHaveIds) {
                         window.ensureAllElementsHaveIds(newFrameContent);
                     }
-                    
+
+                    // Re-initialize behaviors for any existing free-floating elements
+                    // or nested frames within the new content so they keep drag and
+                    // selection capabilities
+                    if (typeof setupChildElementBehaviors === 'function') {
+                        setupChildElementBehaviors(newFrameContent);
+                    }
+
                     // Make static elements selectable individually
                     newFrameContent.querySelectorAll('h3, p, button').forEach(element => {
                         if (window.makeSelectable) {
