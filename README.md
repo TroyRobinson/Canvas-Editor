@@ -425,6 +425,13 @@ Comprehensive CSS styling defining:
 5. **Keep duplicates**: Release mouse while holding modifier keys
 6. **Cancel operation**: Release Option/Alt before mouse-up (aborts drag, deletes duplicates)
 
+### Keyboard Duplication Workflow
+1. Select element(s) using any selection method
+2. **Ctrl/Cmd + D**: Duplicate selection in place
+3. **Ctrl/Cmd + C**, then **Ctrl/Cmd + V**: Copy and paste selection
+   - Pasting onto a free-floating element overlays the copy
+   - Pasting inside a flex container inserts the copy after the current element respecting flex direction
+
 ### Text Editing Workflow
 1. **Double-click** any text element (h1-h6, p, div.text-element, etc.) to enter edit mode
 2. Element shows blue outline and light background when editing

@@ -387,7 +387,7 @@ window.addEventListener('blur', () => {
 });
 
 // Duplication functions
-function duplicateElement(element, shouldExtract = false) {
+function duplicateElement(element, shouldExtract = false, offset = true) {
     const duplicate = element.cloneNode(true);
     
     // Remove selection state from duplicate
@@ -423,8 +423,8 @@ function duplicateElement(element, shouldExtract = false) {
         
         // Add free-floating class and set position
         duplicate.classList.add('free-floating');
-        duplicate.style.left = (relativeLeft / zoom + 10) + 'px'; // Small offset
-        duplicate.style.top = (relativeTop / zoom + 10) + 'px';
+        duplicate.style.left = (relativeLeft / zoom + (offset ? 10 : 0)) + 'px'; // Optional offset
+        duplicate.style.top = (relativeTop / zoom + (offset ? 10 : 0)) + 'px';
         
         // Preserve width and height
         duplicate.style.width = (elementRect.width / zoom) + 'px';
@@ -451,8 +451,8 @@ function duplicateElement(element, shouldExtract = false) {
         // Position duplicate slightly offset from original
         const currentLeft = parseFloat(element.style.left) || 0;
         const currentTop = parseFloat(element.style.top) || 0;
-        duplicate.style.left = (currentLeft + 10) + 'px';
-        duplicate.style.top = (currentTop + 10) + 'px';
+        duplicate.style.left = (currentLeft + (offset ? 10 : 0)) + 'px';
+        duplicate.style.top = (currentTop + (offset ? 10 : 0)) + 'px';
         
         // Insert duplicate after original
         // Use helper function to insert before script/style tags if in frame-content
@@ -493,6 +493,9 @@ function duplicateElement(element, shouldExtract = false) {
     
     return duplicate;
 }
+
+// Expose for other modules (e.g., keyboard duplication)
+window.duplicateElement = duplicateElement;
 
 function createDuplicates(shouldExtractStaticElements = false) {
     const selectedElements = window.getSelectedElements ? window.getSelectedElements() : [];
