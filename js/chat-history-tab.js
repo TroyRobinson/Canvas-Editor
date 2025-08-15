@@ -338,7 +338,7 @@
         const filteredHistory = enhancementHistory.filter(entry => entry.frameId === currentSelectedFrame.id);
 
         if (filteredHistory.length === 0) {
-            const emptyMessage = `No enhancement requests for "${currentSelectedFrame.querySelector('.frame-title')?.textContent || 'this frame'}" yet.`;
+            const emptyMessage = `No generation requests yet for "${currentSelectedFrame.querySelector('.frame-title')?.textContent || 'this frame'}" yet.`;
                 
             historyList.innerHTML = `
                 <div class="empty-history">
@@ -371,11 +371,11 @@
 
         if (currentSelectedFrame) {
             const frameTitle = currentSelectedFrame.querySelector('.frame-title')?.textContent || 'Untitled Frame';
-            headerElement.textContent = `Enhancement History: ${frameTitle}`;
-            subtitleElement.textContent = 'AI frame enhancement requests (Ctrl+R) for this frame';
+            headerElement.textContent = `Generation History: ${frameTitle}`;
+            subtitleElement.textContent = 'AI/LLM generation requests (Ctrl+R) for this frame';
         } else {
-            headerElement.textContent = 'Enhancement History';
-            subtitleElement.textContent = 'Select a frame to view its enhancement history';
+            headerElement.textContent = 'Generation History';
+            subtitleElement.textContent = 'Select a frame to view its generation history';
         }
     }
 
