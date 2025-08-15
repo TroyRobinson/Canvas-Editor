@@ -15,6 +15,13 @@ body.space-held {
     cursor: grab;
 }
 
+body.space-held .frame,
+body.space-held .element-frame,
+body.space-held .frame-title,
+body.space-held .frame-content {
+    cursor: grab !important;
+}
+
 body.panning {
     cursor: grabbing;
 }
