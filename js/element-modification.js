@@ -34,6 +34,10 @@
         '8': { width: '200px', height: '68px', fontSize: '24px' }   // 4XL
     };
 
+    const sizeValues = Object.values(sizeMap);
+    const buttonSizeKeys = Object.keys(buttonSizeMap);
+    const weightValues = Object.values(weightMap);
+
     function isTextElement(element) {
         if (!element || !element.tagName) return false;
         if (element.classList && element.classList.contains('text-element')) return true;
@@ -63,9 +67,9 @@
         if (e.shiftKey) {
             const newWeight = weightMap[e.code];
             if (newWeight) {
-                const textElements = selected.filter(isTextElement);
-                if (textElements.length) {
-                    textElements.forEach(el => {
+                const weightElements = selected.filter(el => isTextElement(el) || isButtonElement(el));
+                if (weightElements.length) {
+                    weightElements.forEach(el => {
                         const oldWeight = el.style.fontWeight || window.getComputedStyle(el).fontWeight;
                         el.style.fontWeight = newWeight;
                         if (window.recordStyleChange && el.id) {
@@ -120,4 +124,100 @@
             e.preventDefault();
         }
     });
+
+    document.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || e.metaKey) return; // allow zoom.js to handle Ctrl/Cmd + wheel
+
+        if (e.target.tagName === 'INPUT' ||
+            e.target.tagName === 'TEXTAREA' ||
+            e.target.contentEditable === 'true' ||
+            (window.codeEditor && window.codeEditor.isActive())) {
+            return;
+        }
+
+        const selected = window.getSelectedElements ? window.getSelectedElements() : [];
+        if (selected.length === 0) return;
+
+        const delta = e.deltaY === 0 ? e.deltaX : e.deltaY;
+        const direction = delta < 0 ? 1 : -1; // up/left = increase, down/right = decrease
+        let handled = false;
+
+        const textElements = selected.filter(isTextElement);
+        const buttonElements = selected.filter(isButtonElement);
+
+        if (e.shiftKey) {
+            const cycleWeight = (el) => {
+                let current = window.getComputedStyle(el).fontWeight;
+                if (current === 'normal') current = '400';
+                if (current === 'bold') current = '700';
+                let index = weightValues.findIndex(w => parseInt(w, 10) === parseInt(current, 10));
+                if (index === -1) index = 0;
+                let newIndex = index + direction;
+                newIndex = Math.max(0, Math.min(weightValues.length - 1, newIndex));
+                const newWeight = weightValues[newIndex];
+                if (newWeight !== weightValues[index]) {
+                    const oldWeight = el.style.fontWeight || window.getComputedStyle(el).fontWeight;
+                    el.style.fontWeight = newWeight;
+                    if (window.recordStyleChange && el.id) {
+                        window.recordStyleChange(el.id, 'font-weight', oldWeight, newWeight);
+                    }
+                    handled = true;
+                }
+            };
+
+            textElements.forEach(cycleWeight);
+            buttonElements.forEach(cycleWeight);
+        } else {
+            if (textElements.length) {
+                textElements.forEach(el => {
+                    const currentSize = parseFloat(window.getComputedStyle(el).fontSize);
+                    let index = sizeValues.findIndex(v => parseFloat(v) === currentSize);
+                    if (index === -1) index = 0;
+                    let newIndex = index + direction;
+                    newIndex = Math.max(0, Math.min(sizeValues.length - 1, newIndex));
+                    const newSize = sizeValues[newIndex];
+                    if (newSize !== sizeValues[index]) {
+                        const oldSize = el.style.fontSize || window.getComputedStyle(el).fontSize;
+                        el.style.fontSize = newSize;
+                        if (window.recordStyleChange && el.id) {
+                            window.recordStyleChange(el.id, 'font-size', oldSize, newSize);
+                        }
+                        handled = true;
+                    }
+                });
+            }
+
+            if (buttonElements.length) {
+                buttonElements.forEach(el => {
+                    const currentWidth = parseFloat(window.getComputedStyle(el).width);
+                    let index = buttonSizeKeys.findIndex(key => parseFloat(buttonSizeMap[key].width) === currentWidth);
+                    if (index === -1) index = 0;
+                    let newIndex = index + direction;
+                    newIndex = Math.max(0, Math.min(buttonSizeKeys.length - 1, newIndex));
+                    const newKey = buttonSizeKeys[newIndex];
+                    if (newKey !== buttonSizeKeys[index]) {
+                        const newSize = buttonSizeMap[newKey];
+                        const oldWidth = el.style.width || window.getComputedStyle(el).width;
+                        const oldHeight = el.style.height || window.getComputedStyle(el).height;
+                        const oldFontSize = el.style.fontSize || window.getComputedStyle(el).fontSize;
+
+                        el.style.width = newSize.width;
+                        el.style.height = newSize.height;
+                        el.style.fontSize = newSize.fontSize;
+
+                        if (window.recordStyleChange && el.id) {
+                            window.recordStyleChange(el.id, 'width', oldWidth, newSize.width);
+                            window.recordStyleChange(el.id, 'height', oldHeight, newSize.height);
+                            window.recordStyleChange(el.id, 'font-size', oldFontSize, newSize.fontSize);
+                        }
+                        handled = true;
+                    }
+                });
+            }
+        }
+
+        if (handled) {
+            e.preventDefault();
+        }
+    }, { passive: false });
 })();

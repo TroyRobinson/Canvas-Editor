@@ -432,6 +432,12 @@ Comprehensive CSS styling defining:
    - Pasting onto a free-floating element overlays the copy
    - Pasting inside a flex container inserts the copy after the current element respecting flex direction
 
+### Size & Weight Shortcuts
+1. **1-8**: Set text/button size for selected elements
+2. **Shift + 1-8**: Set font weight for selected text or buttons
+3. **Scroll**: Cycle through text/button size steps
+4. **Shift + Scroll**: Cycle through font weight for selected text or buttons
+
 ### Text Editing Workflow
 1. **Double-click** any text element (h1-h6, p, div.text-element, etc.) to enter edit mode
 2. Element shows blue outline and light background when editing
