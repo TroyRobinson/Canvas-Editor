@@ -4,7 +4,7 @@ let highestZIndex = 1;
 
 // Create initial frames
 function initializeCanvas() {
-    createFrame(100, 100, 'Frame 1');
+    createFrame(100, 100, 'My Cool App');
     
     // Ensure all existing elements have IDs for undo tracking
     setTimeout(() => {

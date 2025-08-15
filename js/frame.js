@@ -18,7 +18,7 @@ function createFrame(x, y, title) {
     // Add initial content
     if (frameCounter === 1) {
         content.innerHTML = `
-            <h3 id="frame-${frameCounter}-heading" class="free-floating" style="position: absolute; left: 20px; top: 20px; width: 200px;">Frame ${frameCounter}</h3>
+            <h3 id="frame-${frameCounter}-heading" class="free-floating" style="position: absolute; left: 20px; top: 20px; width: 200px;">My Cool App</h3>
             <p id="frame-${frameCounter}-text" class="free-floating" style="position: absolute; left: 20px; top: 60px; width: 200px;">My buttons sparkle</p>
             <button id="frame-${frameCounter}-button" class="free-floating" style="position: absolute; left: 20px; top: 100px; width: 100px; height: 40px;">
                 Click Me
