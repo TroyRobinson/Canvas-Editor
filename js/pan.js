@@ -42,29 +42,33 @@ document.addEventListener('keyup', (e) => {
 });
 
 // Start panning
+// Use capture phase so panning takes priority over other interactions like dragging
 document.addEventListener('mousedown', (e) => {
     if (!isSpaceHeld) return;
-    
-    // Don't start panning if clicking on frames or elements
-    if (e.target !== canvas && e.target.closest('.frame')) return;
-    if (e.target.classList.contains('free-floating')) return;
-    
+
+    // Only pan when clicking within the canvas or its descendants
+    if (!canvas.contains(e.target)) return;
+
+    // Prevent other handlers (drag, selection, etc.) from firing
     e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
     isPanning = true;
     window.isPanning = true;
     document.body.classList.add('panning');
-    
+
     panStartPos = { x: e.clientX, y: e.clientY };
-    
+
     // Store current transform
     if (window.canvasZoom) {
         const transform = window.canvasZoom.getTransform();
-        panStartTransform = { 
-            x: transform.translateX, 
-            y: transform.translateY 
+        panStartTransform = {
+            x: transform.translateX,
+            y: transform.translateY
         };
     }
-});
+}, true);
 
 // Pan the canvas
 document.addEventListener('mousemove', (e) => {
