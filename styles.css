@@ -81,6 +81,7 @@ body.panning {
     border-radius: 4px 4px 0 0;
     font-size: 14px;
     border-bottom: 1px solid #333;
+    position: relative;
 }
 
 .frame-content {
@@ -89,6 +90,44 @@ body.panning {
     overflow: visible;
     position: relative;
     cursor: default !important;
+}
+
+/* Frame action buttons */
+.frame-enhance-btn,
+.frame-refresh-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 50%;
+    padding: 0;
+    cursor: pointer;
+    color: #e0e0e0;
+}
+
+.frame-enhance-btn svg,
+.frame-refresh-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.frame-refresh-btn {
+    display: none;
+}
+
+[data-canvas-mode="interactive"] .frame-refresh-btn {
+    display: flex;
+}
+
+[data-canvas-mode="interactive"] .frame-enhance-btn {
+    display: none;
 }
 
 .free-floating {

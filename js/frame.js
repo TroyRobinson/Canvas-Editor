@@ -75,6 +75,9 @@ function createFrame(x, y, title) {
     
     frame.appendChild(titleBar);
     frame.appendChild(content);
+
+    // Add frame action buttons
+    addFrameControls(frame, titleBar);
     
     
     // Resize functionality now uses edge detection on element borders
@@ -117,8 +120,54 @@ function createFrame(x, y, title) {
     // Activate scripts for this frame
     // Scripts will be activated when entering interactive mode via iframe
     console.log('💡 FRAME CREATED: Scripts will activate in interactive mode iframe');
-    
+
     return frame;
+}
+
+function addFrameControls(frame, titleBar) {
+    if (!frame || !titleBar) return;
+
+    // Ensure title bar can position absolute children
+    titleBar.style.position = 'relative';
+
+    // Magic sparkle enhancement button (edit mode)
+    if (!titleBar.querySelector('.frame-enhance-btn')) {
+        const enhanceBtn = document.createElement('button');
+        enhanceBtn.className = 'frame-enhance-btn';
+        enhanceBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z"/><path d="M16 11l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z"/><path d="M22 4l.5 1.5L24 6l-1.5.5L22 8l-.5-1.5L20 6l1.5-.5L22 4z"/></svg>';
+        enhanceBtn.title = 'Enhance with AI';
+        enhanceBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!window.llmManager || !window.llmManager.enhanceFrameWithAI) return;
+            enhanceBtn.style.display = 'none';
+            window.llmManager.enhanceFrameWithAI(frame).finally(() => {
+                if (window.canvasMode && window.canvasMode.isEditMode && window.canvasMode.isEditMode()) {
+                    enhanceBtn.style.display = 'flex';
+                }
+            });
+        });
+        titleBar.appendChild(enhanceBtn);
+    }
+
+    // Refresh button for interactive mode
+    if (!titleBar.querySelector('.frame-refresh-btn')) {
+        const refreshBtn = document.createElement('button');
+        refreshBtn.className = 'frame-refresh-btn';
+        refreshBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.83-3.36L23 10M1 14l4.66-4.66A9 9 0 0010.33 1.5"/></svg>';
+        refreshBtn.title = 'Refresh preview';
+        refreshBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!(window.iframeManager && window.iframeManager.destroyIframe && window.iframeManager.createPreviewIframe)) return;
+            const frameContent = frame.querySelector('.frame-content');
+            if (!frameContent) return;
+            const htmlContent = frameContent.innerHTML;
+            const cssContent = window.cssManager ? window.cssManager.getCurrentCSS() : '';
+            window.iframeManager.destroyIframe(frame.id);
+            window.iframeManager.createPreviewIframe(frame, htmlContent, cssContent);
+            window.iframeManager.showIframe(frame.id);
+        });
+        titleBar.appendChild(refreshBtn);
+    }
 }
 
 function createElementFrame(x, y, width = 150, height = 100, parent = canvas) {
@@ -152,6 +201,7 @@ window.setupFrame = function(frame) {
     
     if (titleBar) {
         setupFrameDragging(frame, titleBar);
+        addFrameControls(frame, titleBar);
     }
     
     if (content) {
