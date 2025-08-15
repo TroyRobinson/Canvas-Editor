@@ -1,8 +1,13 @@
 (() => {
     const icons = [
-        'academic-cap', 'adjustments-horizontal', 'archive-box', 'arrow-down-circle',
-        'arrow-right', 'calendar', 'camera', 'chart-bar', 'check-circle', 'cloud',
-        'code-bracket', 'heart', 'home', 'magnifying-glass', 'star', 'user'
+        'academic-cap', 'adjustments-horizontal', 'archive-box',
+        'arrow-down', 'arrow-down-circle', 'arrow-left', 'arrow-right', 'arrow-up',
+        'arrow-down-left', 'arrow-down-right', 'arrow-up-left', 'arrow-up-right',
+        'bars-3', 'calendar', 'camera', 'chart-bar', 'check-circle',
+        'chevron-down', 'chevron-left', 'chevron-right', 'chevron-up',
+        'cloud', 'cloud-arrow-up', 'code-bracket', 'cog-6-tooth',
+        'heart', 'home', 'magnifying-glass', 'star', 'user',
+        'x-mark', 'arrow-up-tray'
     ];
 
     let resultsContainer;

@@ -1615,6 +1615,7 @@ input:checked + .mode-toggle-slider:before {
 #left-sidebar.expanded {
     width: 250px;
     max-height: 70vh;
+    align-items: flex-start;
 }
 
 #left-sidebar button {
@@ -1623,6 +1624,25 @@ input:checked + .mode-toggle-slider:before {
     color: #fff;
     cursor: pointer;
     padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 32px;
+}
+
+#left-sidebar button .label {
+    display: none;
+    font-size: 14px;
+}
+
+#left-sidebar.expanded button {
+    width: 100%;
+    justify-content: flex-start;
+}
+
+#left-sidebar.expanded button .label {
+    display: inline;
 }
 
 #search-container {
