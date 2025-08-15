@@ -52,20 +52,25 @@ function setupFrameDragging(frame, titleBar) {
         if (window.isInPlacementMode && window.isInPlacementMode()) return;
         if (window.isPlacementDragging && window.isPlacementDragging()) return;
         if (window.isResizing && window.isResizing()) return;
-        
+
+        // Prevent other handlers (like selection) from interfering
+        e.stopPropagation();
+
         // Handle shift+click for multi-selection before starting drag
         if (e.shiftKey && window.selectElement) {
-            e.stopPropagation();
             e.preventDefault();
             window.selectElement(frame, true);
             return;
         }
-        
+
         // CHECK FOR EDGE DETECTION FIRST - before starting drag (includes extended zones)
         if (window.handleElementMouseDown && window.handleElementMouseDown(frame, e)) {
             // Edge detection handled the event (started resize) - don't drag
             return;
         }
+
+        // Ensure no other handlers run after this point
+        e.stopImmediatePropagation();
         
         // Handle alt+drag for duplication
         if (isAltPressed || e.altKey) {
