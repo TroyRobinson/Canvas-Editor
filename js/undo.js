@@ -183,6 +183,9 @@ class UndoManager {
             case 'replace':
                 this.undoElementReplace(command.data);
                 break;
+            case 'style':
+                this.undoStyleChange(command.data);
+                break;
         }
     }
 
@@ -212,6 +215,9 @@ class UndoManager {
                 break;
             case 'replace':
                 this.redoElementReplace(command.data);
+                break;
+            case 'style':
+                this.redoStyleChange(command.data);
                 break;
         }
     }
@@ -560,6 +566,22 @@ class UndoManager {
         const element = document.getElementById(data.elementId);
         if (element) {
             element.textContent = data.newContent;
+        }
+    }
+
+    // Undo style change
+    undoStyleChange(data) {
+        const element = document.getElementById(data.elementId);
+        if (element) {
+            element.style.setProperty(data.property, data.oldValue);
+        }
+    }
+
+    // Redo style change
+    redoStyleChange(data) {
+        const element = document.getElementById(data.elementId);
+        if (element) {
+            element.style.setProperty(data.property, data.newValue);
         }
     }
 
@@ -1043,5 +1065,14 @@ window.recordElementReplacement = (elementOrId, oldHTML, newHTML, isFrameContent
         oldHTML,
         newHTML,
         isFrameContent
+    }));
+};
+
+window.recordStyleChange = (elementId, property, oldValue, newValue) => {
+    undoManager.addCommand(new Command('style', {
+        elementId,
+        property,
+        oldValue,
+        newValue
     }));
 };
