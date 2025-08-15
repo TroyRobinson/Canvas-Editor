@@ -1610,7 +1610,13 @@ input:checked + .mode-toggle-slider:before {
     max-height: 70vh;
     overflow-y: auto;
     border-radius: 8px;
+    overflow: auto; /* no scrollbar */
+    scrollbar-width: none; /* no scrollbar */
 }
+
+#left-sidebar::-webkit-scrollbar {
+    display: none; /* no scrollbar */
+  }
 
 #left-sidebar.expanded {
     width: 250px;
