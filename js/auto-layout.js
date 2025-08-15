@@ -62,8 +62,8 @@
         container.style.padding = '0';
         container.style.paddingLeft = minLeft + 'px';
         container.style.paddingTop = minTop + 'px';
-        container.style.width = 'fit-content';
-        container.style.height = 'fit-content';
+        container.style.width = containerRect.width + 'px';
+        container.style.height = containerRect.height + 'px';
 
         // Update children styles and order
         childData.forEach(data => {
