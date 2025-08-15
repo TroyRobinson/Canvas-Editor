@@ -283,8 +283,10 @@
             host.classList.add('editing');
             editNode.classList.add('editing');
 
-            // Preserve whitespace on the edit node and keep label on one line by default
-            editNode.style.whiteSpace = 'nowrap';
+            // Preserve whitespace on the edit node
+            // Fixed-size elements should keep wrapping, while auto-fit elements stay on one line
+            const useNoWrap = host.dataset.autoFit === 'true';
+            editNode.style.whiteSpace = useNoWrap ? 'nowrap' : 'pre-wrap';
 
             // Focus the edit node
             editNode.focus();
@@ -311,10 +313,14 @@
                 selection.addRange(range);
             }
 
-            // Force an initial measurement to sync width immediately upon entering edit
-            if (window.resizeTextElementToFitContent) {
-                const targetForSize = host.classList.contains('free-floating') ? host : editNode;
-                window.resizeTextElementToFitContent(targetForSize);
+            // Force an initial measurement only for auto-fit elements
+            const targetForSize = host.classList.contains('free-floating') ? host : editNode;
+            if (shouldAutoResize(targetForSize)) {
+                if (targetForSize.dataset.autoFitHeight === 'true' && window.resizeTextElementHeightToContent) {
+                    window.resizeTextElementHeightToContent(targetForSize);
+                } else if (window.resizeTextElementToFitContent) {
+                    window.resizeTextElementToFitContent(targetForSize);
+                }
             }
         }
 
@@ -443,34 +449,28 @@
 
     // Check if element should auto-resize (free-floating and not manually resized, or explicitly auto-fit)
     function shouldAutoResize(element) {
-        // Explicit auto-fit mode always takes precedence
-        if (element.dataset.autoFit === 'true') {
-            return true;
-        }
-        
-        // Free-floating elements auto-resize by default, unless manually resized or too long
-        const style = window.getComputedStyle(element);
-        const isFreeFloating = style.position === 'absolute' && element.classList.contains('free-floating');
-        const hasBeenManuallyResized = element.dataset.manuallyResized === 'true';
-        const textContent = element.textContent || '';
-        const isShortText = textContent.length < 30;
-        
-        return isFreeFloating && !hasBeenManuallyResized && isShortText;
+        return element.dataset.autoFit === 'true' || element.dataset.autoFitHeight === 'true';
     }
 
     // Handle auto-resize for text elements that should auto-resize
     function handleAutoResize(e) {
         // Resolve the element that should actually be resized: the nearest free-floating ancestor or the target itself
         let resizeTarget = e.target.closest('.free-floating') || e.target;
-        if (shouldAutoResize(resizeTarget) && window.resizeTextElementToFitContent) {
+        if (shouldAutoResize(resizeTarget)) {
+            const doResize = () => {
+                if (!shouldAutoResize(resizeTarget)) return;
+                if (resizeTarget.dataset.autoFitHeight === 'true' && window.resizeTextElementHeightToContent) {
+                    window.resizeTextElementHeightToContent(resizeTarget);
+                } else if (window.resizeTextElementToFitContent) {
+                    window.resizeTextElementToFitContent(resizeTarget);
+                }
+            };
             // Use requestAnimationFrame to avoid layout thrashing during typing
             if (resizeTarget._resizeTimeout) {
                 cancelAnimationFrame(resizeTarget._resizeTimeout);
             }
             resizeTarget._resizeTimeout = requestAnimationFrame(() => {
-                if (shouldAutoResize(resizeTarget)) { // Check again in case it changed
-                    window.resizeTextElementToFitContent(resizeTarget);
-                }
+                doResize();
                 resizeTarget._resizeTimeout = null;
             });
         }

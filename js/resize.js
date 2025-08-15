@@ -272,9 +272,12 @@ document.addEventListener('mouseup', (e) => {
             // Mark element as manually resized to disable auto-resize behavior
             if (resizeTarget && window.textEditing && window.textEditing.isTextLikeElement(resizeTarget)) {
                 resizeTarget.dataset.manuallyResized = 'true';
-                // Also clear explicit auto-fit mode
+                // Also clear explicit auto-fit modes
                 if (resizeTarget.dataset.autoFit === 'true') {
                     delete resizeTarget.dataset.autoFit;
+                }
+                if (resizeTarget.dataset.autoFitHeight === 'true') {
+                    delete resizeTarget.dataset.autoFitHeight;
                 }
             }
             
@@ -520,6 +523,76 @@ function resizeTextElementToFitContent(element) {
 }
 window.resizeTextElementToFitContent = resizeTextElementToFitContent;
 
+function resizeTextElementHeightToContent(element) {
+    if (!window.textEditing || !window.textEditing.isTextLikeElement(element)) return;
+
+    const tag = element.tagName ? element.tagName.toLowerCase() : '';
+    const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+
+    function measureHeight(node, forceInlineBlock = false) {
+        const clone = node.cloneNode(true);
+        clone.style.position = 'absolute';
+        clone.style.visibility = 'hidden';
+        clone.style.height = 'auto';
+
+        const rect = element.getBoundingClientRect();
+        const cs = window.getComputedStyle(element);
+        const paddingX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const borderX = parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+        const contentWidth = rect.width - paddingX - borderX;
+        clone.style.width = contentWidth + 'px';
+
+        clone.style.whiteSpace = 'pre-wrap';
+        if (forceInlineBlock) clone.style.display = 'inline-block';
+        clone.style.left = '-9999px';
+        clone.style.top = '-9999px';
+        clone.style.zIndex = '-1';
+        clone.style.maxWidth = 'none';
+        clone.style.maxHeight = 'none';
+        clone.style.minWidth = '0';
+        clone.style.minHeight = '0';
+        document.body.appendChild(clone);
+        const rectClone = clone.getBoundingClientRect();
+        document.body.removeChild(clone);
+        return rectClone;
+    }
+
+    if (tag === 'button') {
+        const label = element.querySelector('span[data-button-label="true"]') || element;
+        const labelRect = measureHeight(label, true);
+        const cs = window.getComputedStyle(element);
+        const paddingY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const borderY = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+        const rawHeight = (labelRect.height + paddingY + borderY) / zoom;
+        // Allow a bit of breathing room by adding 25% extra height
+        element.style.height = Math.max(1, rawHeight * 1.25) + 'px';
+    } else {
+        const rect = measureHeight(element, false);
+        element.style.whiteSpace = 'pre-wrap';
+        const rawHeight = rect.height / zoom;
+        // Add 25% vertical padding so the bottom isn't flush with the last line
+        element.style.height = Math.ceil(rawHeight * 1.25) + 'px';
+    }
+
+    element.dataset.autoFitHeight = 'true';
+    if (element.dataset.manuallyResized === 'true') {
+        delete element.dataset.manuallyResized;
+    }
+
+    if (window.recordResize && element.id) {
+        window.recordResize(
+            element.id,
+            { width: '', height: '' },
+            { width: element.style.width, height: element.style.height },
+            { left: element.style.left, top: element.style.top },
+            { left: element.style.left, top: element.style.top },
+            element.parentElement?.id || 'canvas',
+            element.parentElement?.id || 'canvas'
+        );
+    }
+}
+window.resizeTextElementHeightToContent = resizeTextElementHeightToContent;
+
 // Explicit single-line fit used by corner handle double-click
 function resizeTextElementToSingleLineFit(element) {
     if (!window.textEditing || !window.textEditing.isTextLikeElement(element)) return;
@@ -562,11 +635,14 @@ function resizeTextElementToSingleLineFit(element) {
         const rect = measureNodeNowrap(element, false);
         element.style.whiteSpace = 'nowrap';
         element.style.width = (rect.width / zoom) + 'px';
-        element.style.height = (rect.height / zoom) + 'px';
+        element.style.height = Math.ceil(rect.height / zoom) + 'px';
     }
 
     // Enable auto-fit mode and clear manual flag to allow dynamic width during editing
     element.dataset.autoFit = 'true';
+    if (element.dataset.autoFitHeight === 'true') {
+        delete element.dataset.autoFitHeight;
+    }
     if (element.dataset.manuallyResized === 'true') {
         delete element.dataset.manuallyResized;
     }
@@ -585,3 +661,43 @@ function resizeTextElementToSingleLineFit(element) {
     }
 }
 window.resizeTextElementToSingleLineFit = resizeTextElementToSingleLineFit;
+
+// Handle double-click on corners for auto-fitting text elements
+document.addEventListener('dblclick', (e) => {
+    // Use capture phase to run before edit-mode handler
+    if (window.canvasMode && window.canvasMode.isInteractiveMode()) return;
+    if (window.isPanning) return;
+
+    const element = e.target.closest('.free-floating');
+    if (!element) return;
+    if (!window.textEditing || !window.textEditing.isTextLikeElement(element)) return;
+
+    const pos = window.detectResizePosition ? window.detectResizePosition(element, e.clientX, e.clientY) : null;
+    const cornerPositions = ['nw', 'ne', 'sw', 'se'];
+    if (!pos || !cornerPositions.includes(pos)) return;
+
+    const rect = element.getBoundingClientRect();
+    const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
+    const tol = 10 / zoom;
+    const inCorner =
+        (pos === 'se' && e.clientX >= rect.right - tol && e.clientY >= rect.bottom - tol) ||
+        (pos === 'sw' && e.clientX <= rect.left + tol && e.clientY >= rect.bottom - tol) ||
+        (pos === 'ne' && e.clientX >= rect.right - tol && e.clientY <= rect.top + tol) ||
+        (pos === 'nw' && e.clientX <= rect.left + tol && e.clientY <= rect.top + tol);
+    if (!inCorner) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const text = element.textContent || '';
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+
+    if (wordCount > 15) {
+        if (element.dataset.autoFit === 'true') {
+            delete element.dataset.autoFit;
+        }
+        window.resizeTextElementHeightToContent(element);
+    } else {
+        window.resizeTextElementToSingleLineFit(element);
+    }
+}, true);
