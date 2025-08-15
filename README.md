@@ -268,8 +268,9 @@ Comprehensive CSS styling defining:
 - **Iframe Isolation**: Complete separation - scripts run only in iframes, never in edit mode
 - **Visual Continuity**: Frame title bars and borders remain visible during interactive mode
 - **Mode Toggle UI**: Checkbox switch in top-right corner for interactive mode, "Comment Mode" chip for comment mode
+- **Escape Shortcuts**: `Esc` exits interactive mode back to edit mode, or leaves Comment Mode when nothing is selected
 - **JS Interception**: Prevents interactive element clicks in edit mode, but allows them in comment mode
-- **Key relationships**: 
+- **Key relationships**:
   - Uses iframe-manager.js for iframe creation and positioning
   - Uses css-manager.js for injecting styles into iframes
   - Coordinates with comment-manager.js for Comment Mode state
