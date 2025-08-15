@@ -101,16 +101,8 @@ function setupFrameDragging(frame, titleBar) {
 
         // Account for zoom when calculating drag offset
         const zoom = window.canvasZoom ? window.canvasZoom.getCurrentZoom() : 1;
-        if (isLineDragging && currentDragging.classList.contains('line-element')) {
-            const parentRect = currentDragging.parentElement.getBoundingClientRect();
-            const startLeft = parentRect.left + (parseFloat(currentDragging.style.left) || 0) * zoom;
-            const startTop = parentRect.top + (parseFloat(currentDragging.style.top) || 0) * zoom;
-            dragOffset.x = (e.clientX - startLeft) / zoom;
-            dragOffset.y = (e.clientY - startTop) / zoom;
-        } else {
-            dragOffset.x = (e.clientX - rect.left) / zoom;
-            dragOffset.y = (e.clientY - rect.top) / zoom;
-        }
+        dragOffset.x = (e.clientX - rect.left) / zoom;
+        dragOffset.y = (e.clientY - rect.top) / zoom;
         
         currentDragging.classList.add('dragging');
         
