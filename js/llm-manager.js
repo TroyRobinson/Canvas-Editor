@@ -497,7 +497,9 @@
                     timestamp: timestamp,
                     completedAt: new Date(),
                     status: 'success',
-                    response: aiResponse
+                    response: aiResponse,
+                    script: parsedContent.script,
+                    style: parsedContent.style
                 }
             });
             document.dispatchEvent(successEvent);
@@ -629,7 +631,9 @@
                     completedAt: new Date(),
                     status: 'success',
                     response: aiResponse,
-                    customMessage: userMessage
+                    customMessage: userMessage,
+                    script: parsedContent.script,
+                    style: parsedContent.style
                 }
             });
             document.dispatchEvent(successEvent);
@@ -800,7 +804,9 @@
                     status: 'success',
                     response: aiResponse,
                     customMessage: userMessage,
-                    editMode: true
+                    editMode: true,
+                    script: parsedContent.script,
+                    style: parsedContent.style
                 }
             });
             document.dispatchEvent(successEvent);

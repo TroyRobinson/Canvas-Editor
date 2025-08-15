@@ -249,6 +249,7 @@
 
     // Handle enhancement started event
     function handleEnhancementStarted(event) {
+        cleanupStaleEntries(event.detail.frameId);
         const entry = {
             id: event.detail.id,
             frameId: event.detail.frameId,
@@ -274,7 +275,9 @@
             status: 'success',
             duration: event.detail.completedAt - event.detail.timestamp,
             customMessage: event.detail.customMessage || null,
-            editMode: event.detail.editMode || false
+            editMode: event.detail.editMode || false,
+            script: event.detail.script || '',
+            style: event.detail.style || ''
         };
 
         updateHistoryEntry(entry);
@@ -382,7 +385,7 @@
     // Create a history card element
     function createHistoryCard(entry) {
         const card = document.createElement('div');
-        card.className = `history-card status-${entry.status}`;
+        card.className = `history-card status-${entry.status}${entry.isStale ? ' stale' : ''}`;
         card.dataset.entryId = entry.id;
         card.dataset.selectable = 'false'; // Prevent canvas selection system
 
@@ -394,14 +397,21 @@
         // Determine what to show in the card body
         const displayContent = entry.customMessage ? entry.customMessage : entry.frameTitle;
         const modeIndicator = entry.editMode ? ' (Edit)' : '';
-        
+
+        const revertButton = entry.status === 'success'
+            ? `<button class="revert-btn" data-selectable="false" title="Revert to this generation">↩</button>`
+            : '';
+
         card.innerHTML = `
             <div class="card-header">
                 <div class="card-status">
                     <span class="status-icon">${statusIcon}</span>
                     <span class="status-text">${statusText}${durationText}${modeIndicator}</span>
                 </div>
-                <div class="card-time">${timeStr}</div>
+                <div class="card-meta">
+                    <div class="card-time">${timeStr}</div>
+                    ${revertButton}
+                </div>
             </div>
             <div class="card-body">
                 <div class="card-content">${displayContent}</div>
@@ -409,6 +419,11 @@
                 ${entry.error ? `<div class="error-message">${entry.error}</div>` : ''}
             </div>
         `;
+
+        if (entry.status === 'success') {
+            const revertBtn = card.querySelector('.revert-btn');
+            revertBtn.addEventListener('click', () => handleRevert(entry));
+        }
 
         return card;
     }
@@ -476,5 +491,33 @@
             renderHistory();
         }
     };
+
+    function cleanupStaleEntries(frameId) {
+        const originalLength = enhancementHistory.length;
+        enhancementHistory = enhancementHistory.filter(entry => !(entry.frameId === frameId && entry.isStale));
+        if (enhancementHistory.length !== originalLength) {
+            renderHistory();
+        }
+    }
+
+    function handleRevert(entry) {
+        const frame = document.getElementById(entry.frameId);
+        if (!frame || !window.llmManager || typeof window.llmManager.insertContentIntoFrame !== 'function') {
+            return;
+        }
+
+        window.llmManager.insertContentIntoFrame(frame, {
+            script: entry.script || '',
+            style: entry.style || ''
+        });
+
+        enhancementHistory.forEach(e => {
+            if (e.frameId === entry.frameId) {
+                e.isStale = e.timestamp > entry.timestamp;
+            }
+        });
+
+        renderHistory();
+    }
 
 })();
